@@ -29,6 +29,7 @@ is not a Python migration target for this package.
 | `misc/extract_output.m` | output utility | `ssmtoolpy.misc.extract_output` | ported | piecewise differentiable |
 | `misc/spblkdiag.m` | linear algebra utility | `ssmtoolpy.misc.spblkdiag` | ported as dense JAX array | differentiable |
 | `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct, pseudoinverse, and sparse iterative solvers | differentiable under nondegeneracy assumptions |
+| `misc/linear_response.m` | linear response utility | `ssmtoolpy.misc.first_order_linear_response` and `second_order_linear_response` | functional first- and second-order branches ported | differentiable under nonsingular frequency-domain operators; amplitudes are piecewise differentiable |
 | `misc/StEP.m` | polarization utility | `ssmtoolpy.manifold.step_polynomial` | ported for orders 1-3 | differentiable if supplied callable is differentiable |
 | `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
 | `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
@@ -141,6 +142,10 @@ Known blockers and design work:
   solver names. JAX provides `cg`, `bicgstab`, and `gmres`; MATLAB names without
   exact JAX equivalents are mapped conservatively (`bicg`/`cgs` to `bicgstab`,
   `lsqr` to `gmres`).
+- `linear_response` is ported as functional kernels instead of a method taking
+  the mutable MATLAB `DS` object. The second-order helper has an explicit
+  `conjugate_symmetric=True` option for MATLAB's common two-harmonic
+  conjugate-pair layout.
 - `proj2SSM` nonlinear optimization is not ported as an optimizer. The
   differentiable objective is exposed for use with a future JAX optimizer.
 - MATLAB `squaDist2pointSSM.m` calls `reduced_to_full(x,W_0)` although the local

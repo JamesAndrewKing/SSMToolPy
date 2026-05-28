@@ -60,6 +60,26 @@ class AutoReducedDynamicsData(NamedTuple):
     kappa: Array
 
 
+class LinearResponseResult(NamedTuple):
+    """Periodic linear-response samples and amplitudes.
+
+    ``response`` has shape ``(n_omega, n_state, nt)``. ``z_norm`` is the
+    MATLAB Frobenius/L2-like norm for each sampled frequency, and ``a_out`` is
+    the infinity-norm amplitude at selected output coordinates.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric fields from the linear-response
+    kernels are differentiable under nonsingular frequency-domain operators and
+    away from infinity-norm ties.
+    """
+
+    response: Array
+    z_norm: Array
+    a_out: Array
+    phi: Array
+
+
 def _as_column(points: Array) -> Array:
     points = jnp.asarray(points)
     if points.ndim == 1:
@@ -298,6 +318,129 @@ def project_to_ssm_linear(z0: Array, left_eigenvectors: Array, b_matrix: Array) 
     """
 
     return jnp.conj(jnp.asarray(left_eigenvectors)).T @ jnp.asarray(b_matrix) @ jnp.asarray(z0)
+
+
+def _linear_response_summary(response: Array, outdof: Array | None) -> tuple[Array, Array]:
+    nt = response.shape[-1]
+    z_norm = jnp.linalg.norm(response, axis=(-2, -1)) / jnp.sqrt(nt - 1)
+    if outdof is None:
+        return z_norm, jnp.zeros((response.shape[0],), dtype=response.real.dtype)
+    z_out = response[:, jnp.asarray(outdof, dtype=jnp.int32), :]
+    a_out = jnp.max(jnp.abs(z_out), axis=(-2, -1))
+    return z_norm, a_out
+
+
+def first_order_linear_response(
+    a_matrix: Array,
+    b_matrix: Array,
+    kappas: Array,
+    coefficients: Array,
+    omegas: Array,
+    *,
+    epsilon: float | Array = 1.0,
+    outdof: Array | None = None,
+    nt: int = 128,
+) -> LinearResponseResult:
+    """Compute linear periodic response for first-order systems.
+
+    This ports the ``DS.order ~= 2`` branch of MATLAB ``linear_response.m``:
+    for each sampled forcing frequency ``Omega`` and harmonic ``kappa``, solve
+    ``(A - i*kappa*Omega*B) z_kappa = F_kappa`` and reconstruct
+    ``epsilon * real(sum_k z_kappa exp(i*kappa*phi))``.
+
+    Python shapes are ``coefficients.shape == (n_state, n_kappa)`` and
+    ``response.shape == (n_omega, n_state, nt)``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to matrices, coefficients, frequencies and
+    ``epsilon`` under nonsingular frequency-domain operators. Amplitudes are
+    piecewise differentiable because they use an infinity norm.
+    """
+
+    a_matrix = jnp.asarray(a_matrix)
+    b_matrix = jnp.asarray(b_matrix)
+    kappas = jnp.asarray(kappas)
+    coefficients = jnp.asarray(coefficients)
+    omegas = jnp.asarray(omegas)
+    phi = jnp.linspace(0.0, 2.0 * jnp.pi, nt)
+
+    def solve_at_omega(omega: Array) -> Array:
+        operators = a_matrix[None, :, :] - 1j * (kappas * omega)[:, None, None] * b_matrix[None, :, :]
+        rhs = coefficients.T
+        return jax.vmap(jnp.linalg.solve)(operators, rhs).T
+
+    modal = jax.vmap(solve_at_omega)(omegas)
+    phases = jnp.exp(1j * kappas[:, None] * phi[None, :])
+    response = jnp.asarray(epsilon) * jnp.real(jnp.einsum("wsk,kt->wst", modal, phases))
+    z_norm, a_out = _linear_response_summary(response, outdof)
+    return LinearResponseResult(response, z_norm, a_out, phi)
+
+
+def second_order_linear_response(
+    mass: Array,
+    damping: Array,
+    stiffness: Array,
+    kappas: Array,
+    coefficients: Array,
+    omegas: Array,
+    *,
+    epsilon: float | Array = 1.0,
+    outdof: Array | None = None,
+    nt: int = 128,
+    conjugate_symmetric: bool = False,
+) -> LinearResponseResult:
+    """Compute linear periodic response for second-order mechanical systems.
+
+    This ports the ``DS.order == 2`` branch of MATLAB ``linear_response.m``.
+    The direct path solves
+    ``(-kappa^2 Omega^2 M + i*kappa*Omega C + K) x_kappa = f_kappa`` for every
+    supplied harmonic. With ``conjugate_symmetric=True``, only the first
+    harmonic is solved and later harmonic columns are filled by MATLAB's
+    recursive conjugation convention; this matches the common two-harmonic
+    ``(+kappa, -kappa)`` forcing layout used by SSMTool.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to matrices, coefficients, frequencies and
+    ``epsilon`` under nonsingular dynamic stiffness matrices. Amplitudes are
+    piecewise differentiable because they use an infinity norm. The
+    ``conjugate_symmetric`` branch is a static discrete convention.
+    """
+
+    mass = jnp.asarray(mass)
+    damping = jnp.asarray(damping)
+    stiffness = jnp.asarray(stiffness)
+    kappas = jnp.asarray(kappas)
+    coefficients = jnp.asarray(coefficients)
+    omegas = jnp.asarray(omegas)
+    phi = jnp.linspace(0.0, 2.0 * jnp.pi, nt)
+
+    def solve_all_at_omega(omega: Array) -> Array:
+        k_omega = kappas * omega
+        operators = (
+            stiffness[None, :, :]
+            - (k_omega**2)[:, None, None] * mass[None, :, :]
+            + 1j * k_omega[:, None, None] * damping[None, :, :]
+        )
+        rhs = coefficients.T
+        return jax.vmap(jnp.linalg.solve)(operators, rhs).T
+
+    def solve_conjugate_at_omega(omega: Array) -> Array:
+        k_omega = kappas[0] * omega
+        operator = stiffness - k_omega**2 * mass + 1j * k_omega * damping
+        first = jnp.linalg.solve(operator, coefficients[:, 0])
+        columns = [first]
+        for _ in range(1, kappas.shape[0]):
+            columns.append(jnp.conj(columns[-1]))
+        return jnp.stack(columns, axis=1)
+
+    solver = solve_conjugate_at_omega if conjugate_symmetric else solve_all_at_omega
+    modal = jax.vmap(solver)(omegas)
+    phases = jnp.exp(1j * kappas[:, None] * phi[None, :])
+    response = jnp.asarray(epsilon) * jnp.real(jnp.einsum("wsk,kt->wst", modal, phases))
+    z_norm, a_out = _linear_response_summary(response, outdof)
+    return LinearResponseResult(response, z_norm, a_out, phi)
 
 
 def nonlinear_projection_objective(

@@ -9,10 +9,12 @@ from ssmtoolpy import (
     ProjectionData,
     auto_red_dyn,
     extract_output,
+    first_order_linear_response,
     nonlinear_projection_objective,
     project_to_ssm_linear,
     real_to_conjugate_state,
     reduced_to_full_traj,
+    second_order_linear_response,
     solve_invariance_equation,
     spblkdiag,
     squared_distance_to_point_ssm,
@@ -116,3 +118,72 @@ def test_projection_helpers_and_distance_objective():
 
     q = project_to_ssm_linear(jnp.array([3.0, 4.0, 5.0]), jnp.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]), jnp.eye(3))
     np.testing.assert_allclose(np.asarray(q), np.array([8.0, 9.0]))
+
+
+def test_first_order_linear_response_matches_frequency_domain_solve_and_transforms():
+    a_matrix = jnp.array([[-2.0, 0.0], [0.0, -3.0]])
+    b_matrix = jnp.eye(2)
+    kappas = jnp.array([1.0, -1.0])
+    coeffs = jnp.array([[1.0 + 0.5j, 1.0 - 0.5j], [0.25 - 0.5j, 0.25 + 0.5j]])
+    omegas = jnp.array([0.5, 1.25])
+
+    result = first_order_linear_response(a_matrix, b_matrix, kappas, coeffs, omegas, epsilon=0.2, outdof=jnp.array([0]), nt=16)
+    phi = jnp.linspace(0.0, 2.0 * jnp.pi, 16)
+    modal0 = jnp.stack(
+        [
+            jnp.linalg.solve(a_matrix - 1j * kappas[0] * omegas[0] * b_matrix, coeffs[:, 0]),
+            jnp.linalg.solve(a_matrix - 1j * kappas[1] * omegas[0] * b_matrix, coeffs[:, 1]),
+        ],
+        axis=1,
+    )
+    expected0 = 0.2 * jnp.real(modal0 @ jnp.exp(1j * kappas[:, None] * phi[None, :]))
+    np.testing.assert_allclose(np.asarray(result.response[0]), np.asarray(expected0), rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(np.asarray(result.a_out[0]), np.max(np.abs(np.asarray(expected0[0]))), rtol=1e-6)
+
+    jit_value = jax.jit(lambda omega: first_order_linear_response(a_matrix, b_matrix, kappas, coeffs, omega, nt=8).response)(omegas)
+    assert jit_value.shape == (2, 2, 8)
+    jac = jax.jacfwd(lambda omega: first_order_linear_response(a_matrix, b_matrix, kappas, coeffs, omega, nt=8).z_norm)(omegas)
+    assert jac.shape == (2, 2)
+
+
+def test_second_order_linear_response_matches_scalar_oscillator_and_grad():
+    mass = jnp.array([[2.0]])
+    damping = jnp.array([[0.1]])
+    stiffness = jnp.array([[5.0]])
+    kappas = jnp.array([1.0, -1.0])
+    coeffs = jnp.array([[1.0 + 0.2j, 1.0 - 0.2j]])
+    omegas = jnp.array([0.75, 1.5])
+
+    result = second_order_linear_response(mass, damping, stiffness, kappas, coeffs, omegas, epsilon=0.3, outdof=jnp.array([0]), nt=32)
+    phi = jnp.linspace(0.0, 2.0 * jnp.pi, 32)
+    dynamic0 = stiffness[0, 0] - (kappas * omegas[0]) ** 2 * mass[0, 0] + 1j * kappas * omegas[0] * damping[0, 0]
+    modal0 = coeffs[0] / dynamic0
+    expected0 = 0.3 * jnp.real(modal0 @ jnp.exp(1j * kappas[:, None] * phi[None, :]))
+    np.testing.assert_allclose(np.asarray(result.response[0, 0]), np.asarray(expected0), rtol=1e-6, atol=1e-6)
+
+    grad = jax.grad(lambda omega: jnp.sum(second_order_linear_response(mass, damping, stiffness, kappas, coeffs, jnp.array([omega]), nt=16).z_norm))(0.9)
+    assert np.isfinite(np.asarray(grad))
+
+
+def test_second_order_linear_response_conjugate_symmetric_branch_matches_matlab_convention():
+    mass = jnp.array([[1.0]])
+    damping = jnp.array([[0.2]])
+    stiffness = jnp.array([[4.0]])
+    kappas = jnp.array([1.0, -1.0])
+    coeffs = jnp.array([[2.0 + 1.0j, 0.0 + 0.0j]])
+    omega = jnp.array([0.5])
+
+    result = second_order_linear_response(
+        mass,
+        damping,
+        stiffness,
+        kappas,
+        coeffs,
+        omega,
+        nt=12,
+        conjugate_symmetric=True,
+    )
+    first = coeffs[0, 0] / (stiffness[0, 0] - omega[0] ** 2 * mass[0, 0] + 1j * omega[0] * damping[0, 0])
+    phi = jnp.linspace(0.0, 2.0 * jnp.pi, 12)
+    expected = jnp.real(jnp.array([first, jnp.conj(first)]) @ jnp.exp(1j * kappas[:, None] * phi[None, :]))
+    np.testing.assert_allclose(np.asarray(result.response[0, 0]), np.asarray(expected), rtol=1e-6, atol=1e-6)

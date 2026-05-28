@@ -208,7 +208,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
 | `misc/isocurve3.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/khatri_rao_product.m` | core kernel | `ssmtoolpy.tensor.khatri_rao_product` | ported | differentiable |
-| `misc/linear_response.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/linear_response.m` | linear response utility | `ssmtoolpy.misc.first_order_linear_response` and `second_order_linear_response` | functional first- and second-order branches ported | differentiable under nonsingular frequency-domain operators; amplitudes are piecewise differentiable |
 | `misc/monitor_memory.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/multi_index_to_tensor.m` | conversion utility | `ssmtoolpy.multi_index.multi_index_to_tensor` | ported for dense tensors | not differentiable |
 | `misc/nsumk.m` | core utility | `ssmtoolpy.multi_index.nsumk` | ported | not differentiable |

@@ -59,6 +59,7 @@ Ported:
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
 - dense and JAX `BCOO` sparse tensor Tucker-style products and row-pattern tensor composition
+- first- and second-order linear frequency-response kernels
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps

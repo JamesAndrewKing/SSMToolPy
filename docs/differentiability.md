@@ -42,6 +42,9 @@
 | `spblkdiag` | differentiable | Dense block diagonal assembly; tested with `jax.jacfwd`. |
 | `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; `pinv`/`lsqminnorm` assume stable rank; iterative names use `jax.scipy.sparse.linalg` implicit linear solves. |
 | `auto_red_dyn` | differentiable | For fixed integer exponent matrix; tested with `jax.grad`. |
+| `LinearResponseResult` | not differentiable | Result container. Numeric fields from response kernels carry value differentiability. |
+| `first_order_linear_response` | differentiable under nondegeneracy assumptions | Requires nonsingular `A - i*kappa*Omega*B`; response and norms tested with `jax.jit`/`jax.jacfwd`. Output amplitudes are piecewise differentiable because they use infinity norms. |
+| `second_order_linear_response` | differentiable under nondegeneracy assumptions | Requires nonsingular dynamic stiffness matrices; tested with `jax.grad`. The `conjugate_symmetric` convention is static/discrete, and amplitudes are piecewise differentiable. |
 | `ProjectionData` | not differentiable | Index-data container. |
 | `AutoReducedDynamicsData` | not differentiable | Data container; `auto_red_dyn` carries value differentiability. |
 | `OutputSummary` | not differentiable | Result container. |
