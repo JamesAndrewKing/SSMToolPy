@@ -1,0 +1,66 @@
+# Migration Report
+
+## Scope
+
+`SSMTool/` is treated as immutable MATLAB reference code. This Python package
+starts with low-level kernels from `SSMTool/src/misc`, `SSMTool/src/frc`, and
+selected private multi-index helpers used by manifold coefficient assembly.
+
+Bundled third-party MATLAB code in `SSMTool/ext` is external dependency code and
+is not a Python migration target for this package.
+
+## MATLAB-to-Python API Mapping
+
+| MATLAB file | Category | Python destination | Status | Differentiability |
+| --- | --- | --- | --- | --- |
+| `misc/nsumk.m` | core utility | `ssmtoolpy.multi_index.nsumk` | ported | not differentiable |
+| `misc/sub2multiind.m` | core utility | `ssmtoolpy.multi_index.sub2multiind` | ported | not differentiable |
+| `misc/expand_multiindex.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex` | ported | differentiable |
+| `misc/expand_multiindex_derivative.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex_derivative` | ported | differentiable |
+| `misc/tensor_to_multi_index.m` | conversion utility | `ssmtoolpy.multi_index.tensor_to_multi_index` | ported for dense tensors | not differentiable |
+| `misc/multi_index_to_tensor.m` | conversion utility | `ssmtoolpy.multi_index.multi_index_to_tensor` | ported for dense tensors | not differentiable |
+| `misc/khatri_rao_product.m` | core kernel | `ssmtoolpy.tensor.khatri_rao_product` | ported | differentiable |
+| `misc/expand_tensor.m` | core kernel | `ssmtoolpy.tensor.expand_tensor` | ported for dense tensors | differentiable |
+| `misc/expand_tensor_derivative.m` | core kernel | `ssmtoolpy.tensor.expand_tensor_derivative` | ported for dense tensors | differentiable |
+| `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable for fixed structure |
+| `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |
+| `frc/frc_ab.m` and `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
+| `@Manifold/private/multi_addition.m` | core utility | `ssmtoolpy.multi_index.multi_addition` | ported | not differentiable |
+| `@Manifold/private/multi_subtraction.m` | core utility | `ssmtoolpy.multi_index.multi_subtraction` | ported | not differentiable |
+| `@Manifold/private/multi_index_2_ordering.m` | core utility | `ssmtoolpy.multi_index.multi_index_2_ordering` | ported | not differentiable |
+| `@Manifold/private/multi_nsumk.m` | core utility | `ssmtoolpy.multi_index.multi_nsumk` | ported | not differentiable |
+
+## Source Inventory Summary
+
+`SSMTool/src` contains 230 MATLAB files:
+
+- `@DynamicalSystem`: high-level dynamical-system model class, forcing,
+  nonlinear force evaluation, and spectral analysis.
+- `@Manifold`: autonomous/non-autonomous SSM coefficient assembly, invariance
+  equations, multi-index bookkeeping, and output helpers.
+- `@SSM`: continuation, FRC/FRS extraction, stability diagrams, COCO wrappers,
+  and plotting/output code.
+- `frc`: compact FRC algebra and fixed-point helpers.
+- `misc`: low-level polynomial/tensor kernels, reconstruction helpers, plotting,
+  solution readers, and numerical utilities.
+- option classes: `DSOptions.m`, `ManifoldOptions.m`, `FRCOptions.m`,
+  `FRSOptions.m`.
+
+The complete per-file inventory is in `docs/migration_inventory.md`.
+
+## Not Yet Ported
+
+Most high-level SSM workflows remain unported: class APIs, spectral subspace
+selection, cohomological equation solvers, intrusive/semi-intrusive force
+assembly, COCO continuation wrappers, plotting, solution readers, examples, and
+large finite-element model builders.
+
+Known blockers and design work:
+
+- MATLAB sparse `sptensor` support needs a Python representation or dense/sparse
+  split API.
+- Eigenvector sorting, nullspaces, rank decisions, resonant-mode detection, and
+  continuation/event routines require explicit nondegeneracy assumptions before
+  differentiability can be claimed.
+- MATLAB/Octave reference fixture generation has not yet been run in this
+  environment.

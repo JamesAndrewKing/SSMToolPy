@@ -1,0 +1,24 @@
+{
+  "generated_by": "MATLAB R2024b",
+  "command": "MATLAB R2024b spot checks for nsumk, sub2multiind, multi_subtraction, and multi_nsumk",
+  "fixtures": {
+    "nsumk_3_2_nonnegative": [[0, 0, 2], [0, 1, 1], [0, 2, 0], [1, 0, 1], [1, 1, 0], [2, 0, 0]],
+    "sub2multiind_examples": [[2, 0, 1], [0, 1, 2]],
+    "multi_subtraction_identity": {
+      "res": [[0, 1, 0, 2, 1, 0], [0, 1, 1, 0, 0, 2], [1, 0, 1, 0, 0, 0]],
+      "i_minu_matlab_one_based": [1, 3, 2, 3, 1, 2],
+      "i_subt_matlab_one_based": [1, 1, 2, 2, 3, 3]
+    },
+    "multi_subtraction_unit": {
+      "res": [[0, 1, 0, 1, 0, 2, 1, 0], [0, 1, 0, 1, 1, 0, 0, 2], [1, 0, 1, 0, 1, 0, 0, 0]],
+      "i_minu_matlab_one_based": [1, 3, 1, 3, 2, 3, 1, 2],
+      "i_subt_matlab_one_based": [1, 1, 4, 4, 2, 2, 3, 3]
+    },
+    "multi_nsumk_2_vector_2_1": {
+      "all": [[[0, 1, 2, 0, 1, 2], [2, 1, 0, 2, 1, 0]], [[0, 0, 0, 1, 1, 1], [1, 1, 1, 0, 0, 0]]],
+      "remove_zero": [[[1, 2, 0, 1], [1, 0, 2, 1]], [[0, 0, 1, 1], [1, 1, 0, 0]]],
+      "unique_remove_zero": [[[1, 0], [1, 2]], [[0, 1], [1, 0]]],
+      "unique_remove_zero_multiplicity": [2, 2]
+    }
+  }
+}

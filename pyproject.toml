@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ssmtoolpy"
+version = "0.1.0"
+description = "Python/JAX port of selected SSMTool numerical kernels."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "SSMToolPy contributors" }]
+dependencies = [
+  "jax>=0.4.28",
+  "jaxlib>=0.4.28",
+]
+
+[project.optional-dependencies]
+test = [
+  "numpy>=1.26",
+  "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+

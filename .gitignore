@@ -1,0 +1,18 @@
+*.m~
+# ASV files
+*.asv
+# Data files
+*.mat
+# Figures
+*.fig
+*.eps
+*.png
+*.lsf
+# text files
+coco_scr.txt
+coco_log.txt
+diary
+# DS Store binary files
+.DS_Store
+# Matlab SSMTool
+/SSMTool/
