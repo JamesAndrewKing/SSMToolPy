@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from math import comb
-from typing import Literal, NamedTuple
+from typing import Callable, Literal, NamedTuple
 
 import jax.numpy as jnp
 
-from ssmtoolpy.multi_index import MultiIndexPolynomial, multi_addition, multi_index_2_ordering, multi_subtraction, nsumk
+from ssmtoolpy.multi_index import MultiIndexPolynomial, multi_addition, multi_index_2_ordering, multi_nsumk, multi_subtraction, nsumk
 
 
 Array = jnp.ndarray
@@ -121,6 +121,15 @@ def _forcing_kappa(item: object) -> Array:
 
 def _series_terms(series: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...]) -> tuple[MultiIndexPolynomial, ...]:
     return series.terms if isinstance(series, NonAutonomousCoefficientSeries) else tuple(series)
+
+
+def _polynomial_vector(terms: tuple[MultiIndexPolynomial, ...], order: int, idx: int, input_dim: int) -> Array | None:
+    if order <= 0 or order > len(terms):
+        return None
+    coeffs = terms[order - 1].coeffs
+    if coeffs.size == 0 or idx < 0 or idx >= coeffs.shape[1]:
+        return None
+    return coeffs[:input_dim, idx]
 
 
 def check_ds_type(
@@ -430,6 +439,190 @@ def nonautonomous_w1r0_plus_w0r1(
                 ordering=ordering,
                 explicit_indices=True,
             )
+    return result
+
+
+def step_polynomial(
+    function: Callable[[Array], Array],
+    vectors: tuple[Array, ...],
+    multi_indices: Array,
+    nonlinear_order: int,
+) -> Array:
+    """Evaluate the symmetric multilinear part of a non-intrusive polynomial.
+
+    Ports ``misc/StEP.m`` for polynomial orders one through three. The helper
+    reconstructs the homogeneous multilinear contribution from calls to a
+    nonlinear function handle, including the complex-input correction used by
+    the MATLAB implementation.
+
+    Differentiability
+    -----------------
+    Differentiable if ``function`` is JAX-transformable. The order-dependent
+    polarization branch is static/discrete.
+    """
+
+    if nonlinear_order < 1 or nonlinear_order > 3:
+        raise NotImplementedError("step_polynomial currently ports MATLAB StEP orders 1, 2, and 3")
+    if len(vectors) != nonlinear_order:
+        raise ValueError("vectors length must match nonlinear_order")
+
+    vectors = tuple(jnp.asarray(vector) for vector in vectors)
+    m = jnp.asarray(multi_indices)
+    if m.ndim == 1:
+        m = m[:, None]
+    columns = [tuple(int(value) for value in m[:, col].tolist()) for col in range(m.shape[1])]
+    unique_columns: list[tuple[int, ...]] = []
+    inverse: list[int] = []
+    for column in columns:
+        if column not in unique_columns:
+            unique_columns.append(column)
+        inverse.append(unique_columns.index(column))
+    multiplicities = [inverse.count(idx) for idx in range(len(unique_columns))]
+
+    if nonlinear_order == 1:
+        v1 = vectors[0]
+        return 0.5 * (function(v1) - function(-v1))
+
+    def f2(vector: Array) -> Array:
+        return 1j * function(jnp.real(vector) + jnp.imag(vector)) + (1 - 1j) * function(jnp.real(vector)) - (1 + 1j) * function(jnp.imag(vector))
+
+    if nonlinear_order == 2:
+        v1, v2 = vectors
+        if len(unique_columns) == 1:
+            return 0.5 * (f2(v1) + f2(-v1))
+        return 0.25 * (f2(v1 + v2) + f2(-v1 - v2) - f2(v1 - v2) - f2(-v1 + v2))
+
+    def f3(vector: Array) -> Array:
+        return 2 * function(jnp.real(vector)) + ((-1 + 1j) / 2) * function(jnp.real(vector) + jnp.imag(vector)) - ((1 + 1j) / 2) * function(
+            jnp.real(vector) - jnp.imag(vector)
+        ) - 2j * function(jnp.imag(vector))
+
+    def h(vector: Array) -> Array:
+        return 0.5 * (f3(vector) - f3(-vector))
+
+    if len(unique_columns) == 1:
+        return h(vectors[0])
+    if len(unique_columns) == 2:
+        repeated_unique = multiplicities.index(2)
+        single_unique = multiplicities.index(1)
+        v1 = vectors[inverse.index(repeated_unique)]
+        v2 = vectors[inverse.index(single_unique)]
+        return 0.5 * (h(v1 + v2) - h(v1 - v2)) - h(v2)
+    v1, v2, v3 = vectors
+    return h(v1 + v2 + v3) - h(v1 + v2) - h(v1 + v3) - h(v2 + v3) + h(v1) + h(v2) + h(v3)
+
+
+def fnl_nonintrusive(
+    function: Callable[[Array], Array],
+    w: tuple[MultiIndexPolynomial, ...],
+    nonlinear_order: int,
+    k_indices: Array,
+    *,
+    input_dim: int,
+    ordering: Ordering = "revlex",
+) -> Array:
+    """Compose a non-intrusive nonlinearity with autonomous SSM coefficients.
+
+    This ports the reverse-lexicographic branch of
+    ``@Manifold/private/fnl_nonIntrusive.m``. Conjugate-order symmetry remains
+    part of the later cohomological-solver layer.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values if ``function`` is
+    JAX-transformable and the multi-index structure is fixed.
+    """
+
+    if ordering != "revlex":
+        raise NotImplementedError("Only revlex non-intrusive composition is ported")
+    k_indices = jnp.asarray(k_indices, dtype=jnp.int32)
+    if k_indices.ndim == 1:
+        k_indices = k_indices[:, None]
+    output_dim = w[0].coeffs.shape[0]
+    result = jnp.zeros((output_dim, k_indices.shape[1]), dtype=jnp.result_type(*(poly.coeffs for poly in w), 1j))
+
+    for col in range(k_indices.shape[1]):
+        combos, _, _, _, _ = multi_nsumk(nonlinear_order, k_indices[:, col], unique=True)
+        pages = combos[0][0]
+        column_value = jnp.zeros((output_dim,), dtype=result.dtype)
+        for page_idx in range(pages.shape[2]):
+            page = pages[:, :, page_idx]
+            orders = jnp.sum(page, axis=0)
+            if bool(jnp.any(orders == 0)):
+                continue
+            vectors = []
+            empty = False
+            for arg_idx in range(nonlinear_order):
+                subindex = int(multi_index_2_ordering(page[:, arg_idx : arg_idx + 1], ordering)[0]) - 1
+                vector = _polynomial_vector(w, int(orders[arg_idx]), subindex, input_dim)
+                if vector is None:
+                    empty = True
+                    break
+                vectors.append(vector)
+            if not empty:
+                column_value = column_value + step_polynomial(function, tuple(vectors), page, nonlinear_order)
+        result = result.at[:, col].set(column_value)
+    return result
+
+
+def fnl_semi_intrusive(
+    function: Callable[[tuple[Array, ...]], Array],
+    w: tuple[MultiIndexPolynomial, ...],
+    nonlinear_order: int,
+    k_indices: Array,
+    *,
+    input_dim: int,
+    ordering: Ordering = "revlex",
+    symmetric: bool = True,
+) -> Array:
+    """Compose a semi-intrusive multilinear nonlinearity with SSM coefficients.
+
+    This ports the reverse-lexicographic branch of
+    ``@Manifold/private/fnl_semiIntrusive.m``. When ``symmetric=True``, unique
+    multi-index partitions are weighted by their permutation multiplicity, as
+    in MATLAB.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values if ``function`` is
+    JAX-transformable and the multi-index structure is fixed.
+    """
+
+    if ordering != "revlex":
+        raise NotImplementedError("Only revlex semi-intrusive composition is ported")
+    k_indices = jnp.asarray(k_indices, dtype=jnp.int32)
+    if k_indices.ndim == 1:
+        k_indices = k_indices[:, None]
+    output_dim = w[0].coeffs.shape[0]
+    result = jnp.zeros((output_dim, k_indices.shape[1]), dtype=jnp.result_type(*(poly.coeffs for poly in w)))
+
+    for col in range(k_indices.shape[1]):
+        if symmetric:
+            combos, _, _, _, multiplicities = multi_nsumk(nonlinear_order, k_indices[:, col], unique=True)
+            pages = combos[0][0]
+            weights = multiplicities[0][0]
+        else:
+            combos, _, _, _ = multi_nsumk(nonlinear_order, k_indices[:, col])
+            pages = combos[0][0]
+            weights = jnp.ones((pages.shape[2],), dtype=jnp.int32)
+        column_value = jnp.zeros((output_dim,), dtype=result.dtype)
+        for page_idx in range(pages.shape[2]):
+            page = pages[:, :, page_idx]
+            orders = jnp.sum(page, axis=0)
+            if bool(jnp.any(orders == 0)):
+                continue
+            vectors = []
+            empty = False
+            for arg_idx in range(nonlinear_order):
+                subindex = int(multi_index_2_ordering(page[:, arg_idx : arg_idx + 1], ordering)[0]) - 1
+                vector = _polynomial_vector(w, int(orders[arg_idx]), subindex, input_dim)
+                if vector is None:
+                    empty = True
+                    break
+                vectors.append(vector)
+            if not empty:
+                column_value = column_value + weights[page_idx] * function(tuple(vectors))
+        result = result.at[:, col].set(column_value)
     return result
 
 

@@ -10,10 +10,13 @@ from ssmtoolpy import (
     check_ds_type,
     coeffs_composition,
     coeffs_mixed_terms,
+    fnl_nonintrusive,
+    fnl_semi_intrusive,
     nonautonomous_conjugate_reduction,
     nonautonomous_resonant_terms,
     nonautonomous_struct_setup,
     nonautonomous_w1r0_plus_w0r1,
+    step_polynomial,
 )
 
 
@@ -199,3 +202,62 @@ def test_nonautonomous_w1r0_plus_w0r1_source_derived_and_grad():
 
     grad = jax.grad(scalar)(w0_order_2.coeffs.ravel())
     np.testing.assert_allclose(np.asarray(grad), np.array([1.0, 2.0, 3.0, 1.0, 2.0, 3.0]), rtol=1e-6)
+
+
+def test_step_polynomial_quadratic_polarization_and_grad():
+    def nonlinear(vector):
+        return vector**2
+
+    v1 = jnp.array([1.0, 3.0])
+    v2 = jnp.array([2.0, 4.0])
+    same = step_polynomial(nonlinear, (v1, v1), jnp.array([[1, 1], [0, 0]], dtype=jnp.int32), 2)
+    mixed = step_polynomial(nonlinear, (v1, v2), jnp.array([[1, 0], [0, 1]], dtype=jnp.int32), 2)
+    np.testing.assert_allclose(np.asarray(same), np.array([1.0, 9.0]), rtol=1e-6)
+    np.testing.assert_allclose(np.asarray(mixed), np.array([4.0, 24.0]), rtol=1e-6)
+
+    grad = jax.grad(lambda x: jnp.real(jnp.sum(step_polynomial(nonlinear, (x, v2), jnp.array([[1, 0], [0, 1]], dtype=jnp.int32), 2))))(v1)
+    np.testing.assert_allclose(np.asarray(grad), np.array([4.0, 8.0]), rtol=1e-6)
+
+
+def test_fnl_nonintrusive_revlex_quadratic_source_derived_and_grad():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 2.0], [3.0, 4.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    k_indices = jnp.array([[2, 1, 0], [0, 1, 2]], dtype=jnp.int32)
+
+    got = fnl_nonintrusive(lambda vector: vector**2, w, 2, k_indices, input_dim=2)
+    expected = np.array([[1.0, 4.0, 4.0], [9.0, 24.0, 16.0]])
+    np.testing.assert_allclose(np.asarray(got), expected, rtol=1e-6)
+
+    def scalar(values):
+        local_w = (MultiIndexPolynomial(coeffs=values.reshape(2, 2), ind=w[0].ind),)
+        return jnp.real(jnp.sum(fnl_nonintrusive(lambda vector: vector**2, local_w, 2, k_indices, input_dim=2)))
+
+    grad = jax.grad(scalar)(w[0].coeffs.ravel())
+    assert grad.shape == (4,)
+    assert np.all(np.isfinite(np.asarray(grad)))
+
+
+def test_fnl_semi_intrusive_revlex_symmetric_source_derived_and_grad():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 2.0], [3.0, 4.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    k_indices = jnp.array([[2, 1, 0], [0, 1, 2]], dtype=jnp.int32)
+
+    def bilinear(vectors):
+        return vectors[0] * vectors[1]
+
+    got = fnl_semi_intrusive(bilinear, w, 2, k_indices, input_dim=2, symmetric=True)
+    expected = np.array([[1.0, 4.0, 4.0], [9.0, 24.0, 16.0]])
+    np.testing.assert_allclose(np.asarray(got), expected, rtol=1e-6)
+
+    jac = jax.jacfwd(lambda coeffs: fnl_semi_intrusive(bilinear, (MultiIndexPolynomial(coeffs.reshape(2, 2), w[0].ind),), 2, k_indices, input_dim=2).reshape(-1))(
+        w[0].coeffs.ravel()
+    )
+    assert jac.shape == (6, 4)

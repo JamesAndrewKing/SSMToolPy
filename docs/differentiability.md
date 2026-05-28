@@ -80,6 +80,9 @@
 | `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |
 | `nonautonomous_struct_setup` | not differentiable | Initializes discrete non-autonomous coefficient containers and harmonic metadata. |
 | `nonautonomous_w1r0_plus_w0r1` | differentiable for fixed index structure | Non-autonomous mixed product `W1 R0 + W0 R1`; tested with `jax.grad`. |
+| `step_polynomial` | differentiable for fixed order | MATLAB `StEP` polarization for orders 1-3; differentiability depends on the supplied JAX-transformable callable. Tested with `jax.grad`. |
+| `fnl_nonintrusive` | differentiable for fixed index structure | Revlex non-intrusive Manifold force composition; uses complex polarization internally. Tested with `jax.grad`. |
+| `fnl_semi_intrusive` | differentiable for fixed index structure | Revlex semi-intrusive Manifold multilinear force composition; tested with `jax.jacfwd`. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
 | `DSOptions` | not differentiable | Configuration container. |

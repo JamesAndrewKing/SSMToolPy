@@ -77,8 +77,8 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/dfnl_nonIntrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/dfnl_semiIntrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/fnl_intrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/fnl_nonIntrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/fnl_semiIntrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/fnl_nonIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
+| `@Manifold/private/fnl_semiIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/multi_addition.m` | core utility | `ssmtoolpy.multi_index.multi_addition` | ported | not differentiable |
 | `@Manifold/private/multi_index_2_ordering.m` | core utility | `ssmtoolpy.multi_index.multi_index_2_ordering` | ported | not differentiable |
 | `@Manifold/private/multi_nsumk.m` | core utility | `ssmtoolpy.multi_index.multi_nsumk` | ported | not differentiable |
@@ -198,7 +198,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/SSM_plot_torus.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
 | `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/SSM_tor_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
-| `misc/StEP.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/StEP.m` | polarization utility | `ssmtoolpy.manifold.step_polynomial` | ported for orders 1-3 | differentiable if supplied callable is differentiable |
 | `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
 | `misc/expand_multiindex.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex` | ported | differentiable |
 | `misc/expand_multiindex_derivative.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex_derivative` | ported | differentiable |
