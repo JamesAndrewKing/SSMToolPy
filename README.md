@@ -45,6 +45,7 @@ Ported:
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
+- lex/revlex Manifold coefficient composition and mixed-term algebra
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
 - Khatri-Rao product

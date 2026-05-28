@@ -40,6 +40,7 @@ from ssmtoolpy.frc import (
     frc_psi,
     get_contour_xy,
 )
+from ssmtoolpy.manifold import coeffs_composition, coeffs_mixed_terms
 from ssmtoolpy.misc import (
     AutoReducedDynamicsData,
     OutputSummary,
@@ -83,7 +84,9 @@ __all__ = [
     "auto_red_dyn",
     "coeffs_conj2full",
     "coeffs_conj2lex",
+    "coeffs_composition",
     "coeffs_lex2revlex",
+    "coeffs_mixed_terms",
     "coeffs_output",
     "conjugate_flip",
     "conjugate_ordering",

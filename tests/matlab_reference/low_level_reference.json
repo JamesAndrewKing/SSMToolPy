@@ -71,6 +71,10 @@
       "second_order_internal_force_jacobian_x": [[1, 12], [3, 24]],
       "second_order_residual_recomputed_at_q": [16.35, 29],
       "mechanical_residual_note": "The original MATLAB spot script accidentally reused fnl evaluated at a different displacement. The Python fixture records residual.m behavior with fnl recomputed at q."
+    },
+    "manifold_coefficient_algebra": {
+      "coeffs_composition_revlex": [[[5, 1], [6, 4], [7, 4]], [[8, 9], [9, 24], [10, 16]]],
+      "coeffs_mixed_terms_revlex_aut": [[12, 15, 18], [26, 33, 40]]
     }
   }
 }

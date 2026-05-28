@@ -55,6 +55,8 @@ is not a Python migration target for this package.
 | `@Manifold/private/coeffs_lex2revlex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_lex2revlex` | ported | differentiable for fixed structures |
 | `@Manifold/private/coeffs_output.m` | coefficient output utility | `ssmtoolpy.coefficients.coeffs_output` | ported | not differentiable |
 | nested `coeffs_setup.m/conjugate_ordering` | coefficient ordering utility | `ssmtoolpy.coefficients.conjugate_ordering` | ported | not differentiable |
+| `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
+| `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
 
 ## Source Inventory Summary
 
@@ -103,5 +105,8 @@ Known blockers and design work:
 - The full mutable MATLAB `DynamicalSystem` class surface is not ported yet.
   This pass adds functional JAX kernels for nonlinear force, forcing, residual,
   and ODE RHS evaluation.
+- `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
+  and reverse-lexicographic computation. The conjugate-order branches are tied
+  to the full cohomological solver and remain unported.
 - MATLAB R2024b spot fixtures have been generated for selected low-level
   helpers; broad fixture generation for full examples remains outstanding.
