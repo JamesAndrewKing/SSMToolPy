@@ -83,6 +83,8 @@
 | `step_polynomial` | differentiable for fixed order | MATLAB `StEP` polarization for orders 1-3; differentiability depends on the supplied JAX-transformable callable. Tested with `jax.grad`. |
 | `fnl_nonintrusive` | differentiable for fixed index structure | Revlex non-intrusive Manifold force composition; uses complex polarization internally. Tested with `jax.grad`. |
 | `fnl_semi_intrusive` | differentiable for fixed index structure | Revlex semi-intrusive Manifold multilinear force composition; tested with `jax.jacfwd`. |
+| `dfnl_nonintrusive` | differentiable for fixed index structure | Revlex non-autonomous Jacobian composition; uses `step_polynomial` on the Jacobian callable. Tested with `jax.grad`. |
+| `dfnl_semi_intrusive` | differentiable for fixed index structure | Revlex non-autonomous semi-intrusive Jacobian action; tested with `jax.jacfwd`. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
 | `DSOptions` | not differentiable | Configuration container. |

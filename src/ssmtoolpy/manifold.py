@@ -626,6 +626,235 @@ def fnl_semi_intrusive(
     return result
 
 
+def _nonautonomous_vector(
+    series: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...],
+    order: int,
+    idx: int,
+    input_dim: int,
+) -> Array | None:
+    terms = _series_terms(series)
+    if order < 0 or order >= len(terms):
+        return None
+    coeffs = terms[order].coeffs
+    if coeffs.size == 0 or idx < 0 or idx >= coeffs.shape[1]:
+        return None
+    return coeffs[:input_dim, idx]
+
+
+def _dfnl_nonintrusive_at_k(
+    jacobian_function: Callable[[Array], Array],
+    nonlinear_order: int,
+    w: tuple[MultiIndexPolynomial, ...],
+    k_index: Array,
+    x_vectors: tuple[Array, ...],
+    *,
+    input_dim: int,
+    output_dim: int,
+    ordering: Ordering,
+) -> tuple[Array, ...]:
+    if nonlinear_order <= 1:
+        raise ValueError("nonlinear_order must be at least 2 for Jacobian composition")
+    combos, _, _, _, _ = multi_nsumk(nonlinear_order - 1, k_index, unique=True)
+    pages = combos[0][0]
+    values = [jnp.zeros((output_dim,), dtype=jnp.result_type(*(poly.coeffs for poly in w), *x_vectors, 1j)) for _ in x_vectors]
+
+    for page_idx in range(pages.shape[2]):
+        page = pages[:, :, page_idx]
+        orders = jnp.sum(page, axis=0)
+        if bool(jnp.any(orders == 0)):
+            continue
+        vectors = []
+        empty = False
+        for arg_idx in range(nonlinear_order - 1):
+            subindex = int(multi_index_2_ordering(page[:, arg_idx : arg_idx + 1], ordering)[0]) - 1
+            vector = _polynomial_vector(w, int(orders[arg_idx]), subindex, input_dim)
+            if vector is None:
+                empty = True
+                break
+            vectors.append(vector)
+        if empty:
+            continue
+        df_comp_w = step_polynomial(jacobian_function, tuple(vectors), page, nonlinear_order - 1)
+        for harmonic, x_value in enumerate(x_vectors):
+            values[harmonic] = values[harmonic] + df_comp_w[:, :input_dim] @ x_value
+    return tuple(values)
+
+
+def _dfnl_semi_intrusive_at_k(
+    jacobian_function: Callable[[tuple[Array, ...]], Array],
+    nonlinear_order: int,
+    w: tuple[MultiIndexPolynomial, ...],
+    k_index: Array,
+    x_vectors: tuple[Array, ...],
+    *,
+    input_dim: int,
+    output_dim: int,
+    ordering: Ordering,
+    symmetric: bool,
+) -> tuple[Array, ...]:
+    if nonlinear_order <= 1:
+        raise ValueError("nonlinear_order must be at least 2 for Jacobian composition")
+    if symmetric:
+        combos, _, _, _, multiplicities = multi_nsumk(nonlinear_order - 1, k_index, unique=True)
+        pages = combos[0][0]
+        weights = multiplicities[0][0]
+    else:
+        combos, _, _, _ = multi_nsumk(nonlinear_order - 1, k_index)
+        pages = combos[0][0]
+        weights = jnp.ones((pages.shape[2],), dtype=jnp.int32)
+
+    values = [jnp.zeros((output_dim,), dtype=jnp.result_type(*(poly.coeffs for poly in w), *x_vectors)) for _ in x_vectors]
+    for page_idx in range(pages.shape[2]):
+        page = pages[:, :, page_idx]
+        orders = jnp.sum(page, axis=0)
+        if bool(jnp.any(orders == 0)):
+            continue
+        vectors = []
+        empty = False
+        for arg_idx in range(nonlinear_order - 1):
+            subindex = int(multi_index_2_ordering(page[:, arg_idx : arg_idx + 1], ordering)[0]) - 1
+            vector = _polynomial_vector(w, int(orders[arg_idx]), subindex, input_dim)
+            if vector is None:
+                empty = True
+                break
+            vectors.append(vector)
+        if empty:
+            continue
+        for harmonic, x_value in enumerate(x_vectors):
+            values[harmonic] = values[harmonic] + weights[page_idx] * jacobian_function((x_value, *vectors))
+    return tuple(values)
+
+
+def dfnl_nonintrusive(
+    jacobian_function: Callable[[Array], Array],
+    nonlinear_order: int,
+    w: tuple[MultiIndexPolynomial, ...],
+    x_series: tuple[NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...], ...],
+    m_indices: Array,
+    *,
+    input_dim: int,
+    ordering: Ordering = "revlex",
+) -> tuple[Array, ...]:
+    """Compose a non-intrusive Jacobian with autonomous and non-autonomous SSM coefficients.
+
+    This ports the reverse-lexicographic branch of
+    ``@Manifold/private/dfnl_nonIntrusive.m``. The result is one dense array per
+    harmonic, corresponding to MATLAB ``dfnl(jj).val``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values if ``jacobian_function``
+    is JAX-transformable and the multi-index structure is fixed.
+    """
+
+    if ordering != "revlex":
+        raise NotImplementedError("Only revlex non-intrusive Jacobian composition is ported")
+    m_indices = jnp.asarray(m_indices, dtype=jnp.int32)
+    if m_indices.ndim == 1:
+        m_indices = m_indices[:, None]
+    output_dim = w[0].coeffs.shape[0]
+    if output_dim % 2 == 1:
+        input_dim = output_dim
+    dtype = jnp.result_type(*(poly.coeffs for poly in w), *[poly.coeffs for series in x_series for poly in _series_terms(series)], 1j)
+    results = [jnp.zeros((output_dim, m_indices.shape[1]), dtype=dtype) for _ in x_series]
+
+    for col in range(m_indices.shape[1]):
+        partitions, _, _, _ = multi_nsumk(2, m_indices[:, col])
+        pages = partitions[0][0]
+        column_values = [jnp.zeros((output_dim,), dtype=dtype) for _ in x_series]
+        for page_idx in range(pages.shape[2]):
+            page = pages[:, :, page_idx]
+            orders = jnp.sum(page, axis=0)
+            if int(orders[0]) == 0 or int(orders[0]) < nonlinear_order - 1:
+                continue
+            k_index = page[:, 0]
+            l_index = page[:, 1]
+            l_order = int(orders[1])
+            l_subindex = int(multi_index_2_ordering(l_index[:, None], ordering)[0]) - 1
+            x_vectors = tuple(_nonautonomous_vector(series, l_order, l_subindex, input_dim) for series in x_series)
+            if any(vector is None for vector in x_vectors):
+                continue
+            contributions = _dfnl_nonintrusive_at_k(
+                jacobian_function,
+                nonlinear_order,
+                w,
+                k_index,
+                x_vectors,  # type: ignore[arg-type]
+                input_dim=input_dim,
+                output_dim=output_dim,
+                ordering=ordering,
+            )
+            column_values = [current + contribution for current, contribution in zip(column_values, contributions, strict=True)]
+        for harmonic, value in enumerate(column_values):
+            results[harmonic] = results[harmonic].at[:, col].set(value)
+    return tuple(results)
+
+
+def dfnl_semi_intrusive(
+    jacobian_function: Callable[[tuple[Array, ...]], Array],
+    nonlinear_order: int,
+    w: tuple[MultiIndexPolynomial, ...],
+    x_series: tuple[NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...], ...],
+    m_indices: Array,
+    *,
+    input_dim: int,
+    ordering: Ordering = "revlex",
+    symmetric: bool = True,
+) -> tuple[Array, ...]:
+    """Compose a semi-intrusive Jacobian with autonomous and non-autonomous SSM coefficients.
+
+    This ports the reverse-lexicographic branch of
+    ``@Manifold/private/dfnl_semiIntrusive.m``. The result is one dense array per
+    harmonic, corresponding to MATLAB ``dfnl(jj).val``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values if ``jacobian_function``
+    is JAX-transformable and the multi-index structure is fixed.
+    """
+
+    if ordering != "revlex":
+        raise NotImplementedError("Only revlex semi-intrusive Jacobian composition is ported")
+    m_indices = jnp.asarray(m_indices, dtype=jnp.int32)
+    if m_indices.ndim == 1:
+        m_indices = m_indices[:, None]
+    output_dim = w[0].coeffs.shape[0]
+    dtype = jnp.result_type(*(poly.coeffs for poly in w), *[poly.coeffs for series in x_series for poly in _series_terms(series)])
+    results = [jnp.zeros((output_dim, m_indices.shape[1]), dtype=dtype) for _ in x_series]
+
+    for col in range(m_indices.shape[1]):
+        partitions, _, _, _ = multi_nsumk(2, m_indices[:, col])
+        pages = partitions[0][0]
+        column_values = [jnp.zeros((output_dim,), dtype=dtype) for _ in x_series]
+        for page_idx in range(pages.shape[2]):
+            page = pages[:, :, page_idx]
+            orders = jnp.sum(page, axis=0)
+            if int(orders[0]) == 0 or int(orders[0]) < nonlinear_order - 1:
+                continue
+            k_index = page[:, 0]
+            l_index = page[:, 1]
+            l_order = int(orders[1])
+            l_subindex = int(multi_index_2_ordering(l_index[:, None], ordering)[0]) - 1
+            x_vectors = tuple(_nonautonomous_vector(series, l_order, l_subindex, input_dim) for series in x_series)
+            if any(vector is None for vector in x_vectors):
+                continue
+            contributions = _dfnl_semi_intrusive_at_k(
+                jacobian_function,
+                nonlinear_order,
+                w,
+                k_index,
+                x_vectors,  # type: ignore[arg-type]
+                input_dim=input_dim,
+                output_dim=output_dim,
+                ordering=ordering,
+                symmetric=symmetric,
+            )
+            column_values = [current + contribution for current, contribution in zip(column_values, contributions, strict=True)]
+        for harmonic, value in enumerate(column_values):
+            results[harmonic] = results[harmonic].at[:, col].set(value)
+    return tuple(results)
+
+
 def coeffs_composition(
     w0: tuple[MultiIndexPolynomial, ...],
     h: tuple[Array, ...],

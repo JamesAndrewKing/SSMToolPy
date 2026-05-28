@@ -51,6 +51,7 @@ Ported:
 - non-autonomous Manifold harmonic conjugacy reduction and coefficient-structure setup helpers
 - non-autonomous Manifold mixed `W1 R0 + W0 R1` coefficient algebra
 - revlex Manifold non-intrusive and semi-intrusive force-composition helpers
+- revlex Manifold non-autonomous Jacobian force-composition helpers
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives

@@ -76,6 +76,8 @@ is not a Python migration target for this package.
 | `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for lex/revlex-style Python polynomial containers | differentiable for fixed index structure |
 | `@Manifold/private/fnl_nonIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_semiIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
+| `@Manifold/private/dfnl_nonIntrusive.m` | non-autonomous Jacobian force composition | `ssmtoolpy.manifold.dfnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
+| `@Manifold/private/dfnl_semiIntrusive.m` | non-autonomous Jacobian force composition | `ssmtoolpy.manifold.dfnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
 | `DSOptions.m` | options class | `ssmtoolpy.options.DSOptions` | ported | not differentiable |
@@ -139,9 +141,10 @@ Known blockers and design work:
 - `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
   and reverse-lexicographic computation. The conjugate-order branches are tied
   to the full cohomological solver and remain unported.
-- `fnl_nonintrusive` and `fnl_semi_intrusive` currently cover the
-  reverse-lexicographic branches. The conjugate-order branches and the
-  intrusive tensor composition helper remain unported.
+- `fnl_nonintrusive`, `fnl_semi_intrusive`, `dfnl_nonintrusive`, and
+  `dfnl_semi_intrusive` currently cover the reverse-lexicographic branches.
+  The conjugate-order branches and the intrusive tensor composition helpers
+  remain unported.
 - Manifold resonance helpers return zero-based Python indices while preserving
   MATLAB `find` ordering. The MATLAB source returns one-based indices.
 - Non-autonomous Manifold setup helpers use immutable tuple/NamedTuple

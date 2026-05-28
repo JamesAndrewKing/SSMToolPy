@@ -10,6 +10,8 @@ from ssmtoolpy import (
     check_ds_type,
     coeffs_composition,
     coeffs_mixed_terms,
+    dfnl_nonintrusive,
+    dfnl_semi_intrusive,
     fnl_nonintrusive,
     fnl_semi_intrusive,
     nonautonomous_conjugate_reduction,
@@ -261,3 +263,63 @@ def test_fnl_semi_intrusive_revlex_symmetric_source_derived_and_grad():
         w[0].coeffs.ravel()
     )
     assert jac.shape == (6, 4)
+
+
+def test_dfnl_nonintrusive_revlex_quadratic_source_derived_and_grad():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 2.0], [3.0, 4.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    x_series = (
+        (
+            MultiIndexPolynomial(jnp.array([[10.0], [20.0]]), jnp.array([[0, 0]], dtype=jnp.int32)),
+            MultiIndexPolynomial(jnp.zeros((2, 0)), jnp.zeros((0, 2), dtype=jnp.int32)),
+        ),
+    )
+    m_indices = jnp.array([[1, 0], [0, 1]], dtype=jnp.int32)
+
+    def jacobian(vector):
+        return jnp.diag(2.0 * vector)
+
+    got = dfnl_nonintrusive(jacobian, 2, w, x_series, m_indices, input_dim=2)
+    expected = np.array([[20.0, 40.0], [120.0, 160.0]])
+    assert len(got) == 1
+    np.testing.assert_allclose(np.asarray(jnp.real(got[0])), expected, rtol=1e-6)
+
+    def scalar(values):
+        local_w = (MultiIndexPolynomial(values.reshape(2, 2), w[0].ind),)
+        return jnp.real(jnp.sum(dfnl_nonintrusive(jacobian, 2, local_w, x_series, m_indices, input_dim=2)[0]))
+
+    grad = jax.grad(scalar)(w[0].coeffs.ravel())
+    np.testing.assert_allclose(np.asarray(grad), np.array([20.0, 20.0, 40.0, 40.0]), rtol=1e-6)
+
+
+def test_dfnl_semi_intrusive_revlex_quadratic_source_derived_and_jacfwd():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 2.0], [3.0, 4.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    x_series = (
+        (
+            MultiIndexPolynomial(jnp.array([[10.0], [20.0]]), jnp.array([[0, 0]], dtype=jnp.int32)),
+            MultiIndexPolynomial(jnp.zeros((2, 0)), jnp.zeros((0, 2), dtype=jnp.int32)),
+        ),
+    )
+    m_indices = jnp.array([[1, 0], [0, 1]], dtype=jnp.int32)
+
+    def jacobian_action(vectors):
+        return 2.0 * vectors[0] * vectors[1]
+
+    got = dfnl_semi_intrusive(jacobian_action, 2, w, x_series, m_indices, input_dim=2)
+    expected = np.array([[20.0, 40.0], [120.0, 160.0]])
+    assert len(got) == 1
+    np.testing.assert_allclose(np.asarray(got[0]), expected, rtol=1e-6)
+
+    jac = jax.jacfwd(lambda coeffs: dfnl_semi_intrusive(jacobian_action, 2, (MultiIndexPolynomial(coeffs.reshape(2, 2), w[0].ind),), x_series, m_indices, input_dim=2)[0].reshape(-1))(
+        w[0].coeffs.ravel()
+    )
+    assert jac.shape == (4, 4)
