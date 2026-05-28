@@ -41,6 +41,7 @@ Ported:
 
 - multi-index enumeration, conversion, addition/subtraction, and ordering
 - multi-index partition enumeration for Manifold coefficient assembly
+- coefficient ordering/reconstruction helpers used by Manifold coefficient assembly
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
 - Khatri-Rao product

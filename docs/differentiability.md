@@ -2,7 +2,15 @@
 
 | Public API | Status | Notes |
 | --- | --- | --- |
+| `ConjugateOrdering` | not differentiable | Frozen index-data container; coefficient reconstruction APIs carry value differentiability. |
 | `MultiIndexPolynomial` | not differentiable | Frozen data container; evaluation APIs carry differentiability. |
+| `number_of_multis` | not differentiable | Discrete combinatorial count. |
+| `conjugate_flip` | not differentiable | Discrete coordinate permutation. |
+| `conjugate_ordering` | not differentiable | Discrete multi-index ordering construction. |
+| `coeffs_conj2full` | differentiable | Linear coefficient reconstruction for fixed index arrays; tested with `jax.grad`. |
+| `coeffs_conj2lex` | differentiable | Linear coefficient reconstruction for fixed conjugate-ordering data; tested with `jax.grad`. |
+| `coeffs_lex2revlex` | differentiable | Column permutation for fixed structures; tested with `jax.grad`. |
+| `coeffs_output` | not differentiable | Performs exact-zero column selection and attaches discrete multi-indices. |
 | `nsumk` | not differentiable | Discrete integer tuple enumeration. |
 | `sub2multiind` | not differentiable | Discrete one-based subscript counting. |
 | `expand_multiindex` | differentiable | Tested with `jax.jit` and `jax.grad`. |

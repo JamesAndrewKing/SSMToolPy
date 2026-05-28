@@ -29,6 +29,11 @@ is not a Python migration target for this package.
 | `@Manifold/private/multi_subtraction.m` | core utility | `ssmtoolpy.multi_index.multi_subtraction` | ported | not differentiable |
 | `@Manifold/private/multi_index_2_ordering.m` | core utility | `ssmtoolpy.multi_index.multi_index_2_ordering` | ported | not differentiable |
 | `@Manifold/private/multi_nsumk.m` | core utility | `ssmtoolpy.multi_index.multi_nsumk` | ported | not differentiable |
+| `@Manifold/private/coeffs_conj2full.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2full` | ported | differentiable for fixed index arrays |
+| `@Manifold/private/coeffs_conj2lex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2lex` | ported | differentiable for fixed ordering data |
+| `@Manifold/private/coeffs_lex2revlex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_lex2revlex` | ported | differentiable for fixed structures |
+| `@Manifold/private/coeffs_output.m` | coefficient output utility | `ssmtoolpy.coefficients.coeffs_output` | ported | not differentiable |
+| nested `coeffs_setup.m/conjugate_ordering` | coefficient ordering utility | `ssmtoolpy.coefficients.conjugate_ordering` | ported | not differentiable |
 
 ## Source Inventory Summary
 
@@ -62,5 +67,5 @@ Known blockers and design work:
 - Eigenvector sorting, nullspaces, rank decisions, resonant-mode detection, and
   continuation/event routines require explicit nondegeneracy assumptions before
   differentiability can be claimed.
-- MATLAB/Octave reference fixture generation has not yet been run in this
-  environment.
+- MATLAB R2024b spot fixtures have been generated for selected low-level
+  helpers; broad fixture generation for full examples remains outstanding.

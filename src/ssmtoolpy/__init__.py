@@ -5,6 +5,16 @@ package ports low-level kernels first and documents differentiability status
 for every public API.
 """
 
+from ssmtoolpy.coefficients import (
+    ConjugateOrdering,
+    coeffs_conj2full,
+    coeffs_conj2lex,
+    coeffs_lex2revlex,
+    coeffs_output,
+    conjugate_flip,
+    conjugate_ordering,
+    number_of_multis,
+)
 from ssmtoolpy.frc import frc_ab
 from ssmtoolpy.multi_index import (
     MultiIndexPolynomial,
@@ -24,6 +34,13 @@ from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative, khatri_rao
 
 __all__ = [
     "MultiIndexPolynomial",
+    "ConjugateOrdering",
+    "coeffs_conj2full",
+    "coeffs_conj2lex",
+    "coeffs_lex2revlex",
+    "coeffs_output",
+    "conjugate_flip",
+    "conjugate_ordering",
     "expand_multiindex",
     "expand_multiindex_derivative",
     "expand_tensor",
@@ -35,6 +52,7 @@ __all__ = [
     "multi_index_to_tensor",
     "multi_nsumk",
     "multi_subtraction",
+    "number_of_multis",
     "nsumk",
     "reduced_to_full",
     "reduced_to_full_complex",
