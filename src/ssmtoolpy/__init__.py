@@ -15,7 +15,15 @@ from ssmtoolpy.coefficients import (
     conjugate_ordering,
     number_of_multis,
 )
-from ssmtoolpy.frc import frc_ab
+from ssmtoolpy.frc import (
+    check_stability,
+    compute_fixed_points_2d,
+    compute_gamma,
+    frc_ab,
+    frc_jacobian,
+    frc_psi,
+    get_contour_xy,
+)
 from ssmtoolpy.multi_index import (
     MultiIndexPolynomial,
     expand_multiindex,
@@ -41,11 +49,17 @@ __all__ = [
     "coeffs_output",
     "conjugate_flip",
     "conjugate_ordering",
+    "check_stability",
+    "compute_fixed_points_2d",
+    "compute_gamma",
     "expand_multiindex",
     "expand_multiindex_derivative",
     "expand_tensor",
     "expand_tensor_derivative",
     "frc_ab",
+    "frc_jacobian",
+    "frc_psi",
+    "get_contour_xy",
     "khatri_rao_product",
     "multi_addition",
     "multi_index_2_ordering",

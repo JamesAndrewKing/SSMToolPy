@@ -187,13 +187,13 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `FRCOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
 | `FRSOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
 | `ManifoldOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
-| `frc/check_stability.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
-| `frc/compute_fixed_points_2D.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
-| `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
-| `frc/frc_Jacobian.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
+| `frc/check_stability.m` | FRC utility | `ssmtoolpy.frc.check_stability` | ported | not differentiable |
+| `frc/compute_fixed_points_2D.m` | FRC utility | `ssmtoolpy.frc.compute_fixed_points_2d` | ported with lightweight grid-contour intersection | not differentiable |
+| `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc.compute_gamma` | ported | not differentiable |
+| `frc/frc_Jacobian.m` | FRC kernel | `ssmtoolpy.frc.frc_jacobian` | ported | differentiable for `rho != 0` |
 | `frc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
-| `frc/frc_psi.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
-| `frc/get_contour_xy.m` | FRC utility | `ssmtoolpy.frc` | not yet ported | not yet verified |
+| `frc/frc_psi.m` | FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
+| `frc/get_contour_xy.m` | FRC utility | `ssmtoolpy.frc.get_contour_xy` | ported | not differentiable |
 | `misc/SSM_ep_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/SSM_plot_torus.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
 | `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |

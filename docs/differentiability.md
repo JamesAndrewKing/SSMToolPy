@@ -25,5 +25,11 @@
 | `expand_tensor` | differentiable | Tested with `jax.jit` and `jax.grad`. |
 | `expand_tensor_derivative` | differentiable | Tested against `jax.jacfwd`. |
 | `frc_ab` | differentiable | Tested with `jax.grad` and `jax.vmap`. |
+| `compute_gamma` | not differentiable | Discrete multi-index lookup into reduced-dynamics coefficients. |
+| `frc_psi` | piecewise differentiable | Uses `atan2`; tested with `jax.grad` and `jax.vmap`, excluding branch-cut/undefined cases. |
+| `frc_jacobian` | differentiable | Differentiable for `rho != 0`; tested with `jax.jacfwd`. |
+| `check_stability` | not differentiable | Thresholds determinant and trace sign conditions. |
+| `get_contour_xy` | not differentiable | Parses MATLAB `contourc` plotting matrices. |
+| `compute_fixed_points_2d` | not differentiable | Uses sign tests, marching-squares segments, and geometric intersection selection. |
 | `reduced_to_full` | differentiable | For fixed polynomial structure; tested with `jax.jit`. Non-autonomous branch uses fixed Python structure. |
 | `reduced_to_full_complex` | differentiable | For fixed polynomial/forcing structure; transform coverage not yet verified. |
