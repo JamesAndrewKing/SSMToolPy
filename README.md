@@ -43,6 +43,7 @@ Ported:
 - multi-index partition enumeration for Manifold coefficient assembly
 - coefficient ordering/reconstruction helpers used by Manifold coefficient assembly
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
+- miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
 - Khatri-Rao product

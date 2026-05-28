@@ -24,6 +24,13 @@ is not a Python migration target for this package.
 | `misc/expand_tensor_derivative.m` | core kernel | `ssmtoolpy.tensor.expand_tensor_derivative` | ported for dense tensors | differentiable |
 | `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable for fixed structure |
 | `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |
+| `misc/reduced_to_full_traj.m` | reconstruction kernel | `ssmtoolpy.misc.reduced_to_full_traj` | ported | differentiable for fixed structure |
+| `misc/extract_output.m` | output utility | `ssmtoolpy.misc.extract_output` | ported | piecewise differentiable |
+| `misc/spblkdiag.m` | linear algebra utility | `ssmtoolpy.misc.spblkdiag` | ported as dense JAX array | differentiable |
+| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct/pseudoinverse solvers | differentiable under nondegeneracy assumptions |
+| `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
+| `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
+| `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
 | `frc/frc_ab.m` and `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
 | `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc.compute_gamma` | ported | not differentiable |
 | `frc/frc_psi.m` | FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
@@ -76,5 +83,13 @@ Known blockers and design work:
 - `compute_fixed_points_2d` uses an internal marching-squares style locator
   instead of MATLAB's `contourc`/`polyxpoly`; tests cover representative grid
   intersections, but dense contour parity is not yet exhaustively validated.
+- `solve_invariance_equation` maps MATLAB Krylov solver names to a pseudoinverse
+  least-squares solve for now; JAX does not provide drop-in equivalents in
+  `jax.numpy`.
+- `proj2SSM` nonlinear optimization is not ported as an optimizer. The
+  differentiable objective is exposed for use with a future JAX optimizer.
+- MATLAB `squaDist2pointSSM.m` calls `reduced_to_full(x,W_0)` although the local
+  MATLAB `reduced_to_full` signature expects non-autonomous arguments too. The
+  Python port uses the intended autonomous reconstruction behavior.
 - MATLAB R2024b spot fixtures have been generated for selected low-level
   helpers; broad fixture generation for full examples remains outstanding.

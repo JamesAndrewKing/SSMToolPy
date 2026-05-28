@@ -199,12 +199,12 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/SSM_tor_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/StEP.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
-| `misc/auto_red_dyn.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
 | `misc/expand_multiindex.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex` | ported | differentiable |
 | `misc/expand_multiindex_derivative.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex_derivative` | ported | differentiable |
 | `misc/expand_tensor.m` | core kernel | `ssmtoolpy.tensor.expand_tensor` | ported for dense tensors | differentiable |
 | `misc/expand_tensor_derivative.m` | core kernel | `ssmtoolpy.tensor.expand_tensor_derivative` | ported for dense tensors | differentiable |
-| `misc/extract_output.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/extract_output.m` | output utility | `ssmtoolpy.misc.extract_output` | ported | piecewise differentiable |
 | `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
 | `misc/isocurve3.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/khatri_rao_product.m` | core kernel | `ssmtoolpy.tensor.khatri_rao_product` | ported | differentiable |
@@ -219,16 +219,16 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/plot_atlas_2d.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/plot_backbone_curves.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/plot_stab_lines.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
-| `misc/proj2SSM.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
 | `misc/read_num_int_sol.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/read_po_ssm_init.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
 | `misc/reduced_dynamics_symbolic.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
 | `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable |
 | `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |
-| `misc/reduced_to_full_traj.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
-| `misc/solveinveq.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
-| `misc/spblkdiag.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
-| `misc/squaDist2pointSSM.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/reduced_to_full_traj.m` | reconstruction kernel | `ssmtoolpy.misc.reduced_to_full_traj` | ported | differentiable |
+| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct/pseudoinverse solvers | differentiable under nondegeneracy assumptions |
+| `misc/spblkdiag.m` | linear algebra utility | `ssmtoolpy.misc.spblkdiag` | ported as dense JAX array | differentiable |
+| `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
 | `misc/stab_plot.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/sub2multiind.m` | core utility | `ssmtoolpy.multi_index.sub2multiind` | ported | not differentiable |
 | `misc/tensor_composition.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |

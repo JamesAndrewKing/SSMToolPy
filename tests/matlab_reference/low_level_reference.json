@@ -50,6 +50,20 @@
       "contour_y": [null, 10, 11, null, 30, 31, 32],
       "contour_n_components": 2,
       "gamma": [9, 1]
+    },
+    "misc_helpers": {
+      "reduced_to_full_traj_autonomous": [64, 94],
+      "reduced_to_full_traj_nonautonomous": [8.1258271917411289, 18.1567559215467],
+      "extract_output": {
+        "z_out": [[1, 2, 3], [4, -5, 6]],
+        "a_out": [3, 6],
+        "z_norm": 6.7453687816160217,
+        "z_out_norm": 6.7453687816160217
+      },
+      "spblkdiag_3d": [[1, 2, 0, 0], [3, 4, 0, 0], [0, 0, 5, 6], [0, 0, 7, 8]],
+      "solveinveq_backslash": [2, 3],
+      "auto_red_dyn_real": [[10, 21], [22, 42.5]],
+      "auto_red_dyn_imag": [[2, 3], [-7.2, -14]]
     }
   }
 }

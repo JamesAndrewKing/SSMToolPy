@@ -33,3 +33,15 @@
 | `compute_fixed_points_2d` | not differentiable | Uses sign tests, marching-squares segments, and geometric intersection selection. |
 | `reduced_to_full` | differentiable | For fixed polynomial structure; tested with `jax.jit`. Non-autonomous branch uses fixed Python structure. |
 | `reduced_to_full_complex` | differentiable | For fixed polynomial/forcing structure; transform coverage not yet verified. |
+| `reduced_to_full_traj` | differentiable | Single-time reconstruction; tested with `jax.jit` and `jax.jacfwd` for autonomous structure. |
+| `extract_output` | piecewise differentiable | Norm outputs are differentiable away from zero/ties; amplitudes use infinity norms. |
+| `spblkdiag` | differentiable | Dense block diagonal assembly; tested with `jax.jacfwd`. |
+| `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; pseudoinverse/least-squares assumes stable rank. |
+| `auto_red_dyn` | differentiable | For fixed integer exponent matrix; tested with `jax.grad`. |
+| `ProjectionData` | not differentiable | Index-data container. |
+| `AutoReducedDynamicsData` | not differentiable | Data container; `auto_red_dyn` carries value differentiability. |
+| `OutputSummary` | not differentiable | Result container. |
+| `real_to_conjugate_state` | differentiable | For fixed real/complex coordinate index sets. |
+| `squared_distance_to_point_ssm` | differentiable | Uses autonomous `reduced_to_full`; tested with `jax.grad` via objective wrapper. |
+| `project_to_ssm_linear` | differentiable | Linear projection. |
+| `nonlinear_projection_objective` | differentiable | Returns objective only; optimizer driver is not included. |
