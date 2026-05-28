@@ -61,3 +61,8 @@
 | `mechanical_binv_a` | differentiable under nondegeneracy assumptions | Requires nonsingular mass matrix. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
+| `DSOptions` | not differentiable | Configuration container. |
+| `ManifoldOptions` | not differentiable | Configuration container. |
+| `FRCOptions` | not differentiable | Configuration container. |
+| `FRSOptions` | not differentiable | Configuration container. |
+| `matlab_style_options` | not differentiable | Metadata conversion to MATLAB-style field names. |

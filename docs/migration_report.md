@@ -57,6 +57,10 @@ is not a Python migration target for this package.
 | nested `coeffs_setup.m/conjugate_ordering` | coefficient ordering utility | `ssmtoolpy.coefficients.conjugate_ordering` | ported | not differentiable |
 | `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
+| `DSOptions.m` | options class | `ssmtoolpy.options.DSOptions` | ported | not differentiable |
+| `ManifoldOptions.m` | options class | `ssmtoolpy.options.ManifoldOptions` | ported | not differentiable |
+| `FRCOptions.m` | options class | `ssmtoolpy.options.FRCOptions` | ported | not differentiable |
+| `FRSOptions.m` | options class | `ssmtoolpy.options.FRSOptions` | ported | not differentiable |
 
 ## Source Inventory Summary
 
@@ -108,5 +112,8 @@ Known blockers and design work:
 - `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
   and reverse-lexicographic computation. The conjugate-order branches are tied
   to the full cohomological solver and remain unported.
+- MATLAB option classes are ported as Python dataclasses with default values,
+  validation, and MATLAB-style field-name export. They are configuration
+  containers rather than JAX-transformable numerical kernels.
 - MATLAB R2024b spot fixtures have been generated for selected low-level
   helpers; broad fixture generation for full examples remains outstanding.

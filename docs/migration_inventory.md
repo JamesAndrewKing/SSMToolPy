@@ -183,10 +183,10 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/private/po_reduced_results.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/stab_plot3.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/tor_reduced_results.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `DSOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
-| `FRCOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
-| `FRSOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
-| `ManifoldOptions.m` | options class | `ssmtoolpy.options` | not yet ported | not differentiable |
+| `DSOptions.m` | options class | `ssmtoolpy.options.DSOptions` | ported | not differentiable |
+| `FRCOptions.m` | options class | `ssmtoolpy.options.FRCOptions` | ported | not differentiable |
+| `FRSOptions.m` | options class | `ssmtoolpy.options.FRSOptions` | ported | not differentiable |
+| `ManifoldOptions.m` | options class | `ssmtoolpy.options.ManifoldOptions` | ported | not differentiable |
 | `frc/check_stability.m` | FRC utility | `ssmtoolpy.frc.check_stability` | ported | not differentiable |
 | `frc/compute_fixed_points_2D.m` | FRC utility | `ssmtoolpy.frc.compute_fixed_points_2d` | ported with lightweight grid-contour intersection | not differentiable |
 | `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc.compute_gamma` | ported | not differentiable |

@@ -68,6 +68,7 @@ from ssmtoolpy.multi_index import (
     sub2multiind,
     tensor_to_multi_index,
 )
+from ssmtoolpy.options import DSOptions, FRCOptions, FRSOptions, ManifoldOptions, matlab_style_options
 from ssmtoolpy.reduction import NonAutonomousTerm, reduced_to_full, reduced_to_full_complex
 from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative, khatri_rao_product
 
@@ -75,7 +76,11 @@ __all__ = [
     "MultiIndexPolynomial",
     "AutoReducedDynamicsData",
     "ConjugateOrdering",
+    "DSOptions",
+    "FRCOptions",
+    "FRSOptions",
     "FourierForcingTerm",
+    "ManifoldOptions",
     "NonAutonomousTerm",
     "OutputSummary",
     "PeriodicForcing",
@@ -110,6 +115,7 @@ __all__ = [
     "get_contour_xy",
     "khatri_rao_product",
     "mechanical_binv_a",
+    "matlab_style_options",
     "multi_addition",
     "multi_index_2_ordering",
     "multi_index_to_tensor",

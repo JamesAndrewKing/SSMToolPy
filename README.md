@@ -46,6 +46,7 @@ Ported:
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
 - lex/revlex Manifold coefficient composition and mixed-term algebra
+- MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
 - Khatri-Rao product
