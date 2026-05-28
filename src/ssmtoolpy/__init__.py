@@ -47,7 +47,15 @@ from ssmtoolpy.frc import (
     frc_psi,
     get_contour_xy,
 )
-from ssmtoolpy.manifold import coeffs_composition, coeffs_mixed_terms
+from ssmtoolpy.manifold import (
+    NonAutonomousResonanceData,
+    autonomous_resonant_terms,
+    check_comp_type,
+    check_ds_type,
+    coeffs_composition,
+    coeffs_mixed_terms,
+    nonautonomous_resonant_terms,
+)
 from ssmtoolpy.misc import (
     AutoReducedDynamicsData,
     OutputSummary,
@@ -89,6 +97,7 @@ __all__ = [
     "FourierForcingTerm",
     "ManifoldOptions",
     "NonAutonomousTerm",
+    "NonAutonomousResonanceData",
     "OutputSummary",
     "PeriodicForcing",
     "ProjectionData",
@@ -102,6 +111,9 @@ __all__ = [
     "coeffs_output",
     "conjugate_flip",
     "conjugate_ordering",
+    "autonomous_resonant_terms",
+    "check_comp_type",
+    "check_ds_type",
     "check_stability",
     "compute_fixed_points_2d",
     "compute_gamma",
@@ -136,6 +148,7 @@ __all__ = [
     "multi_nsumk",
     "multi_subtraction",
     "nonlinear_projection_objective",
+    "nonautonomous_resonant_terms",
     "number_of_multis",
     "nsumk",
     "project_to_ssm_linear",

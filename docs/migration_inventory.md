@@ -63,9 +63,9 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/Aut_1stOrder_SSM.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/Aut_2ndOrder_RedDyn.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/Aut_2ndOrder_SSM.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/Aut_resonant_terms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/check_COMPtype.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/check_DStype.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/Aut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.autonomous_resonant_terms` | ported with zero-based Python indices | not differentiable |
+| `@Manifold/private/check_COMPtype.m` | manifold validation utility | `ssmtoolpy.manifold.check_comp_type` | ported as functional selector | not differentiable |
+| `@Manifold/private/check_DStype.m` | manifold validation utility | `ssmtoolpy.manifold.check_ds_type` | ported as functional classifier | not differentiable |
 | `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_conj2full.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2full` | ported | differentiable for fixed index arrays |
 | `@Manifold/private/coeffs_conj2lex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2lex` | ported | differentiable for fixed ordering data |
@@ -96,7 +96,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_assembleCoefficients.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_conj_red.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_resonant_terms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/nonAut_struct_setup.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@SSM/FRC_cont_ep.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/FRC_cont_po.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |

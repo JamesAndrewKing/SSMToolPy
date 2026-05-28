@@ -62,6 +62,10 @@ is not a Python migration target for this package.
 | `@Manifold/private/coeffs_lex2revlex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_lex2revlex` | ported | differentiable for fixed structures |
 | `@Manifold/private/coeffs_output.m` | coefficient output utility | `ssmtoolpy.coefficients.coeffs_output` | ported | not differentiable |
 | nested `coeffs_setup.m/conjugate_ordering` | coefficient ordering utility | `ssmtoolpy.coefficients.conjugate_ordering` | ported | not differentiable |
+| `@Manifold/private/check_DStype.m` | manifold validation utility | `ssmtoolpy.manifold.check_ds_type` | ported as functional classifier | not differentiable |
+| `@Manifold/private/check_COMPtype.m` | manifold validation utility | `ssmtoolpy.manifold.check_comp_type` | ported as functional selector | not differentiable |
+| `@Manifold/private/Aut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.autonomous_resonant_terms` | ported with zero-based Python indices | not differentiable |
+| `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
 | `DSOptions.m` | options class | `ssmtoolpy.options.DSOptions` | ported | not differentiable |
@@ -122,6 +126,8 @@ Known blockers and design work:
 - `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
   and reverse-lexicographic computation. The conjugate-order branches are tied
   to the full cohomological solver and remain unported.
+- Manifold resonance helpers return zero-based Python indices while preserving
+  MATLAB `find` ordering. The MATLAB source returns one-based indices.
 - MATLAB option classes are ported as Python dataclasses with default values,
   validation, and MATLAB-style field-name export. They are configuration
   containers rather than JAX-transformable numerical kernels.

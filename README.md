@@ -47,6 +47,7 @@ Ported:
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
 - dynamical-system private helper equivalents for mechanical matrices, nonlinear metadata, and second-order to first-order nonlinear term conversion
 - lex/revlex Manifold coefficient composition and mixed-term algebra
+- Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
