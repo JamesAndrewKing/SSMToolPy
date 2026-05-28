@@ -30,6 +30,34 @@ class NonAutonomousResonanceData(NamedTuple):
     reltol: float
 
 
+class NonAutonomousCoefficientSeries(NamedTuple):
+    """One harmonic's non-autonomous coefficient series.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Downstream coefficient algebra carries
+    value differentiability for fixed structures.
+    """
+
+    kappa: Array
+    terms: tuple[MultiIndexPolynomial, ...]
+
+
+class NonAutonomousStructure(NamedTuple):
+    """Initialized non-autonomous SSM/reduced-dynamics coefficient structures.
+
+    Differentiability
+    -----------------
+    Not differentiable. This mirrors MATLAB struct setup and stores discrete
+    harmonic and polynomial-shape metadata.
+    """
+
+    w1: tuple[NonAutonomousCoefficientSeries, ...]
+    r1: tuple[NonAutonomousCoefficientSeries, ...]
+    kappas: Array
+    forcing_orders: Array
+
+
 def _multi_indices(dim: int, order: int, ordering: Ordering) -> Array:
     if dim == 1:
         return jnp.asarray([[order]], dtype=jnp.int32)
@@ -69,6 +97,30 @@ def _kappa_omega(kappa: Array, omega: Array) -> Array:
 
 def _has_complex_dtype(value: object) -> bool:
     return jnp.iscomplexobj(jnp.asarray(value))
+
+
+def _forcing_terms(item: object) -> tuple[MultiIndexPolynomial, ...]:
+    terms = getattr(item, "terms", None)
+    if terms is None and isinstance(item, dict):
+        terms = item.get("terms", item.get("F_n_k"))
+    if terms is None:
+        terms = getattr(item, "F_n_k", None)
+    if terms is None:
+        raise ValueError("forcing items must expose terms or F_n_k")
+    return tuple(terms)
+
+
+def _forcing_kappa(item: object) -> Array:
+    kappa = getattr(item, "kappa", None)
+    if kappa is None and isinstance(item, dict):
+        kappa = item.get("kappa")
+    if kappa is None:
+        raise ValueError("forcing items must expose kappa")
+    return jnp.asarray(kappa)
+
+
+def _series_terms(series: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...]) -> tuple[MultiIndexPolynomial, ...]:
+    return series.terms if isinstance(series, NonAutonomousCoefficientSeries) else tuple(series)
 
 
 def check_ds_type(
@@ -208,6 +260,177 @@ def nonautonomous_resonant_terms(
     resonance_matrix = lambda_m - (k_lambda[None, :] + 1j * forcing_shift)
     e_idx, i_k = _matlab_find(jnp.abs(resonance_matrix) < abstol)
     return e_idx, i_k, k_lambda
+
+
+def nonautonomous_conjugate_reduction(
+    kappa_set: Array,
+    forcing_coefficients: Array,
+    *,
+    reltol: float = 1e-6,
+) -> tuple[Array, tuple[Array, ...]]:
+    """Detect conjugate-related non-autonomous forcing harmonics.
+
+    This ports ``@Manifold/private/nonAut_conj_red.m``. The returned
+    ``red_conj`` array contains zero-based representative harmonic indices, and
+    ``map_conj`` maps each representative to the zero-based original columns it
+    covers. Ordering follows MATLAB's stable ``setdiff`` loop.
+
+    Differentiability
+    -----------------
+    Not differentiable. The routine performs exact uniqueness checks, harmonic
+    matching, norm thresholding, and returns discrete index maps.
+    """
+
+    kappas = jnp.ravel(jnp.asarray(kappa_set))
+    coeffs = jnp.asarray(forcing_coefficients)
+    if coeffs.ndim == 1:
+        coeffs = coeffs[None, :]
+    if coeffs.shape[1] != kappas.shape[0]:
+        raise ValueError("forcing_coefficients must have one column per kappa")
+
+    kappa_values = [complex(value) for value in kappas.tolist()]
+    if len(set(kappa_values)) != len(kappa_values):
+        raise ValueError("there exist redundancy in kappa of external forcing")
+
+    remaining = list(range(len(kappa_values)))
+    representatives: list[int] = []
+    maps: list[Array] = []
+    while remaining:
+        idx = remaining[0]
+        ka = kappa_values[idx]
+        representatives.append(idx)
+        conj_idx = next((candidate for candidate, value in enumerate(kappa_values) if value == -ka), None)
+        if conj_idx is not None:
+            diff = jnp.linalg.norm(jnp.conj(coeffs[:, idx]) - coeffs[:, conj_idx])
+            scale = reltol * jnp.linalg.norm(coeffs[:, conj_idx])
+            if bool(diff < scale):
+                maps.append(jnp.asarray([idx, conj_idx], dtype=jnp.int32))
+                remaining = [candidate for candidate in remaining if candidate not in {idx, conj_idx}]
+                continue
+        maps.append(jnp.asarray([idx], dtype=jnp.int32))
+        remaining = [candidate for candidate in remaining if candidate != idx]
+
+    return jnp.asarray(representatives, dtype=jnp.int32), tuple(maps)
+
+
+def nonautonomous_struct_setup(
+    dim: int,
+    state_dim: int,
+    order: int,
+    forcing: tuple[object, ...],
+) -> NonAutonomousStructure:
+    """Initialize non-autonomous coefficient containers.
+
+    This is a functional equivalent of ``@Manifold/private/nonAut_struct_setup.m``.
+    It creates one SSM coefficient series ``W1`` and one reduced-dynamics
+    series ``R1`` per harmonic. Zeroth-order entries are initialized as sparse
+    MATLAB did conceptually, represented here by dense zero
+    ``MultiIndexPolynomial`` objects with one zero multi-index column.
+
+    Differentiability
+    -----------------
+    Not differentiable. This routine initializes discrete data structures and
+    shape metadata for later coefficient solvers.
+    """
+
+    if not forcing:
+        empty_kappas = jnp.zeros((0, 0), dtype=jnp.float32)
+        return NonAutonomousStructure((), (), empty_kappas, jnp.zeros((0,), dtype=jnp.int32))
+
+    kappa_columns = []
+    w_series = []
+    r_series = []
+    forcing_orders = []
+    for item in forcing:
+        kappa = jnp.ravel(_forcing_kappa(item))
+        kappa_columns.append(kappa)
+        forcing_orders.append(len(_forcing_terms(item)))
+
+        empty_w = tuple(
+            [MultiIndexPolynomial(jnp.zeros((state_dim, 1)), jnp.zeros((1, dim), dtype=jnp.int32))]
+            + [MultiIndexPolynomial(jnp.zeros((state_dim, 0)), jnp.zeros((0, dim), dtype=jnp.int32)) for _ in range(order)]
+        )
+        empty_r = tuple(
+            [MultiIndexPolynomial(jnp.zeros((dim, 1)), jnp.zeros((1, dim), dtype=jnp.int32))]
+            + [MultiIndexPolynomial(jnp.zeros((dim, 0)), jnp.zeros((0, dim), dtype=jnp.int32)) for _ in range(order)]
+        )
+        w_series.append(NonAutonomousCoefficientSeries(kappa, empty_w))
+        r_series.append(NonAutonomousCoefficientSeries(kappa, empty_r))
+
+    kappas = jnp.stack(kappa_columns, axis=1)
+    return NonAutonomousStructure(
+        tuple(w_series),
+        tuple(r_series),
+        kappas,
+        jnp.asarray(forcing_orders, dtype=jnp.int32),
+    )
+
+
+def nonautonomous_w1r0_plus_w0r1(
+    order: int,
+    w0: tuple[MultiIndexPolynomial, ...],
+    w1: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...],
+    r0: tuple[MultiIndexPolynomial, ...],
+    r1: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...],
+    *,
+    dim: int,
+    output_dim: int,
+    ordering: Ordering = "revlex",
+) -> Array:
+    """Compose first-order non-autonomous mixed products at one spatial order.
+
+    Ports ``@Manifold/private/nonAut_W1R0_plus_W0R1.m``:
+    ``W1 R0 + W0 R1`` restricted to all multi-indices of ``order``. Inputs use
+    the same polynomial tuple convention as ``coeffs_mixed_terms``; ``w1`` and
+    ``r1`` may also be ``NonAutonomousCoefficientSeries`` containers.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values for fixed polynomial
+    structures, order, and ordering. The loop bounds and index matching are
+    discrete preprocessing.
+    """
+
+    w1_terms = _series_terms(w1)
+    r1_terms = _series_terms(r1)
+    z_k = comb(order + dim - 1, dim - 1)
+    dtype = jnp.result_type(
+        *(poly.coeffs for poly in w0),
+        *(poly.coeffs for poly in w1_terms),
+        *(poly.coeffs for poly in r0),
+        *(poly.coeffs for poly in r1_terms),
+    )
+    result = jnp.zeros((output_dim, z_k), dtype=dtype)
+
+    for m_order in range(1, order + 1):
+        if m_order <= len(w1_terms) and w1_terms[m_order - 1].coeffs.size:
+            result = result + coeffs_mixed_terms(
+                order,
+                m_order,
+                w1_terms,
+                r0,
+                dim=dim,
+                output_dim=output_dim,
+                mix="W1",
+                ordering=ordering,
+                explicit_indices=True,
+            )
+
+    for m_order in range(2, order + 2):
+        r1_order = order - m_order + 1
+        if 0 <= r1_order < len(r1_terms) and r1_terms[r1_order].coeffs.size:
+            result = result + coeffs_mixed_terms(
+                order,
+                m_order,
+                w0,
+                r1_terms,
+                dim=dim,
+                output_dim=output_dim,
+                mix="R1",
+                ordering=ordering,
+                explicit_indices=True,
+            )
+    return result
 
 
 def coeffs_composition(

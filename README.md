@@ -48,6 +48,8 @@ Ported:
 - dynamical-system private helper equivalents for mechanical matrices, nonlinear metadata, and second-order to first-order nonlinear term conversion
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
+- non-autonomous Manifold harmonic conjugacy reduction and coefficient-structure setup helpers
+- non-autonomous Manifold mixed `W1 R0 + W0 R1` coefficient algebra
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives

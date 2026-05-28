@@ -10,7 +10,10 @@ from ssmtoolpy import (
     check_ds_type,
     coeffs_composition,
     coeffs_mixed_terms,
+    nonautonomous_conjugate_reduction,
     nonautonomous_resonant_terms,
+    nonautonomous_struct_setup,
+    nonautonomous_w1r0_plus_w0r1,
 )
 
 
@@ -120,3 +123,79 @@ def test_nonautonomous_resonant_terms_order_k_source_derived():
     np.testing.assert_array_equal(np.asarray(modes), np.array([1]))
     np.testing.assert_array_equal(np.asarray(multi_indices), np.array([0]))
     np.testing.assert_allclose(np.asarray(k_lambda), np.array([2j, 3j, 4j]))
+
+
+def test_nonautonomous_conjugate_reduction_matches_matlab_example():
+    kappa_set = jnp.array([1, -1, 2, 3, -3])
+    forcing = jnp.array([[1.0, 1.0, 2.0, 3.0, 4.0]])
+    red_conj, map_conj = nonautonomous_conjugate_reduction(kappa_set, forcing)
+
+    np.testing.assert_array_equal(np.asarray(red_conj), np.array([0, 2, 3, 4]))
+    assert [np.asarray(item).tolist() for item in map_conj] == [[0, 1], [2], [3], [4]]
+
+
+def test_nonautonomous_conjugate_reduction_detects_complex_conjugates_and_duplicates():
+    kappa_set = jnp.array([2, -2])
+    forcing = jnp.array([[1.0 + 2.0j, 1.0 - 2.0j], [3.0 - 1.0j, 3.0 + 1.0j]])
+    red_conj, map_conj = nonautonomous_conjugate_reduction(kappa_set, forcing)
+    np.testing.assert_array_equal(np.asarray(red_conj), np.array([0]))
+    assert [np.asarray(item).tolist() for item in map_conj] == [[0, 1]]
+
+    with np.testing.assert_raises(ValueError):
+        nonautonomous_conjugate_reduction(jnp.array([1, 1]), jnp.ones((1, 2)))
+
+
+def test_nonautonomous_struct_setup_source_derived_shapes():
+    forcing = (
+        {
+            "kappa": jnp.array([1.0]),
+            "terms": (
+                MultiIndexPolynomial(jnp.ones((3, 1)), jnp.zeros((1, 1), dtype=jnp.int32)),
+                MultiIndexPolynomial(jnp.ones((3, 2)), jnp.zeros((2, 1), dtype=jnp.int32)),
+            ),
+        },
+        {
+            "kappa": jnp.array([-1.0]),
+            "terms": (MultiIndexPolynomial(jnp.ones((3, 1)), jnp.zeros((1, 1), dtype=jnp.int32)),),
+        },
+    )
+    structure = nonautonomous_struct_setup(dim=2, state_dim=3, order=2, forcing=forcing)
+
+    np.testing.assert_allclose(np.asarray(structure.kappas), np.array([[1.0, -1.0]]))
+    np.testing.assert_array_equal(np.asarray(structure.forcing_orders), np.array([2, 1]))
+    assert len(structure.w1) == 2
+    assert len(structure.w1[0].terms) == 3
+    assert structure.w1[0].terms[0].coeffs.shape == (3, 1)
+    assert structure.w1[0].terms[1].coeffs.shape == (3, 0)
+    assert structure.r1[0].terms[0].coeffs.shape == (2, 1)
+    assert structure.r1[0].terms[1].ind.shape == (0, 2)
+
+
+def test_nonautonomous_w1r0_plus_w0r1_source_derived_and_grad():
+    empty_w0_order_1 = MultiIndexPolynomial(jnp.zeros((2, 0)), jnp.zeros((0, 2), dtype=jnp.int32))
+    w0_order_2 = MultiIndexPolynomial(
+        coeffs=jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+        ind=jnp.array([[2, 0], [1, 1], [0, 2]], dtype=jnp.int32),
+    )
+    w0 = (empty_w0_order_1, w0_order_2)
+    r0 = (
+        MultiIndexPolynomial(jnp.zeros((2, 0)), jnp.zeros((0, 2), dtype=jnp.int32)),
+        MultiIndexPolynomial(jnp.zeros((2, 0)), jnp.zeros((0, 2), dtype=jnp.int32)),
+    )
+    w1 = (
+        MultiIndexPolynomial(jnp.array([[2.0], [3.0]]), jnp.array([[0, 0]], dtype=jnp.int32)),
+    )
+    r1 = (
+        MultiIndexPolynomial(jnp.array([[0.5], [1.5]]), jnp.array([[0, 0]], dtype=jnp.int32)),
+    )
+
+    got = nonautonomous_w1r0_plus_w0r1(1, w0, w1, r0, r1, dim=2, output_dim=2)
+    expected = np.array([[4.0, 10.0], [11.5, 20.5]])
+    np.testing.assert_allclose(np.asarray(got), expected, rtol=1e-6)
+
+    def scalar(values):
+        local_w0 = (empty_w0_order_1, MultiIndexPolynomial(values.reshape(2, 3), w0_order_2.ind))
+        return jnp.sum(nonautonomous_w1r0_plus_w0r1(1, local_w0, w1, r0, r1, dim=2, output_dim=2))
+
+    grad = jax.grad(scalar)(w0_order_2.coeffs.ravel())
+    np.testing.assert_allclose(np.asarray(grad), np.array([1.0, 2.0, 3.0, 1.0, 2.0, 3.0]), rtol=1e-6)

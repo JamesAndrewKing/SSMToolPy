@@ -66,6 +66,9 @@ is not a Python migration target for this package.
 | `@Manifold/private/check_COMPtype.m` | manifold validation utility | `ssmtoolpy.manifold.check_comp_type` | ported as functional selector | not differentiable |
 | `@Manifold/private/Aut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.autonomous_resonant_terms` | ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
+| `@Manifold/private/nonAut_conj_red.m` | non-autonomous forcing bookkeeping | `ssmtoolpy.manifold.nonautonomous_conjugate_reduction` | ported with zero-based Python index maps | not differentiable |
+| `@Manifold/private/nonAut_struct_setup.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_struct_setup` | ported as immutable Python containers | not differentiable |
+| `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for lex/revlex-style Python polynomial containers | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_composition.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_composition` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
 | `DSOptions.m` | options class | `ssmtoolpy.options.DSOptions` | ported | not differentiable |
@@ -128,6 +131,9 @@ Known blockers and design work:
   to the full cohomological solver and remain unported.
 - Manifold resonance helpers return zero-based Python indices while preserving
   MATLAB `find` ordering. The MATLAB source returns one-based indices.
+- Non-autonomous Manifold setup helpers use immutable tuple/NamedTuple
+  containers and dense zero coefficient arrays instead of mutable MATLAB
+  structs and sparse empty matrices.
 - MATLAB option classes are ported as Python dataclasses with default values,
   validation, and MATLAB-style field-name export. They are configuration
   containers rather than JAX-transformable numerical kernels.

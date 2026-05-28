@@ -67,10 +67,15 @@
 | `first_order_tensor_terms_from_second_order` | differentiable | Dense tensor embedding for fixed shapes. |
 | `first_order_terms_from_second_order` | differentiable | Dispatches to fixed-structure polynomial/tensor embedding. |
 | `NonAutonomousResonanceData` | not differentiable | Metadata container for non-autonomous resonance detection. |
+| `NonAutonomousCoefficientSeries` | not differentiable | Metadata container for one harmonic's non-autonomous coefficient series. |
+| `NonAutonomousStructure` | not differentiable | Metadata container initialized by `nonautonomous_struct_setup`. |
 | `check_ds_type` | not differentiable | Discrete dtype/metadata decision matching Manifold DS-type selection. |
 | `check_comp_type` | not differentiable | Discrete algorithm-selection rule for first- versus second-order Manifold computation. |
 | `autonomous_resonant_terms` | not differentiable | Thresholded resonance-index selection; returns zero-based index arrays in MATLAB `find` order. |
 | `nonautonomous_resonant_terms` | not differentiable | Enumerates integer multi-indices and threshold-selects resonances; returns zero-based indices. |
+| `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |
+| `nonautonomous_struct_setup` | not differentiable | Initializes discrete non-autonomous coefficient containers and harmonic metadata. |
+| `nonautonomous_w1r0_plus_w0r1` | differentiable for fixed index structure | Non-autonomous mixed product `W1 R0 + W0 R1`; tested with `jax.grad`. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
 | `DSOptions` | not differentiable | Configuration container. |

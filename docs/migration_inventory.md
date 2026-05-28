@@ -93,11 +93,11 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/nonAut_2ndOrder_leadTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_2ndOrder_whisker.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_Fext_plus_Fnl.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for Python polynomial containers | differentiable for fixed index structure |
 | `@Manifold/private/nonAut_assembleCoefficients.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_conj_red.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_conj_red.m` | non-autonomous forcing bookkeeping | `ssmtoolpy.manifold.nonautonomous_conjugate_reduction` | ported with zero-based Python index maps | not differentiable |
 | `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
-| `@Manifold/private/nonAut_struct_setup.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_struct_setup.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_struct_setup` | ported as immutable Python containers | not differentiable |
 | `@SSM/FRC_cont_ep.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/FRC_cont_po.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/FRC_level_set.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
