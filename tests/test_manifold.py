@@ -7,12 +7,14 @@ from ssmtoolpy import (
     MultiIndexPolynomial,
     NonAutonomousResonanceData,
     ResonanceAnalysis,
+    autonomous_invariance_residual,
     autonomous_resonant_terms,
     check_comp_type,
     check_ds_type,
     choose_master_subspace,
     coeffs_composition,
     coeffs_mixed_terms,
+    compute_auto_invariance_error,
     dfnl_nonintrusive,
     dfnl_semi_intrusive,
     fnl_nonintrusive,
@@ -136,6 +138,64 @@ def test_choose_master_subspace_selects_modes_and_normal_modes():
     np.testing.assert_allclose(np.asarray(subspace.adjoint_basis), np.asarray(w[:, :2]))
     np.testing.assert_array_equal(np.asarray(subspace.normal_modes), np.array([2, 3]))
     assert subspace.resonance.outer.occurs is True
+
+
+def test_autonomous_invariance_residual_matches_exact_linear_invariance_and_grad():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 0.0], [0.0, 1.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    r = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 0.0], [0.0, 2.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    a_matrix = jnp.array([[1.0, 0.0], [0.0, 2.0]])
+    points = jnp.array([[1.0 + 2.0j, -0.5 + 0.25j], [1.0 - 2.0j, -0.5 - 0.25j]])
+    residual = autonomous_invariance_residual(a_matrix, jnp.eye(2), w, r, points)
+    np.testing.assert_allclose(np.asarray(residual), np.zeros(2), atol=1e-6)
+
+    nonzero_grad = jax.grad(
+        lambda values: jnp.sum(
+            autonomous_invariance_residual(
+                jnp.zeros((2, 2)),
+                jnp.eye(2),
+                w,
+                r,
+                values.reshape(2, 1),
+            )
+        )
+    )(jnp.array([1.0, 2.0]))
+    assert nonzero_grad.shape == (2,)
+    assert np.all(np.isfinite(np.asarray(nonzero_grad)))
+
+
+def test_compute_auto_invariance_error_2d_source_derived():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 0.0], [0.0, 1.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    r = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 0.0], [0.0, 2.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    got = compute_auto_invariance_error(
+        jnp.array([[1.0, 0.0], [0.0, 2.0]]),
+        jnp.eye(2),
+        w,
+        r,
+        jnp.array([0.1, 0.2]),
+        jnp.array([1]),
+        8,
+    )
+    np.testing.assert_allclose(np.asarray(got), np.zeros((1, 2)), atol=1e-6)
 
 
 def test_nonautonomous_resonant_terms_zero_order_source_derived():

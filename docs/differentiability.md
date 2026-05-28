@@ -91,6 +91,8 @@
 | `fnl_semi_intrusive` | differentiable for fixed index structure | Revlex semi-intrusive Manifold multilinear force composition; tested with `jax.jacfwd`. |
 | `dfnl_nonintrusive` | differentiable for fixed index structure | Revlex non-autonomous Jacobian composition; uses `step_polynomial` on the Jacobian callable. Tested with `jax.grad`. |
 | `dfnl_semi_intrusive` | differentiable for fixed index structure | Revlex non-autonomous semi-intrusive Jacobian action; tested with `jax.jacfwd`. |
+| `autonomous_invariance_residual` | piecewise differentiable | Autonomous invariance residual norm; supports complex reduced coordinates via explicit polynomial derivatives. Non-smooth at zero residual. Tested with `jax.grad` away from zero residual. |
+| `compute_auto_invariance_error` | piecewise differentiable | 2D/4D autonomous residual sampling average for fixed sampling grids; inherits norm non-smoothness. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
 | `DSOptions` | not differentiable | Configuration container. |

@@ -7,7 +7,16 @@ from typing import Callable, Literal, NamedTuple
 
 import jax.numpy as jnp
 
-from ssmtoolpy.multi_index import MultiIndexPolynomial, multi_addition, multi_index_2_ordering, multi_nsumk, multi_subtraction, nsumk
+from ssmtoolpy.dynamical_system import evaluate_polynomial_terms
+from ssmtoolpy.multi_index import (
+    MultiIndexPolynomial,
+    expand_multiindex,
+    multi_addition,
+    multi_index_2_ordering,
+    multi_nsumk,
+    multi_subtraction,
+    nsumk,
+)
 
 
 Array = jnp.ndarray
@@ -173,6 +182,21 @@ def _polynomial_vector(terms: tuple[MultiIndexPolynomial, ...], order: int, idx:
     if coeffs.size == 0 or idx < 0 or idx >= coeffs.shape[1]:
         return None
     return coeffs[:input_dim, idx]
+
+
+def _expand_multiindex_derivative_explicit(poly: MultiIndexPolynomial, points: Array) -> Array:
+    coeffs = jnp.asarray(poly.coeffs)
+    ind = jnp.asarray(poly.ind)
+    points = jnp.asarray(points)
+    if ind.size == 0:
+        return jnp.zeros((coeffs.shape[0], points.shape[0], points.shape[1]), dtype=jnp.result_type(coeffs, points))
+    derivatives = []
+    for dim_idx in range(points.shape[0]):
+        powers = ind.at[:, dim_idx].set(jnp.maximum(ind[:, dim_idx] - 1, 0))
+        monomials = jnp.prod(points.T[:, None, :] ** powers[None, :, :], axis=-1)
+        weighted = ind[:, dim_idx][None, :] * monomials
+        derivatives.append(coeffs @ weighted.T)
+    return jnp.stack(derivatives, axis=1)
 
 
 def check_ds_type(
@@ -1062,6 +1086,117 @@ def dfnl_semi_intrusive(
         for harmonic, value in enumerate(column_values):
             results[harmonic] = results[harmonic].at[:, col].set(value)
     return tuple(results)
+
+
+def autonomous_invariance_residual(
+    a_matrix: Array,
+    b_matrix: Array,
+    w: tuple[MultiIndexPolynomial, ...],
+    r: tuple[MultiIndexPolynomial, ...],
+    points: Array,
+    nonlinear_terms: tuple[MultiIndexPolynomial | Array, ...] = (),
+    nonlinear_function: Callable[[Array], Array] | None = None,
+) -> Array:
+    """Evaluate autonomous SSM invariance residual norms.
+
+    This ports the autonomous branch of
+    ``@Manifold/compuate_invariance_residual.m`` as a functional API:
+    ``B DW(p) R(p) - A W(p) - F(W(p))`` is evaluated at column-wise reduced
+    coordinates and reduced to one Euclidean residual norm per point.
+
+    Differentiability
+    -----------------
+    Piecewise differentiable for fixed polynomial structures and differentiable
+    nonlinear callables. The final Euclidean norm is not differentiable at zero
+    residual.
+    """
+
+    point_matrix = jnp.asarray(points)
+    if point_matrix.ndim == 1:
+        point_matrix = point_matrix[:, None]
+    output_dim = w[0].coeffs.shape[0]
+    z = jnp.zeros((output_dim, point_matrix.shape[1]), dtype=jnp.result_type(point_matrix, *(poly.coeffs for poly in w)))
+    dw = jnp.zeros((output_dim, point_matrix.shape[0], point_matrix.shape[1]), dtype=z.dtype)
+    reduced = jnp.zeros((point_matrix.shape[0], point_matrix.shape[1]), dtype=jnp.result_type(point_matrix, *(poly.coeffs for poly in r)))
+    for poly in w:
+        z = z + jnp.real(expand_multiindex(poly, point_matrix))
+        dw = dw + _expand_multiindex_derivative_explicit(poly, point_matrix)
+    for poly in r:
+        reduced = reduced + expand_multiindex(poly, point_matrix)
+
+    tangent = jnp.einsum("ijp,jp->ip", dw, reduced)
+    lhs = jnp.asarray(b_matrix) @ jnp.real(tangent)
+
+    if nonlinear_function is not None:
+        nonlinear = jnp.stack([jnp.asarray(nonlinear_function(z[:, idx])) for idx in range(z.shape[1])], axis=1)
+    elif nonlinear_terms:
+        nonlinear = evaluate_polynomial_terms(nonlinear_terms, z)
+    else:
+        nonlinear = jnp.zeros_like(z)
+    rhs = jnp.asarray(a_matrix) @ z + nonlinear
+    residual = lhs - rhs
+    return jnp.sqrt(jnp.sum(residual**2, axis=0))
+
+
+def compute_auto_invariance_error(
+    a_matrix: Array,
+    b_matrix: Array,
+    w: tuple[MultiIndexPolynomial, ...],
+    r: tuple[MultiIndexPolynomial, ...],
+    rhos: Array,
+    orders: Array,
+    ntheta: int,
+    nonlinear_terms: tuple[MultiIndexPolynomial | Array, ...] = (),
+    nonlinear_function: Callable[[Array], Array] | None = None,
+    *,
+    nalpha: int | None = None,
+) -> Array:
+    """Average autonomous invariance residuals on 2D/4D SSM sampling grids.
+
+    This ports ``@Manifold/compute_auto_invariance_error.m`` without object
+    mutation or printing. For 2D SSMs the samples are
+    ``[rho exp(i theta); rho exp(-i theta)]``. For 4D SSMs the MATLAB
+    ``alpha`` split between two modal pairs is used.
+
+    Differentiability
+    -----------------
+    Piecewise differentiable for fixed sampling dimensions and polynomial
+    structures. The residual norm is non-smooth at zero residual.
+    """
+
+    dim = w[0].ind.shape[1]
+    if dim not in {2, 4}:
+        raise ValueError("Only 2D and 4D SSMs are supported")
+    orders_array = jnp.ravel(jnp.asarray(orders, dtype=jnp.int32))
+    rhos_array = jnp.ravel(jnp.asarray(rhos))
+    if bool(jnp.max(orders_array) > len(r)):
+        raise ValueError("Some requested expansion orders are higher than the approximation order of SSM")
+    theta = jnp.linspace(0.0, 2.0 * jnp.pi, ntheta + 1)[:-1]
+    rows = []
+    for order in [int(value) for value in orders_array.tolist()]:
+        values = []
+        for rho in rhos_array:
+            if dim == 2:
+                p1 = rho * jnp.exp(1j * theta)
+                samples = jnp.vstack([p1, jnp.conj(p1)])
+                residuals = autonomous_invariance_residual(a_matrix, b_matrix, w[:order], r[:order], samples, nonlinear_terms, nonlinear_function)
+            else:
+                if nalpha is None:
+                    raise ValueError("nalpha is required for 4D SSMs")
+                alphas = jnp.linspace(0.0, jnp.pi / 2.0, nalpha)
+                collected = []
+                for alpha in alphas:
+                    rho1 = rho * jnp.cos(alpha)
+                    rho2 = rho * jnp.sin(alpha)
+                    for angle in theta:
+                        p1 = rho1 * jnp.exp(1j * angle) * jnp.ones((ntheta,), dtype=jnp.result_type(rho, 1j))
+                        p3 = rho2 * jnp.exp(1j * theta)
+                        samples = jnp.vstack([p1, jnp.conj(p1), p3, jnp.conj(p3)])
+                        collected.append(autonomous_invariance_residual(a_matrix, b_matrix, w[:order], r[:order], samples, nonlinear_terms, nonlinear_function))
+                residuals = jnp.concatenate(collected)
+            values.append(jnp.mean(residuals))
+        rows.append(jnp.stack(values))
+    return jnp.stack(rows)
 
 
 def coeffs_composition(

@@ -63,6 +63,8 @@ is not a Python migration target for this package.
 | `@Manifold/private/multi_index_2_ordering.m` | core utility | `ssmtoolpy.multi_index.multi_index_2_ordering` | ported | not differentiable |
 | `@Manifold/private/multi_nsumk.m` | core utility | `ssmtoolpy.multi_index.multi_nsumk` | ported | not differentiable |
 | `@Manifold/choose_E.m` | modal subspace selection | `ssmtoolpy.manifold.choose_master_subspace` and `resonance_analysis` | functional spectral-data branch ported | not differentiable |
+| `@Manifold/compuate_invariance_residual.m` | invariance residual utility | `ssmtoolpy.manifold.autonomous_invariance_residual` | autonomous branch ported | piecewise differentiable |
+| `@Manifold/compute_auto_invariance_error.m` | invariance residual utility | `ssmtoolpy.manifold.compute_auto_invariance_error` | 2D/4D autonomous sampling behavior ported | piecewise differentiable |
 | `@Manifold/private/coeffs_conj2full.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2full` | ported | differentiable for fixed index arrays |
 | `@Manifold/private/coeffs_conj2lex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_conj2lex` | ported | differentiable for fixed ordering data |
 | `@Manifold/private/coeffs_lex2revlex.m` | coefficient ordering utility | `ssmtoolpy.coefficients.coeffs_lex2revlex` | ported | differentiable for fixed structures |
@@ -121,6 +123,9 @@ Known blockers and design work:
   differentiability can be claimed.
 - `choose_master_subspace` assumes spectral data have already been computed; it
   does not port the mutable call to `System.linear_spectral_analysis`.
+- `autonomous_invariance_residual` ports only the autonomous branch of the
+  misspelled MATLAB `compuate_invariance_residual.m`. The non-autonomous branch
+  includes forcing evaluation and plotting side effects and remains unported.
 - `compute_fixed_points_2d` uses an internal marching-squares style locator
   instead of MATLAB's `contourc`/`polyxpoly`; tests cover representative grid
   intersections, but dense contour parity is not yet exhaustively validated.
