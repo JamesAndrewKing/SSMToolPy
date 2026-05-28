@@ -49,6 +49,7 @@ Ported:
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
 - non-autonomous Manifold harmonic conjugacy reduction and coefficient-structure setup helpers
+- non-autonomous Manifold coefficient insertion/update helper
 - non-autonomous Manifold mixed `W1 R0 + W0 R1` coefficient algebra
 - revlex Manifold non-intrusive and semi-intrusive force-composition helpers
 - revlex Manifold non-autonomous Jacobian force-composition helpers

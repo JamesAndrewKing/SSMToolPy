@@ -79,6 +79,7 @@
 | `nonautonomous_resonant_terms` | not differentiable | Enumerates integer multi-indices and threshold-selects resonances; returns zero-based indices. |
 | `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |
 | `nonautonomous_struct_setup` | not differentiable | Initializes discrete non-autonomous coefficient containers and harmonic metadata. |
+| `nonautonomous_assemble_coefficients` | differentiable for fixed index structure | Immutable insertion of solved non-autonomous coefficients and row-wise multi-index metadata; tested with `jax.grad`. |
 | `nonautonomous_w1r0_plus_w0r1` | differentiable for fixed index structure | Non-autonomous mixed product `W1 R0 + W0 R1`; tested with `jax.grad`. |
 | `step_polynomial` | differentiable for fixed order | MATLAB `StEP` polarization for orders 1-3; differentiability depends on the supplied JAX-transformable callable. Tested with `jax.grad`. |
 | `fnl_nonintrusive` | differentiable for fixed index structure | Revlex non-intrusive Manifold force composition; uses complex polarization internally. Tested with `jax.grad`. |

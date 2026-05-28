@@ -375,6 +375,55 @@ def nonautonomous_struct_setup(
     )
 
 
+def nonautonomous_assemble_coefficients(
+    w1: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...],
+    r1: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...],
+    w_coefficients: Array,
+    r_coefficients: Array,
+    order: int,
+    *,
+    dim: int,
+    ordering: Ordering = "revlex",
+) -> tuple[NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...], NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...]]:
+    """Insert solved non-autonomous coefficients at one spatial order.
+
+    This is the immutable Python equivalent of
+    ``@Manifold/private/nonAut_assembleCoefficients.m`` for one harmonic. The
+    MATLAB function mutates ``W1(i).W(k+1)`` and ``R1(i).R(k+1)``; this helper
+    returns updated series instead. Python stores multi-indices row-wise in
+    ``MultiIndexPolynomial.ind``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to ``w_coefficients`` and ``r_coefficients`` for
+    fixed order and dimension. The multi-index insertion metadata is discrete.
+    """
+
+    if ordering not in {"lex", "revlex"}:
+        raise NotImplementedError("Only lex and revlex assembly are ported")
+    if order < 0:
+        raise ValueError("order must be nonnegative")
+
+    w_terms = list(_series_terms(w1))
+    r_terms = list(_series_terms(r1))
+    if order >= len(w_terms) or order >= len(r_terms):
+        raise ValueError("series must contain entries through the requested order")
+
+    indices = _multi_indices(dim, order, ordering).T
+    w_terms[order] = MultiIndexPolynomial(jnp.asarray(w_coefficients), indices)
+    r_terms[order] = MultiIndexPolynomial(jnp.asarray(r_coefficients), indices)
+
+    if isinstance(w1, NonAutonomousCoefficientSeries):
+        w_out: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...] = NonAutonomousCoefficientSeries(w1.kappa, tuple(w_terms))
+    else:
+        w_out = tuple(w_terms)
+    if isinstance(r1, NonAutonomousCoefficientSeries):
+        r_out: NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...] = NonAutonomousCoefficientSeries(r1.kappa, tuple(r_terms))
+    else:
+        r_out = tuple(r_terms)
+    return w_out, r_out
+
+
 def nonautonomous_w1r0_plus_w0r1(
     order: int,
     w0: tuple[MultiIndexPolynomial, ...],

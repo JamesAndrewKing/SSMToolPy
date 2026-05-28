@@ -14,6 +14,7 @@ from ssmtoolpy import (
     dfnl_semi_intrusive,
     fnl_nonintrusive,
     fnl_semi_intrusive,
+    nonautonomous_assemble_coefficients,
     nonautonomous_conjugate_reduction,
     nonautonomous_resonant_terms,
     nonautonomous_struct_setup,
@@ -174,6 +175,31 @@ def test_nonautonomous_struct_setup_source_derived_shapes():
     assert structure.w1[0].terms[1].coeffs.shape == (3, 0)
     assert structure.r1[0].terms[0].coeffs.shape == (2, 1)
     assert structure.r1[0].terms[1].ind.shape == (0, 2)
+
+
+def test_nonautonomous_assemble_coefficients_updates_one_harmonic_and_grad():
+    structure = nonautonomous_struct_setup(
+        dim=2,
+        state_dim=3,
+        order=2,
+        forcing=({"kappa": jnp.array([1.0]), "terms": (MultiIndexPolynomial(jnp.ones((3, 1)), jnp.zeros((1, 2), dtype=jnp.int32)),)},),
+    )
+    w_coeffs = jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    r_coeffs = jnp.array([[0.5, 1.0, 1.5], [2.0, 2.5, 3.0]])
+    w_updated, r_updated = nonautonomous_assemble_coefficients(structure.w1[0], structure.r1[0], w_coeffs, r_coeffs, 2, dim=2)
+
+    assert w_updated.kappa.shape == (1,)
+    np.testing.assert_allclose(np.asarray(w_updated.terms[2].coeffs), np.asarray(w_coeffs))
+    np.testing.assert_allclose(np.asarray(r_updated.terms[2].coeffs), np.asarray(r_coeffs))
+    np.testing.assert_array_equal(np.asarray(w_updated.terms[2].ind), np.array([[2, 0], [1, 1], [0, 2]]))
+    np.testing.assert_array_equal(np.asarray(r_updated.terms[2].ind), np.array([[2, 0], [1, 1], [0, 2]]))
+
+    def scalar(values):
+        updated, _ = nonautonomous_assemble_coefficients(structure.w1[0], structure.r1[0], values.reshape(3, 3), r_coeffs, 2, dim=2)
+        return jnp.sum(updated.terms[2].coeffs)
+
+    grad = jax.grad(scalar)(w_coeffs.ravel())
+    np.testing.assert_allclose(np.asarray(grad), np.ones(9))
 
 
 def test_nonautonomous_w1r0_plus_w0r1_source_derived_and_grad():

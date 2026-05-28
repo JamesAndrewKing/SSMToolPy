@@ -73,6 +73,7 @@ is not a Python migration target for this package.
 | `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/nonAut_conj_red.m` | non-autonomous forcing bookkeeping | `ssmtoolpy.manifold.nonautonomous_conjugate_reduction` | ported with zero-based Python index maps | not differentiable |
 | `@Manifold/private/nonAut_struct_setup.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_struct_setup` | ported as immutable Python containers | not differentiable |
+| `@Manifold/private/nonAut_assembleCoefficients.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_assemble_coefficients` | ported as immutable one-harmonic update | differentiable for fixed index structure |
 | `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for lex/revlex-style Python polynomial containers | differentiable for fixed index structure |
 | `@Manifold/private/fnl_nonIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_semiIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
