@@ -22,6 +22,7 @@ is not a Python migration target for this package.
 | `misc/khatri_rao_product.m` | core kernel | `ssmtoolpy.tensor.khatri_rao_product` | ported | differentiable |
 | `misc/expand_tensor.m` | core kernel | `ssmtoolpy.tensor.expand_tensor` | ported for dense tensors | differentiable |
 | `misc/expand_tensor_derivative.m` | core kernel | `ssmtoolpy.tensor.expand_tensor_derivative` | ported for dense tensors | differentiable |
+| `misc/tensor_composition.m` | tensor composition kernel | `ssmtoolpy.tensor.tensor_composition` and `tensor_product` | ported for dense tensors | differentiable for fixed pattern |
 | `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable for fixed structure |
 | `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |
 | `misc/reduced_to_full_traj.m` | reconstruction kernel | `ssmtoolpy.misc.reduced_to_full_traj` | ported | differentiable for fixed structure |
@@ -116,8 +117,9 @@ large finite-element model builders.
 
 Known blockers and design work:
 
-- MATLAB sparse `sptensor` support needs a Python representation or dense/sparse
-  split API.
+- MATLAB sparse `sptensor` support is not a general Python data structure yet.
+  `tensor_composition` now has a dense JAX path; large sparse Tensor Toolbox
+  workloads still need a sparse-coordinate representation or BCOO integration.
 - Eigenvector sorting, nullspaces, rank decisions, resonant-mode detection, and
   continuation/event routines require explicit nondegeneracy assumptions before
   differentiability can be claimed.

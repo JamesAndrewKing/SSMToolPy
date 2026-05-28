@@ -107,7 +107,7 @@ from ssmtoolpy.multi_index import (
 )
 from ssmtoolpy.options import DSOptions, FRCOptions, FRSOptions, ManifoldOptions, matlab_style_options
 from ssmtoolpy.reduction import NonAutonomousTerm, reduced_to_full, reduced_to_full_complex
-from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative, khatri_rao_product
+from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative, khatri_rao_product, tensor_composition, tensor_product
 
 __all__ = [
     "MultiIndexPolynomial",
@@ -209,4 +209,6 @@ __all__ = [
     "squared_distance_to_point_ssm",
     "sub2multiind",
     "tensor_to_multi_index",
+    "tensor_composition",
+    "tensor_product",
 ]

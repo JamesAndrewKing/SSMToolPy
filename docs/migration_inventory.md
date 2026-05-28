@@ -231,6 +231,6 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
 | `misc/stab_plot.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/sub2multiind.m` | core utility | `ssmtoolpy.multi_index.sub2multiind` | ported | not differentiable |
-| `misc/tensor_composition.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
+| `misc/tensor_composition.m` | tensor composition kernel | `ssmtoolpy.tensor.tensor_composition` and `tensor_product` | ported for dense tensors | differentiable for fixed pattern |
 | `misc/tensor_to_multi_index.m` | conversion utility | `ssmtoolpy.multi_index.tensor_to_multi_index` | ported for dense tensors | not differentiable |
 | `misc/transient_traj_on_auto_ssm.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |

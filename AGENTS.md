@@ -138,3 +138,17 @@ The task is complete only when:
 Continue iterating until the completion criteria are met or until blocked by missing information that cannot be inferred from the repository.
 
 If MATLAB or Octave is available, use it only to generate reference fixtures and behavioral comparisons. If neither is available, do not block. Instead derive small deterministic reference cases from the MATLAB source, document that they are source-derived, and continue.
+
+## Batch continuation protocol
+
+At the end of every Codex run, update `docs/migration_report.md` with a section named `Next recommended batch`.
+
+That section must include:
+- the subsystem or dependency layer to port next,
+- the MATLAB files involved,
+- the planned Python modules,
+- expected tests,
+- known risks,
+- differentiability concerns.
+
+When the user says “continue”, use that section as the task definition and complete the entire batch, not just one function.

@@ -2,7 +2,16 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ssmtoolpy import MultiIndexPolynomial, expand_tensor, expand_tensor_derivative, frc_ab, khatri_rao_product, reduced_to_full
+from ssmtoolpy import (
+    MultiIndexPolynomial,
+    expand_tensor,
+    expand_tensor_derivative,
+    frc_ab,
+    khatri_rao_product,
+    reduced_to_full,
+    tensor_composition,
+    tensor_product,
+)
 
 
 def test_khatri_rao_product_and_jacfwd():
@@ -32,6 +41,53 @@ def test_expand_tensor_derivative_matches_jacfwd():
     point = jnp.array([0.25, -0.5])
     expected = jax.jacfwd(lambda x: expand_tensor(tensor, x))(point)
     np.testing.assert_allclose(np.asarray(expand_tensor_derivative(tensor, point)), np.asarray(expected), rtol=1e-6)
+
+
+def test_tensor_product_matches_dense_tucker_product_and_jacfwd():
+    tensor = jnp.arange(12.0).reshape(2, 2, 3)
+    left = jnp.array([[1.0, 2.0], [-1.0, 0.5]])
+    right = jnp.array([[0.25, 1.0], [2.0, -1.0], [0.5, 3.0]])
+
+    expected = jnp.einsum("oab,ai,bj->oij", tensor, left, right)
+    np.testing.assert_allclose(np.asarray(tensor_product(tensor, (left, right))), np.asarray(expected))
+
+    jac = jax.jacfwd(lambda values: tensor_product(values.reshape(2, 2, 3), (left, right)).sum())(tensor.ravel())
+    assert jac.shape == (12,)
+
+
+def test_tensor_composition_sums_pattern_rows_and_supports_matlab_index_base():
+    tensor = jnp.arange(12.0).reshape(2, 2, 3)
+    left_a = jnp.array([[1.0, 0.0], [0.0, 1.0]])
+    left_b = jnp.array([[2.0, -1.0], [0.5, 3.0]])
+    right_a = jnp.array([[1.0], [2.0], [-1.0]])
+    right_b = jnp.array([[0.25], [-0.5], [4.0]])
+    factors = (left_a, left_b, right_a, right_b)
+
+    expected = jnp.einsum("oab,ai,bj->oij", tensor, left_a, right_a)
+    expected = expected + jnp.einsum("oab,ai,bj->oij", tensor, left_b, right_b)
+    pattern = jnp.array([[0, 2], [1, 3]])
+
+    got = tensor_composition(tensor, factors, pattern, size=(2, 2, 1))
+    np.testing.assert_allclose(np.asarray(got), np.asarray(expected))
+    got_one_based = tensor_composition(tensor, factors, pattern + 1, size=(2, 2, 1), index_base=1)
+    np.testing.assert_allclose(np.asarray(got_one_based), np.asarray(expected))
+
+
+def test_tensor_composition_jit_and_grad_for_fixed_pattern():
+    tensor = jnp.arange(12.0).reshape(2, 2, 3)
+    left = jnp.array([[1.0, 2.0], [-1.0, 0.5]])
+    right = jnp.array([[0.25, 1.0], [2.0, -1.0], [0.5, 3.0]])
+    factors = (left, right)
+    pattern = jnp.array([[0, 1]])
+
+    expected = tensor_product(tensor, factors)
+    jit_value = jax.jit(lambda values: tensor_composition(values, factors, pattern))(tensor)
+    np.testing.assert_allclose(np.asarray(jit_value), np.asarray(expected))
+
+    grad = jax.grad(lambda values: jnp.sum(tensor_composition(values.reshape(2, 2, 3), factors, pattern)))(tensor.ravel())
+    assert grad.shape == (12,)
+    batched = jax.vmap(lambda scale: tensor_composition(scale * tensor, factors, pattern))(jnp.array([1.0, -2.0]))
+    assert batched.shape == (2, *expected.shape)
 
 
 def test_frc_ab_values_grad_and_vmap():

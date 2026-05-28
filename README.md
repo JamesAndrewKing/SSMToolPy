@@ -58,6 +58,7 @@ Ported:
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
+- dense tensor Tucker-style products and row-pattern tensor composition
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps

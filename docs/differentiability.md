@@ -24,6 +24,8 @@
 | `khatri_rao_product` | differentiable | Tested with `jax.jacfwd`. |
 | `expand_tensor` | differentiable | Tested with `jax.jit` and `jax.grad`. |
 | `expand_tensor_derivative` | differentiable | Tested against `jax.jacfwd`. |
+| `tensor_product` | differentiable | Dense Tucker-style contraction for fixed factor ranks/shapes; tested with `jax.jacfwd`. |
+| `tensor_composition` | differentiable for fixed pattern | Dense row-pattern sum of tensor products. The integer pattern and result shape are static/discrete; tested with `jax.jit`, `jax.grad`, and `jax.vmap` for coefficient values. |
 | `frc_ab` | differentiable | Tested with `jax.grad` and `jax.vmap`. |
 | `compute_gamma` | not differentiable | Discrete multi-index lookup into reduced-dynamics coefficients. |
 | `frc_psi` | piecewise differentiable | Uses `atan2`; tested with `jax.grad` and `jax.vmap`, excluding branch-cut/undefined cases. |
