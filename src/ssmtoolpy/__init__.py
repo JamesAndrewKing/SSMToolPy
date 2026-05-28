@@ -107,7 +107,15 @@ from ssmtoolpy.multi_index import (
 )
 from ssmtoolpy.options import DSOptions, FRCOptions, FRSOptions, ManifoldOptions, matlab_style_options
 from ssmtoolpy.reduction import NonAutonomousTerm, reduced_to_full, reduced_to_full_complex
-from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative, khatri_rao_product, tensor_composition, tensor_product
+from ssmtoolpy.tensor import (
+    sparse_tensor_from_dense,
+    expand_tensor,
+    expand_tensor_derivative,
+    khatri_rao_product,
+    tensor_composition,
+    tensor_product,
+    tensor_to_dense,
+)
 
 __all__ = [
     "MultiIndexPolynomial",
@@ -205,10 +213,12 @@ __all__ = [
     "second_order_residual",
     "solve_invariance_equation",
     "spblkdiag",
+    "sparse_tensor_from_dense",
     "step_polynomial",
     "squared_distance_to_point_ssm",
     "sub2multiind",
     "tensor_to_multi_index",
     "tensor_composition",
     "tensor_product",
+    "tensor_to_dense",
 ]

@@ -24,8 +24,10 @@
 | `khatri_rao_product` | differentiable | Tested with `jax.jacfwd`. |
 | `expand_tensor` | differentiable | Tested with `jax.jit` and `jax.grad`. |
 | `expand_tensor_derivative` | differentiable | Tested against `jax.jacfwd`. |
-| `tensor_product` | differentiable | Dense Tucker-style contraction for fixed factor ranks/shapes; tested with `jax.jacfwd`. |
-| `tensor_composition` | differentiable for fixed pattern | Dense row-pattern sum of tensor products. The integer pattern and result shape are static/discrete; tested with `jax.jit`, `jax.grad`, and `jax.vmap` for coefficient values. |
+| `sparse_tensor_from_dense` | piecewise differentiable | JAX `BCOO` adapter. Values are differentiable for fixed sparse capacity/indices; index extraction is discrete. |
+| `tensor_to_dense` | differentiable for fixed sparse indices | Densifies JAX `BCOO` storage or returns dense input. |
+| `tensor_product` | differentiable for dense inputs; differentiable under fixed sparse-structure assumptions for sparse inputs | Dense Tucker-style contraction is tested with `jax.jacfwd`. Sparse `BCOO` contraction is tested with `jax.jit` and forward-mode `jax.jacfwd`; reverse-mode through sparse-sparse `bcoo_spdot_general` is not implemented in JAX 0.10.1. |
+| `tensor_composition` | differentiable for fixed dense pattern; differentiable under fixed sparse-structure assumptions for sparse inputs | Dense row-pattern sum is tested with `jax.jit`, `jax.grad`, and `jax.vmap`. Sparse `BCOO` composition is tested with `jax.jit` and forward-mode `jax.jacfwd`; integer patterns and result shapes are static/discrete. |
 | `frc_ab` | differentiable | Tested with `jax.grad` and `jax.vmap`. |
 | `compute_gamma` | not differentiable | Discrete multi-index lookup into reduced-dynamics coefficients. |
 | `frc_psi` | piecewise differentiable | Uses `atan2`; tested with `jax.grad` and `jax.vmap`, excluding branch-cut/undefined cases. |

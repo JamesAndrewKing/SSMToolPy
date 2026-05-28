@@ -5,10 +5,46 @@ from __future__ import annotations
 from string import ascii_lowercase
 
 import jax
+from jax.experimental import sparse as jax_sparse
 import jax.numpy as jnp
 
 
 Array = jnp.ndarray
+SparseArray = jax_sparse.BCOO
+
+
+def _is_sparse_tensor(value: object) -> bool:
+    return isinstance(value, jax_sparse.BCOO)
+
+
+def sparse_tensor_from_dense(tensor: Array, *, nse: int | None = None) -> SparseArray:
+    """Convert a dense tensor to JAX ``BCOO`` sparse storage.
+
+    This is the Python/JAX adapter for MATLAB ``sptensor`` inputs in tensor
+    composition code. It keeps sparse storage explicit at API boundaries while
+    using JAX's transformable sparse array type internally.
+
+    Differentiability
+    -----------------
+    Piecewise differentiable for fixed sparsity capacity. The discrete index
+    structure is not differentiable; sparse contraction value paths are tested
+    with ``jax.jit`` and forward-mode ``jax.jacfwd``.
+    """
+
+    return jax_sparse.BCOO.fromdense(jnp.asarray(tensor), nse=nse)
+
+
+def tensor_to_dense(tensor: Array | SparseArray) -> Array:
+    """Return a dense JAX array from either dense or ``BCOO`` tensor storage.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to stored values for fixed sparse indices.
+    """
+
+    if _is_sparse_tensor(tensor):
+        return tensor.todense()
+    return jnp.asarray(tensor)
 
 
 def khatri_rao_product(a: Array, b: Array) -> Array:
@@ -70,7 +106,12 @@ def expand_tensor_derivative(tensor: Array, point: Array) -> Array:
     return jax.jacfwd(lambda x: expand_tensor(tensor, x))(point)
 
 
-def tensor_product(tensor: Array, factors: tuple[Array, ...]) -> Array:
+def tensor_product(
+    tensor: Array | SparseArray,
+    factors: tuple[Array | SparseArray, ...],
+    *,
+    sparse: bool | None = None,
+) -> Array | SparseArray:
     """Contract ``tensor`` with one factor along each non-output mode.
 
     This is the dense JAX counterpart of the private ``tensor_product`` helper
@@ -80,19 +121,34 @@ def tensor_product(tensor: Array, factors: tuple[Array, ...]) -> Array:
     ``B_k`` to the output.  The resulting axes are ordered as
     ``(A output, B_1 trailing axes, B_2 trailing axes, ...)``.
 
+    When ``sparse=True``, operands are converted to JAX ``BCOO`` and the result
+    stays sparse. When ``sparse=None``, the result is sparse only if all operands
+    already use ``BCOO`` storage.
+
     Differentiability
     -----------------
-    Differentiable with respect to ``tensor`` and factor values for fixed
-    tensor ranks and compatible shapes. Representative tests exercise
-    ``jax.jacfwd``.
+    Dense path: differentiable with respect to ``tensor`` and factor values for
+    fixed tensor ranks and compatible shapes. Sparse path: JAX-transformable for
+    fixed sparsity structure; forward-mode differentiation is supported by the
+    JAX ``BCOO`` primitives used here, while reverse-mode transposes are not
+    implemented for sparse-sparse ``bcoo_spdot_general`` in JAX 0.10.1.
+    Representative tests exercise dense ``jax.jacfwd`` and sparse
+    ``jax.jit``/``jax.jacfwd``.
     """
 
-    result = jnp.asarray(tensor)
+    use_sparse = (
+        bool(sparse)
+        if sparse is not None
+        else _is_sparse_tensor(tensor) and all(_is_sparse_tensor(f) for f in factors)
+    )
+    result = sparse_tensor_from_dense(tensor) if use_sparse and not _is_sparse_tensor(tensor) else tensor
+    result = result if _is_sparse_tensor(result) else jnp.asarray(result)
     expected_factors = result.ndim - 1
     if len(factors) != expected_factors:
         raise ValueError(f"Expected {expected_factors} factors, received {len(factors)}")
     for factor in factors:
-        factor = jnp.asarray(factor)
+        factor = sparse_tensor_from_dense(factor) if use_sparse and not _is_sparse_tensor(factor) else factor
+        factor = factor if _is_sparse_tensor(factor) else jnp.asarray(factor)
         if factor.ndim < 1:
             raise ValueError("Each factor must have at least one mode")
         if result.shape[1] != factor.shape[0]:
@@ -100,28 +156,39 @@ def tensor_product(tensor: Array, factors: tuple[Array, ...]) -> Array:
                 "Tensor contraction dimensions do not match: "
                 f"{result.shape[1]} != {factor.shape[0]}"
             )
-        result = jnp.tensordot(result, factor, axes=((1,), (0,)))
+        if use_sparse:
+            result = jax_sparse.bcoo_dot_general(
+                result,
+                factor,
+                dimension_numbers=(((1,), (0,)), ((), ())),
+            )
+        else:
+            result = jnp.tensordot(result, factor, axes=((1,), (0,)))
     return result
 
 
 def tensor_composition(
-    tensor: Array,
-    factors: tuple[Array, ...],
+    tensor: Array | SparseArray,
+    factors: tuple[Array | SparseArray, ...],
     pattern: Array,
     size: tuple[int, ...] | None = None,
     *,
     index_base: int = 0,
-) -> Array:
+    sparse: bool | None = None,
+) -> Array | SparseArray:
     """Sum Tucker-style tensor products selected by ``pattern`` rows.
 
     MATLAB ``misc/tensor_composition.m`` computes
 
     ``sum_j A x_2 B[p[j, 1]] x_3 ... x_{n+1} B[p[j, n]]``
 
-    using sparse tensors. This dense JAX port accepts a tuple of dense factor
-    tensors and a row-wise integer ``pattern`` selecting which factors to use
-    for each contraction. Python callers should use zero-based indices; pass
+    using sparse tensors. This JAX port accepts dense arrays or JAX ``BCOO``
+    sparse tensors. Python callers should use zero-based indices; pass
     ``index_base=1`` for MATLAB-derived pattern matrices.
+
+    Pass ``sparse=True`` to convert operands to ``BCOO`` and preserve sparse
+    output. With ``sparse=None``, the output remains sparse when the base tensor
+    and all selected factor tensors already use ``BCOO`` storage.
 
     ``size`` mirrors the MATLAB ``SIZE`` argument. When provided, it is checked
     against the inferred dense result shape and used to construct the zero
@@ -129,13 +196,17 @@ def tensor_composition(
 
     Differentiability
     -----------------
-    Differentiable with respect to ``tensor`` and selected factor values for a
-    fixed ``pattern`` and fixed shapes. The integer pattern, ``size`` and
-    ``index_base`` are discrete and not differentiable. Representative tests
-    exercise ``jax.jit`` and ``jax.grad``.
+    Dense path: differentiable with respect to ``tensor`` and selected factor
+    values for a fixed ``pattern`` and fixed shapes. Sparse path:
+    JAX-transformable for fixed sparsity structure; forward-mode
+    differentiation is supported, but reverse-mode differentiation through
+    sparse-sparse contractions is limited by JAX's current ``BCOO`` transpose
+    support. The integer pattern, ``size`` and ``index_base`` are discrete and
+    not differentiable. Representative tests exercise dense ``jax.jit``,
+    ``jax.grad``, ``jax.vmap`` and sparse ``jax.jit``/``jax.jacfwd``.
     """
 
-    base_tensor = jnp.asarray(tensor)
+    base_tensor = tensor if _is_sparse_tensor(tensor) else jnp.asarray(tensor)
     pattern = jnp.asarray(pattern)
     if pattern.ndim != 2:
         raise ValueError("pattern must be a two-dimensional integer array")
@@ -150,7 +221,12 @@ def tensor_composition(
         raise IndexError("pattern contains a factor index outside the available factors")
 
     if selected_rows:
-        terms = tuple(tensor_product(base_tensor, tuple(factors[index] for index in row)) for row in selected_rows)
+        use_sparse = bool(sparse) if sparse is not None else _is_sparse_tensor(base_tensor) and all(
+            _is_sparse_tensor(factors[index]) for row in selected_rows for index in row
+        )
+        terms = tuple(
+            tensor_product(base_tensor, tuple(factors[index] for index in row), sparse=use_sparse) for row in selected_rows
+        )
         result = sum(terms[1:], terms[0]) if len(terms) > 1 else terms[0]
         if size is not None and tuple(result.shape) != tuple(size):
             raise ValueError(f"Inferred result shape {result.shape} does not match requested size {size}")
@@ -158,4 +234,6 @@ def tensor_composition(
 
     if size is None:
         raise ValueError("size is required when pattern has no rows")
+    if sparse:
+        return sparse_tensor_from_dense(jnp.zeros(size, dtype=tensor_to_dense(base_tensor).dtype), nse=0)
     return jnp.zeros(size, dtype=base_tensor.dtype)

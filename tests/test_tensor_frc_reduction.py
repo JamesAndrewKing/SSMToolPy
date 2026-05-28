@@ -9,8 +9,10 @@ from ssmtoolpy import (
     frc_ab,
     khatri_rao_product,
     reduced_to_full,
+    sparse_tensor_from_dense,
     tensor_composition,
     tensor_product,
+    tensor_to_dense,
 )
 
 
@@ -88,6 +90,43 @@ def test_tensor_composition_jit_and_grad_for_fixed_pattern():
     assert grad.shape == (12,)
     batched = jax.vmap(lambda scale: tensor_composition(scale * tensor, factors, pattern))(jnp.array([1.0, -2.0]))
     assert batched.shape == (2, *expected.shape)
+
+
+def test_sparse_tensor_product_and_composition_match_dense():
+    tensor = jnp.arange(12.0).reshape(2, 2, 3)
+    left = jnp.array([[1.0, 2.0], [-1.0, 0.5]])
+    right = jnp.array([[0.25, 1.0], [2.0, -1.0], [0.5, 3.0]])
+    sparse_tensor = sparse_tensor_from_dense(tensor)
+    sparse_factors = (sparse_tensor_from_dense(left), sparse_tensor_from_dense(right))
+    pattern = jnp.array([[0, 1]])
+
+    dense_expected = tensor_product(tensor, (left, right))
+    sparse_product = tensor_product(sparse_tensor, sparse_factors)
+    assert hasattr(sparse_product, "todense")
+    np.testing.assert_allclose(np.asarray(tensor_to_dense(sparse_product)), np.asarray(dense_expected))
+
+    sparse_composed = tensor_composition(sparse_tensor, sparse_factors, pattern)
+    assert hasattr(sparse_composed, "todense")
+    np.testing.assert_allclose(np.asarray(tensor_to_dense(sparse_composed)), np.asarray(dense_expected))
+
+
+def test_sparse_tensor_composition_jit_and_forward_mode_for_fixed_sparsity():
+    tensor = jnp.arange(12.0).reshape(2, 2, 3)
+    left = sparse_tensor_from_dense(jnp.array([[1.0, 2.0], [-1.0, 0.5]]))
+    right = sparse_tensor_from_dense(jnp.array([[0.25, 1.0], [2.0, -1.0], [0.5, 3.0]]))
+    pattern = jnp.array([[0, 1]])
+    sparse_tensor = sparse_tensor_from_dense(tensor)
+
+    expected = tensor_product(tensor, (tensor_to_dense(left), tensor_to_dense(right)))
+    jit_value = jax.jit(lambda values: tensor_to_dense(tensor_composition(values, (left, right), pattern)))(sparse_tensor)
+    np.testing.assert_allclose(np.asarray(jit_value), np.asarray(expected))
+
+    def sparse_sum(values):
+        base = sparse_tensor_from_dense(values.reshape(2, 2, 3), nse=12)
+        return jnp.sum(tensor_to_dense(tensor_composition(base, (left, right), pattern)))
+
+    jac = jax.jacfwd(sparse_sum)(tensor.ravel())
+    assert jac.shape == (12,)
 
 
 def test_frc_ab_values_grad_and_vmap():

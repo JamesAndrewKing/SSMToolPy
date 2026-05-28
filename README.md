@@ -58,7 +58,7 @@ Ported:
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
-- dense tensor Tucker-style products and row-pattern tensor composition
+- dense and JAX `BCOO` sparse tensor Tucker-style products and row-pattern tensor composition
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps
@@ -67,7 +67,8 @@ Not yet ported:
 
 - high-level `DynamicalSystem`, `Manifold`, and `SSM` classes
 - COCO continuation workflows
-- sparse Tensor Toolbox-compatible storage
+- full sparse Tensor Toolbox-compatible storage beyond the current JAX `BCOO`
+  tensor-composition adapters
 - most examples and plotting/solution-reader utilities
 
 See `docs/migration_report.md` and `docs/differentiability.md` for details.
