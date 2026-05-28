@@ -251,6 +251,119 @@ def evaluate_periodic_forcing(time: Array, coordinates: Array, forcing: Periodic
     return result
 
 
+def forcing_kappas(forcing: PeriodicForcing | tuple[FourierForcingTerm, ...]) -> Array:
+    """Return forcing harmonics with one harmonic vector per row.
+
+    This ports the functional behavior of
+    ``@DynamicalSystem/private/get_kappas.m``. Scalar ``kappa`` values become a
+    column vector of shape ``(n_harmonics, 1)``; vector-valued ``kappa`` entries
+    are stacked row-wise.
+
+    Differentiability
+    -----------------
+    Not differentiable. This is harmonic metadata extraction.
+    """
+
+    terms = forcing.terms if isinstance(forcing, PeriodicForcing) else tuple(forcing)
+    if not terms:
+        return jnp.zeros((0, 0), dtype=jnp.int32)
+    rows = [jnp.ravel(jnp.asarray(term.kappa)) for term in terms]
+    return jnp.stack(rows, axis=0)
+
+
+def first_order_forcing_terms_from_second_order(
+    forcing_terms: tuple[FourierForcingTerm, ...],
+    *,
+    n: int,
+    total_dim: int | None = None,
+) -> tuple[FourierForcingTerm, ...]:
+    """Pad second-order forcing terms into first-order coordinates.
+
+    This is a functional equivalent of ``@DynamicalSystem/private/set_Fext.m``.
+    Each second-order coefficient matrix of shape ``(n, z)`` is embedded as
+    ``[coeffs; zeros]``. Multi-indices are padded with zero columns so terms
+    originally depending on displacement coordinates become terms over the full
+    first-order state.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values for fixed term structure.
+    The harmonic metadata and index padding are discrete.
+    """
+
+    if total_dim is None:
+        total_dim = 2 * n
+    converted = []
+    for harmonic in forcing_terms:
+        terms = []
+        for poly in harmonic.terms:
+            coeffs = jnp.asarray(poly.coeffs)
+            if coeffs.shape[0] > total_dim:
+                raise ValueError("forcing coefficient output dimension exceeds total_dim")
+            if coeffs.shape[0] == total_dim:
+                padded_coeffs = coeffs
+            elif coeffs.shape[0] == n:
+                padded_coeffs = jnp.concatenate([coeffs, jnp.zeros((total_dim - n, coeffs.shape[1]), dtype=coeffs.dtype)], axis=0)
+            else:
+                raise ValueError("forcing coefficient output dimension must equal n or total_dim")
+
+            ind = jnp.asarray(poly.ind, dtype=jnp.int32)
+            if ind.shape[1] > total_dim:
+                raise ValueError("forcing multi-index input dimension exceeds total_dim")
+            padded_ind = ind if ind.shape[1] == total_dim else jnp.pad(ind, ((0, 0), (0, total_dim - ind.shape[1])))
+            terms.append(MultiIndexPolynomial(padded_coeffs, padded_ind))
+        converted.append(FourierForcingTerm(kappa=harmonic.kappa, terms=tuple(terms)))
+    return tuple(converted)
+
+
+def infer_callable_input_dim(function: Callable[[Array], Array], primary_dim: int, total_dim: int) -> int:
+    """Infer whether a callable accepts ``primary_dim`` or ``total_dim`` inputs.
+
+    Ports the behavior of ``get_F_non_input_dim.m`` and
+    ``get_fnl_non_input_dim.m``. The callable is tried first with zeros of
+    length ``primary_dim`` and then with zeros of length ``total_dim``.
+
+    Differentiability
+    -----------------
+    Not differentiable. This probes callable shape compatibility using Python
+    exceptions.
+    """
+
+    for dim in (primary_dim, total_dim):
+        try:
+            function(jnp.zeros((dim,)))
+            return dim
+        except Exception:
+            continue
+    raise ValueError("Please check input dimension for the nonlinearity function handle")
+
+
+def infer_semi_intrusive_input_dim(functions: tuple[Callable[[tuple[Array, ...]], Array] | None, ...], primary_dim: int, total_dim: int) -> int:
+    """Infer input dimension for semi-intrusive multilinear force callables.
+
+    This ports the useful behavior of ``get_F_semi_input_dim.m`` and
+    ``get_fnl_semi_input_dim.m``. For the callable at index ``j``, the probe
+    input is a tuple of ``j + 1`` equal zero vectors, matching MATLAB's cell
+    array construction.
+
+    Differentiability
+    -----------------
+    Not differentiable. This probes callable shape compatibility using Python
+    exceptions.
+    """
+
+    for dim in (primary_dim, total_dim):
+        try:
+            vector = jnp.zeros((dim,))
+            for idx, function in enumerate(functions):
+                if function is not None:
+                    function(tuple(vector for _ in range(idx + 1)))
+            return dim
+        except Exception:
+            continue
+    raise ValueError("Please check input dimension for the nonlinearity function handle")
+
+
 def evaluate_first_order_vector_field(
     a_matrix: Array,
     b_matrix: Array,

@@ -56,6 +56,10 @@
 | `second_order_internal_force_jacobian_xd` | differentiable | Constant zero map for displacement-only nonlinearities. |
 | `first_order_from_second_order_nonlinearity` | differentiable | Algebraic first-order embedding `[-fnl; 0]`. |
 | `evaluate_periodic_forcing` | differentiable | For fixed Fourier/Taylor forcing structure. |
+| `forcing_kappas` | not differentiable | Harmonic metadata extraction. |
+| `first_order_forcing_terms_from_second_order` | differentiable | Coefficient padding for fixed forcing structure; tested with `jax.grad`. |
+| `infer_callable_input_dim` | not differentiable | Probes Python callables using exception-based shape checks. |
+| `infer_semi_intrusive_input_dim` | not differentiable | Probes multilinear/semi-intrusive callables using exception-based shape checks. |
 | `evaluate_first_order_vector_field` | differentiable under nondegeneracy assumptions | Requires nonsingular `B` and differentiable nonlinear/forcing terms. |
 | `second_order_residual` | piecewise differentiable | Residual/tangent terms are differentiable; norm-based `c0` is non-smooth at zero norms. |
 | `mechanical_binv_a` | differentiable under nondegeneracy assumptions | Requires nonsingular mass matrix. |

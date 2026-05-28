@@ -38,10 +38,14 @@ is not a Python migration target for this package.
 | `@DynamicalSystem/residual.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_residual` | functional core ported | piecewise differentiable |
 | `@DynamicalSystem/odefun.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.evaluate_first_order_vector_field` | functional core ported | differentiable under nonsingular `B` |
 | `@DynamicalSystem/evaluate_Fext.m` and `compute_fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
+| `@DynamicalSystem/private/get_kappas.m` | forcing metadata utility | `ssmtoolpy.dynamical_system.forcing_kappas` | ported | not differentiable |
+| `@DynamicalSystem/private/set_Fext.m` and `get_Fext.m` | forcing representation conversion | `ssmtoolpy.dynamical_system.first_order_forcing_terms_from_second_order` | functional second-to-first-order padding ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/private/get_BinvA.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_binv_a` | ported | differentiable under nonsingular mass matrix |
 | `@DynamicalSystem/private/get_A.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_a_matrix` | mechanical matrix branch ported | differentiable |
 | `@DynamicalSystem/private/get_B.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_b_matrix` | mechanical matrix branch ported | differentiable |
 | `@DynamicalSystem/private/get_F_input_dim.m` and `get_fnl_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
+| `@DynamicalSystem/private/get_F_non_input_dim.m` and `get_fnl_non_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_callable_input_dim` | functional probing behavior ported | not differentiable |
+| `@DynamicalSystem/private/get_F_semi_input_dim.m`, `get_fnl_semi_input_dim.m`, and `get_nl_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` plus dispatch by caller | functional probing behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_degree.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_degree` | functional term-sequence behavior ported | not differentiable |
 | `@DynamicalSystem/private/set_Ftens_from_fnlmulti.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_polynomial_terms_from_second_order` | dense/multi-index equivalent ported | differentiable |
 | `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
@@ -126,6 +130,9 @@ Known blockers and design work:
 - Some `@DynamicalSystem/private` methods have MATLAB class-specific branches
   for stored properties. The Python ports expose the equivalent functional
   mechanical-matrix and nonlinear-representation conversions.
+- Dynamical-system forcing metadata and second-to-first-order forcing padding
+  are exposed as functional helpers instead of mutable `Fext`/`fext` property
+  getters.
 - `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
   and reverse-lexicographic computation. The conjugate-order branches are tied
   to the full cohomological solver and remain unported.

@@ -21,25 +21,25 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/private/get_F_from_fnl.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` | functional equivalent ported | differentiable |
 | `@DynamicalSystem/private/get_F_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_F_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_F_non_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F_non_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_callable_input_dim` | ported | not differentiable |
 | `@DynamicalSystem/private/get_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_F_semi_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_Fext.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F_semi_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` | ported | not differentiable |
+| `@DynamicalSystem/private/get_Fext.m` | forcing representation conversion | `ssmtoolpy.dynamical_system.first_order_forcing_terms_from_second_order` | functional second-to-first-order padding ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/private/get_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_dF_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_degree.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_degree` | functional term-sequence behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_fnl_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
-| `@DynamicalSystem/private/get_fnl_non_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_fnl_semi_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_kappas.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_nl_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_fnl_non_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_callable_input_dim` | ported | not differentiable |
+| `@DynamicalSystem/private/get_fnl_semi_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` | ported | not differentiable |
+| `@DynamicalSystem/private/get_kappas.m` | forcing metadata utility | `ssmtoolpy.dynamical_system.forcing_kappas` | ported | not differentiable |
+| `@DynamicalSystem/private/get_nl_input_dim.m` | nonlinear metadata dispatch | `ssmtoolpy.dynamical_system.polynomial_input_dim`, `infer_callable_input_dim`, `infer_semi_intrusive_input_dim` | functional cases ported; mutable property dispatch not ported | not differentiable |
 | `@DynamicalSystem/private/set_F.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_F_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_F_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_Fext.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/set_Fext.m` | forcing representation conversion | `ssmtoolpy.dynamical_system.first_order_forcing_terms_from_second_order` | functional second-to-first-order padding ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/private/set_Ftens_from_fnlmulti.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_polynomial_terms_from_second_order` | dense/multi-index equivalent ported | differentiable |
 | `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
 | `@DynamicalSystem/private/set_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |

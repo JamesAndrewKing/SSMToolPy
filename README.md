@@ -45,7 +45,7 @@ Ported:
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
-- dynamical-system private helper equivalents for mechanical matrices, nonlinear metadata, and second-order to first-order nonlinear term conversion
+- dynamical-system private helper equivalents for mechanical matrices, nonlinear/forcing metadata, callable input probing, and second-order to first-order nonlinear/forcing conversion
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
 - non-autonomous Manifold harmonic conjugacy reduction and coefficient-structure setup helpers

@@ -10,11 +10,15 @@ from ssmtoolpy import (
     evaluate_first_order_vector_field,
     evaluate_periodic_forcing,
     evaluate_polynomial_terms,
+    first_order_forcing_terms_from_second_order,
     first_order_polynomial_terms_from_second_order,
     first_order_from_second_order_nonlinearity,
     first_order_nonlinearity,
     first_order_tensor_terms_from_second_order,
     first_order_terms_from_second_order,
+    forcing_kappas,
+    infer_callable_input_dim,
+    infer_semi_intrusive_input_dim,
     mechanical_binv_a,
     mechanical_a_matrix,
     mechanical_b_matrix,
@@ -106,6 +110,65 @@ def test_periodic_forcing_and_vector_field_are_transformable():
     np.testing.assert_allclose(np.asarray(value), np.asarray(expected_rhs), rtol=1e-6)
     jit_value = jax.jit(lambda z: evaluate_first_order_vector_field(a, b, z, _first_order_terms()))(coordinates)
     np.testing.assert_allclose(np.asarray(jit_value), np.asarray(expected_rhs), rtol=1e-6)
+
+
+def test_forcing_kappas_and_second_order_forcing_conversion():
+    forcing_terms = (
+        FourierForcingTerm(
+            kappa=jnp.array([1, 0]),
+            terms=(
+                MultiIndexPolynomial(coeffs=jnp.array([[1.0], [2.0]]), ind=jnp.zeros((1, 2), dtype=jnp.int32)),
+                MultiIndexPolynomial(coeffs=jnp.array([[3.0, 4.0], [5.0, 6.0]]), ind=jnp.array([[1, 0], [0, 2]], dtype=jnp.int32)),
+            ),
+        ),
+        FourierForcingTerm(
+            kappa=jnp.array([-1, 1]),
+            terms=(MultiIndexPolynomial(coeffs=jnp.array([[7.0], [8.0]]), ind=jnp.zeros((1, 2), dtype=jnp.int32)),),
+        ),
+    )
+    periodic = PeriodicForcing(terms=forcing_terms, epsilon=jnp.array(0.25), omega=jnp.array([1.0, 2.0]))
+    np.testing.assert_array_equal(np.asarray(forcing_kappas(periodic)), np.array([[1, 0], [-1, 1]]))
+
+    converted = first_order_forcing_terms_from_second_order(forcing_terms, n=2, total_dim=4)
+    np.testing.assert_allclose(np.asarray(converted[0].terms[0].coeffs), np.array([[1.0], [2.0], [0.0], [0.0]]))
+    np.testing.assert_array_equal(np.asarray(converted[0].terms[1].ind), np.array([[1, 0, 0, 0], [0, 2, 0, 0]]))
+
+    def scalar(values):
+        local_terms = (
+            FourierForcingTerm(
+                kappa=1,
+                terms=(MultiIndexPolynomial(coeffs=values.reshape(2, 2), ind=jnp.array([[1, 0], [0, 2]], dtype=jnp.int32)),),
+            ),
+        )
+        return first_order_forcing_terms_from_second_order(local_terms, n=2)[0].terms[0].coeffs.sum()
+
+    grad = jax.grad(scalar)(jnp.arange(4.0))
+    np.testing.assert_allclose(np.asarray(grad), np.ones(4))
+
+
+def test_callable_input_dimension_inference_helpers():
+    def primary_only(vector):
+        if vector.shape[0] != 2:
+            raise ValueError("wrong dimension")
+        return vector
+
+    def total_only(vector):
+        if vector.shape[0] != 4:
+            raise ValueError("wrong dimension")
+        return vector
+
+    assert infer_callable_input_dim(primary_only, 2, 4) == 2
+    assert infer_callable_input_dim(total_only, 2, 4) == 4
+
+    def semi_total(inputs):
+        if len(inputs) != 2 or inputs[0].shape[0] != 4:
+            raise ValueError("wrong dimension")
+        return inputs[0] + inputs[1]
+
+    assert infer_semi_intrusive_input_dim((None, semi_total), 2, 4) == 4
+
+    with pytest.raises(ValueError):
+        infer_callable_input_dim(lambda vector: (_ for _ in ()).throw(ValueError("nope")), 2, 4)
 
 
 def test_mechanical_binv_a_matches_formula():
