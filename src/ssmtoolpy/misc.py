@@ -6,6 +6,7 @@ from typing import Callable, NamedTuple
 
 import jax
 import jax.numpy as jnp
+from jax.scipy.sparse import linalg as jsp_sparse_linalg
 
 from ssmtoolpy.multi_index import MultiIndexPolynomial, expand_multiindex
 from ssmtoolpy.reduction import NonAutonomousTerm, reduced_to_full
@@ -154,27 +155,80 @@ def spblkdiag(*blocks: Array) -> Array:
     return result
 
 
-def solve_invariance_equation(matrix: Array, rhs: Array, solver: str = "backslash") -> Array:
+def solve_invariance_equation(
+    matrix: Array | Callable[[Array], Array],
+    rhs: Array,
+    solver: str = "backslash",
+    *,
+    tol: float = 1e-5,
+    atol: float = 0.0,
+    maxiter: int | None = None,
+    x0: Array | None = None,
+    restart: int = 20,
+) -> Array:
     """Solve ``matrix @ x = rhs`` using an SSMTool-compatible solver name.
 
-    Direct solvers map to ``jax.numpy.linalg.solve`` where possible. ``pinv``
-    and ``lsqminnorm`` use the Moore-Penrose pseudoinverse. Iterative MATLAB
-    solver names currently fall back to the same least-squares solve because
-    JAX has no drop-in Krylov equivalent in ``jax.numpy``.
+    Direct solvers map to dense ``jax.numpy`` linear algebra. Iterative solver
+    names use ``jax.scipy.sparse.linalg`` and accept either a matrix-like object
+    supporting ``@`` or a linear-operator callable ``A(x)``. JAX currently
+    exposes ``cg``, ``bicgstab``, and ``gmres``; MATLAB names without a direct
+    JAX equivalent are mapped to the closest sparse iterative method.
 
     Differentiability
     -----------------
     Differentiable under the usual full-rank/non-singularity assumptions for the
-    selected linear solve or pseudoinverse.
+    selected linear solve. Iterative sparse solvers are differentiable through
+    JAX's implicit linear-solve rules when their assumptions hold.
     """
 
-    matrix = jnp.asarray(matrix)
     rhs = jnp.asarray(rhs)
-    if solver in {"linsolve", "backslash", "inv"}:
-        return jnp.linalg.solve(matrix, rhs)
-    if solver in {"pinv", "lsqminnorm", "bicg", "bicgstab", "cgs", "gmres", "lsqr"}:
-        return jnp.linalg.pinv(matrix) @ rhs
-    raise ValueError("unknown solver")
+    direct_solvers = {"linsolve", "backslash", "inv"}
+    pseudo_inverse_solvers = {"pinv", "lsqminnorm"}
+    iterative_solvers = {"bicg", "bicgstab", "cgs", "gmres", "lsqr", "cg"}
+
+    if solver in direct_solvers | pseudo_inverse_solvers:
+        if callable(matrix):
+            raise TypeError(f"solver '{solver}' requires an explicit matrix, not a callable linear operator")
+        matrix_array = jnp.asarray(matrix)
+        if solver in direct_solvers:
+            return jnp.linalg.solve(matrix_array, rhs)
+        return jnp.linalg.pinv(matrix_array) @ rhs
+
+    if solver not in iterative_solvers:
+        raise ValueError("unknown solver")
+
+    if callable(matrix):
+        operator = matrix
+    else:
+        matrix_array = jnp.asarray(matrix)
+        operator = lambda vector: matrix_array @ vector
+
+    def solve_vector(vector: Array, x0_vector: Array | None) -> Array:
+        if solver == "cg":
+            solution, _ = jsp_sparse_linalg.cg(operator, vector, x0=x0_vector, tol=tol, atol=atol, maxiter=maxiter)
+        elif solver in {"bicg", "bicgstab", "cgs"}:
+            solution, _ = jsp_sparse_linalg.bicgstab(operator, vector, x0=x0_vector, tol=tol, atol=atol, maxiter=maxiter)
+        else:
+            solution, _ = jsp_sparse_linalg.gmres(
+                operator,
+                vector,
+                x0=x0_vector,
+                tol=tol,
+                atol=atol,
+                restart=restart,
+                maxiter=maxiter,
+            )
+        return solution
+
+    if rhs.ndim == 1:
+        return solve_vector(rhs, None if x0 is None else jnp.asarray(x0))
+
+    x0_array = None if x0 is None else jnp.asarray(x0)
+    columns = []
+    for col in range(rhs.shape[1]):
+        x0_col = None if x0_array is None else x0_array[:, col]
+        columns.append(solve_vector(rhs[:, col], x0_col))
+    return jnp.stack(columns, axis=1)
 
 
 def auto_red_dyn(state: Array, data: AutoReducedDynamicsData) -> Array:

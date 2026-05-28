@@ -71,6 +71,18 @@ def test_spblkdiag_solve_and_autoredyn_match_matlab_reference():
     sol = solve_invariance_equation(jnp.array([[3.0, 1.0], [1.0, 2.0]]), jnp.array([9.0, 8.0]), "backslash")
     np.testing.assert_allclose(np.asarray(sol), np.array([2.0, 3.0]), rtol=1e-7)
 
+    matrix = jnp.array([[3.0, 1.0], [1.0, 2.0]])
+    rhs = jnp.array([9.0, 8.0])
+    np.testing.assert_allclose(np.asarray(solve_invariance_equation(matrix, rhs, "gmres", tol=1e-8)), np.array([2.0, 3.0]), rtol=1e-6)
+    np.testing.assert_allclose(
+        np.asarray(solve_invariance_equation(lambda vector: matrix @ vector, rhs, "bicgstab", tol=1e-8)),
+        np.array([2.0, 3.0]),
+        rtol=1e-6,
+    )
+    multi_rhs = jnp.array([[9.0, 4.0], [8.0, 5.0]])
+    expected_multi = np.linalg.solve(np.array(matrix), np.array(multi_rhs))
+    np.testing.assert_allclose(np.asarray(solve_invariance_equation(matrix, multi_rhs, "gmres", tol=1e-8)), expected_multi, rtol=1e-6)
+
     data = AutoReducedDynamicsData(
         lamd=jnp.array([1.0 + 1.0j, -0.5 + 0.2j]),
         beta=jnp.array([[2.0 + 0.0j, 0.0], [0.0, 3.0 - 1.0j]]),

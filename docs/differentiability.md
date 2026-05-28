@@ -36,7 +36,7 @@
 | `reduced_to_full_traj` | differentiable | Single-time reconstruction; tested with `jax.jit` and `jax.jacfwd` for autonomous structure. |
 | `extract_output` | piecewise differentiable | Norm outputs are differentiable away from zero/ties; amplitudes use infinity norms. |
 | `spblkdiag` | differentiable | Dense block diagonal assembly; tested with `jax.jacfwd`. |
-| `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; pseudoinverse/least-squares assumes stable rank. |
+| `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; `pinv`/`lsqminnorm` assume stable rank; iterative names use `jax.scipy.sparse.linalg` implicit linear solves. |
 | `auto_red_dyn` | differentiable | For fixed integer exponent matrix; tested with `jax.grad`. |
 | `ProjectionData` | not differentiable | Index-data container. |
 | `AutoReducedDynamicsData` | not differentiable | Data container; `auto_red_dyn` carries value differentiability. |
@@ -45,3 +45,17 @@
 | `squared_distance_to_point_ssm` | differentiable | Uses autonomous `reduced_to_full`; tested with `jax.grad` via objective wrapper. |
 | `project_to_ssm_linear` | differentiable | Linear projection. |
 | `nonlinear_projection_objective` | differentiable | Returns objective only; optimizer driver is not included. |
+| `FourierForcingTerm` | not differentiable | Forcing data container; evaluation APIs carry value differentiability. |
+| `PeriodicForcing` | not differentiable | Forcing data container; evaluation APIs carry value differentiability. |
+| `ResidualResult` | not differentiable | Result container. |
+| `evaluate_polynomial_terms` | differentiable | For fixed polynomial/tensor term structure. |
+| `evaluate_polynomial_jacobian` | differentiable | For fixed polynomial/tensor term structure. |
+| `first_order_nonlinearity` | differentiable | For intrusive polynomial/tensor terms; non-intrusive callables must be JAX-transformable. |
+| `second_order_internal_force` | differentiable | For intrusive polynomial/tensor terms; non-intrusive callables must be JAX-transformable. |
+| `second_order_internal_force_jacobian_x` | differentiable | For displacement-only intrusive nonlinearities. |
+| `second_order_internal_force_jacobian_xd` | differentiable | Constant zero map for displacement-only nonlinearities. |
+| `first_order_from_second_order_nonlinearity` | differentiable | Algebraic first-order embedding `[-fnl; 0]`. |
+| `evaluate_periodic_forcing` | differentiable | For fixed Fourier/Taylor forcing structure. |
+| `evaluate_first_order_vector_field` | differentiable under nondegeneracy assumptions | Requires nonsingular `B` and differentiable nonlinear/forcing terms. |
+| `second_order_residual` | piecewise differentiable | Residual/tangent terms are differentiable; norm-based `c0` is non-smooth at zero norms. |
+| `mechanical_binv_a` | differentiable under nondegeneracy assumptions | Requires nonsingular mass matrix. |

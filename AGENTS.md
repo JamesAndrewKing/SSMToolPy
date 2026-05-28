@@ -102,6 +102,18 @@ Use strict tolerances where reasonable, but adapt tolerances for floating-point 
 
 Do not mark tests as passing by weakening assertions without justification. If a test cannot be transferred, document why.
 
+## Linear solve requirements
+
+For sparse or structured linear systems, prefer matrix-free JAX operators plus `jax.scipy.sparse.linalg.cg`, `gmres`, or `bicgstab` where mathematically appropriate. Avoid relying on `jax.experimental.sparse.linalg.spsolve` in differentiable core code unless there is a documented reason, because it is experimental, has backend limitations, and does not support `vmap`.
+
+If the MATLAB code forms sparse matrices explicitly, classify each case:
+1. Can it be represented as a matrix-free linear operator?
+2. Does it require an explicit sparse representation such as BCOO/CSR?
+3. Is the solve symmetric positive definite, general nonsymmetric, least-squares, eigenvalue, or nonlinear?
+4. Is differentiation through the solve required?
+
+Document the chosen solver and test it under `jax.jit` and, where appropriate, `jax.grad`/`jax.jacfwd`/`jax.jacrev`.
+
 ## Documentation requirements
 
 Create or update:

@@ -6,17 +6,17 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | --- | --- | --- | --- | --- |
 | `@DynamicalSystem/DynamicalSystem.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/add_forcing.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/compute_dfnldx.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/compute_dfnldxd.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/compute_fext.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/compute_fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/evaluate_Fext.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/evaluate_Fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/compute_dfnldx.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_x` | functional core ported | differentiable for intrusive terms |
+| `@DynamicalSystem/compute_dfnldxd.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_xd` | functional displacement-only behavior ported | differentiable |
+| `@DynamicalSystem/compute_fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
+| `@DynamicalSystem/compute_fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force` | functional core ported | differentiable for intrusive terms |
+| `@DynamicalSystem/evaluate_Fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
+| `@DynamicalSystem/evaluate_Fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.first_order_nonlinearity` and `first_order_from_second_order_nonlinearity` | functional core ported | differentiable for intrusive terms |
 | `@DynamicalSystem/linear_spectral_analysis.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/odefun.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/odefun.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.evaluate_first_order_vector_field` | functional core ported | differentiable under nonsingular `B` |
 | `@DynamicalSystem/private/get_A.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_B.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_BinvA.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_BinvA.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_binv_a` | ported | differentiable under nonsingular mass matrix |
 | `@DynamicalSystem/private/get_F.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_F_from_fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_F_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
@@ -49,7 +49,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/private/set_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_fnl_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/residual.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/residual.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_residual` | functional core ported | piecewise differentiable |
 | `@Manifold/Manifold.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/choose_E.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/cohomological_solution.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
@@ -226,7 +226,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable |
 | `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |
 | `misc/reduced_to_full_traj.m` | reconstruction kernel | `ssmtoolpy.misc.reduced_to_full_traj` | ported | differentiable |
-| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct/pseudoinverse solvers | differentiable under nondegeneracy assumptions |
+| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct, pseudoinverse, and sparse iterative solvers | differentiable under nondegeneracy assumptions |
 | `misc/spblkdiag.m` | linear algebra utility | `ssmtoolpy.misc.spblkdiag` | ported as dense JAX array | differentiable |
 | `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
 | `misc/stab_plot.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |

@@ -64,6 +64,13 @@
       "solveinveq_backslash": [2, 3],
       "auto_red_dyn_real": [[10, 21], [22, 42.5]],
       "auto_red_dyn_imag": [[2, 3], [-7.2, -14]]
+    },
+    "dynamical_system_core": {
+      "first_order_nonlinearity": [50, 78],
+      "second_order_internal_force": [20, 42],
+      "second_order_internal_force_jacobian_x": [[1, 12], [3, 24]],
+      "second_order_residual_recomputed_at_q": [16.35, 29],
+      "mechanical_residual_note": "The original MATLAB spot script accidentally reused fnl evaluated at a different displacement. The Python fixture records residual.m behavior with fnl recomputed at q."
     }
   }
 }

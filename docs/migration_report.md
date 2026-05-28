@@ -27,10 +27,18 @@ is not a Python migration target for this package.
 | `misc/reduced_to_full_traj.m` | reconstruction kernel | `ssmtoolpy.misc.reduced_to_full_traj` | ported | differentiable for fixed structure |
 | `misc/extract_output.m` | output utility | `ssmtoolpy.misc.extract_output` | ported | piecewise differentiable |
 | `misc/spblkdiag.m` | linear algebra utility | `ssmtoolpy.misc.spblkdiag` | ported as dense JAX array | differentiable |
-| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct/pseudoinverse solvers | differentiable under nondegeneracy assumptions |
+| `misc/solveinveq.m` | linear solve utility | `ssmtoolpy.misc.solve_invariance_equation` | ported with JAX direct, pseudoinverse, and sparse iterative solvers | differentiable under nondegeneracy assumptions |
 | `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
 | `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
 | `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
+| `@DynamicalSystem/evaluate_Fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.first_order_nonlinearity` and `first_order_from_second_order_nonlinearity` | functional core ported | differentiable for intrusive terms |
+| `@DynamicalSystem/compute_fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force` | functional core ported | differentiable for intrusive terms |
+| `@DynamicalSystem/compute_dfnldx.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_x` | functional core ported | differentiable for intrusive terms |
+| `@DynamicalSystem/compute_dfnldxd.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_xd` | functional displacement-only behavior ported | differentiable |
+| `@DynamicalSystem/residual.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_residual` | functional core ported | piecewise differentiable |
+| `@DynamicalSystem/odefun.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.evaluate_first_order_vector_field` | functional core ported | differentiable under nonsingular `B` |
+| `@DynamicalSystem/evaluate_Fext.m` and `compute_fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
+| `@DynamicalSystem/private/get_BinvA.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_binv_a` | ported | differentiable under nonsingular mass matrix |
 | `frc/frc_ab.m` and `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
 | `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc.compute_gamma` | ported | not differentiable |
 | `frc/frc_psi.m` | FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
@@ -83,13 +91,17 @@ Known blockers and design work:
 - `compute_fixed_points_2d` uses an internal marching-squares style locator
   instead of MATLAB's `contourc`/`polyxpoly`; tests cover representative grid
   intersections, but dense contour parity is not yet exhaustively validated.
-- `solve_invariance_equation` maps MATLAB Krylov solver names to a pseudoinverse
-  least-squares solve for now; JAX does not provide drop-in equivalents in
-  `jax.numpy`.
+- `solve_invariance_equation` uses `jax.scipy.sparse.linalg` for iterative
+  solver names. JAX provides `cg`, `bicgstab`, and `gmres`; MATLAB names without
+  exact JAX equivalents are mapped conservatively (`bicg`/`cgs` to `bicgstab`,
+  `lsqr` to `gmres`).
 - `proj2SSM` nonlinear optimization is not ported as an optimizer. The
   differentiable objective is exposed for use with a future JAX optimizer.
 - MATLAB `squaDist2pointSSM.m` calls `reduced_to_full(x,W_0)` although the local
   MATLAB `reduced_to_full` signature expects non-autonomous arguments too. The
   Python port uses the intended autonomous reconstruction behavior.
+- The full mutable MATLAB `DynamicalSystem` class surface is not ported yet.
+  This pass adds functional JAX kernels for nonlinear force, forcing, residual,
+  and ODE RHS evaluation.
 - MATLAB R2024b spot fixtures have been generated for selected low-level
   helpers; broad fixture generation for full examples remains outstanding.
