@@ -45,6 +45,7 @@ Ported:
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
+- dynamical-system private helper equivalents for mechanical matrices, nonlinear metadata, and second-order to first-order nonlinear term conversion
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives

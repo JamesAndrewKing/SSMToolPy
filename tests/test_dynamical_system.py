@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 
 from ssmtoolpy import (
     FourierForcingTerm,
@@ -8,9 +9,17 @@ from ssmtoolpy import (
     PeriodicForcing,
     evaluate_first_order_vector_field,
     evaluate_periodic_forcing,
+    evaluate_polynomial_terms,
+    first_order_polynomial_terms_from_second_order,
     first_order_from_second_order_nonlinearity,
     first_order_nonlinearity,
+    first_order_tensor_terms_from_second_order,
+    first_order_terms_from_second_order,
     mechanical_binv_a,
+    mechanical_a_matrix,
+    mechanical_b_matrix,
+    polynomial_degree,
+    polynomial_input_dim,
     second_order_internal_force,
     second_order_internal_force_jacobian_x,
     second_order_internal_force_jacobian_xd,
@@ -107,3 +116,46 @@ def test_mechanical_binv_a_matches_formula():
     np.testing.assert_allclose(np.asarray(mechanical_binv_a(m, c, k)), expected, rtol=1e-7)
     grad = jax.jacfwd(lambda kk: mechanical_binv_a(m, c, kk.reshape(2, 2)).sum())(k.ravel())
     assert grad.shape == (4,)
+
+
+def test_mechanical_a_b_matrices_and_polynomial_metadata():
+    m = jnp.array([[2.0, 0.0], [0.0, 4.0]])
+    c = jnp.array([[0.1, 0.0], [0.0, 0.2]])
+    k = jnp.array([[5.0, 1.0], [1.0, 4.0]])
+    expected_a = np.array([[-5.0, -1.0, 0.0, 0.0], [-1.0, -4.0, 0.0, 0.0], [0.0, 0.0, 2.0, 0.0], [0.0, 0.0, 0.0, 4.0]])
+    expected_b = np.array([[0.1, 0.0, 2.0, 0.0], [0.0, 0.2, 0.0, 4.0], [2.0, 0.0, 0.0, 0.0], [0.0, 4.0, 0.0, 0.0]])
+    np.testing.assert_allclose(np.asarray(mechanical_a_matrix(m, k)), expected_a)
+    np.testing.assert_allclose(np.asarray(mechanical_b_matrix(m, c)), expected_b)
+
+    terms = _second_order_terms()
+    assert polynomial_input_dim(terms) == 2
+    assert polynomial_degree(terms) == 1
+    with pytest.raises(ValueError):
+        polynomial_input_dim((MultiIndexPolynomial(coeffs=jnp.zeros((2, 0)), ind=jnp.zeros((0, 2), dtype=jnp.int32)),))
+
+
+def test_first_order_terms_from_second_order_multiindex_sign_and_transform():
+    terms = _second_order_terms()
+    converted = first_order_polynomial_terms_from_second_order(terms, n=2, total_dim=4, system_order=2)
+    assert converted[0].coeffs.shape == (4, 2)
+    np.testing.assert_allclose(np.asarray(converted[0].coeffs), np.array([[-1.0, -2.0], [-3.0, -4.0], [0.0, 0.0], [0.0, 0.0]]))
+    value = evaluate_polynomial_terms(converted, jnp.array([2.0, 3.0]))
+    np.testing.assert_allclose(np.asarray(value[:, 0]), np.array([-20.0, -42.0, 0.0, 0.0]))
+
+    positive = first_order_terms_from_second_order(terms, n=2, total_dim=4, system_order=1)
+    np.testing.assert_allclose(np.asarray(positive[0].coeffs[:2]), np.array([[1.0, 2.0], [3.0, 4.0]]))
+    jac = jax.jacfwd(lambda coeff: first_order_polynomial_terms_from_second_order((MultiIndexPolynomial(coeff.reshape(2, 2), terms[0].ind),), n=2)[0].coeffs.sum())(
+        terms[0].coeffs.ravel()
+    )
+    assert jac.shape == (4,)
+
+
+def test_first_order_tensor_terms_from_second_order_dense_embedding():
+    tensor = jnp.zeros((2, 2, 2))
+    tensor = tensor.at[0, 0, 0].set(2.0)
+    tensor = tensor.at[1, 1, 1].set(3.0)
+    converted = first_order_tensor_terms_from_second_order((tensor,), n=2, total_dim=4, system_order=2)
+    assert converted[0].shape == (4, 4, 4)
+    np.testing.assert_allclose(np.asarray(converted[0][0, 0, 0]), -2.0)
+    np.testing.assert_allclose(np.asarray(converted[0][1, 1, 1]), -3.0)
+    np.testing.assert_allclose(np.asarray(converted[0][2:, :, :]), np.zeros((2, 4, 4)))

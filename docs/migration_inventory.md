@@ -14,12 +14,12 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/evaluate_Fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.first_order_nonlinearity` and `first_order_from_second_order_nonlinearity` | functional core ported | differentiable for intrusive terms |
 | `@DynamicalSystem/linear_spectral_analysis.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/odefun.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.evaluate_first_order_vector_field` | functional core ported | differentiable under nonsingular `B` |
-| `@DynamicalSystem/private/get_A.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_B.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_A.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_a_matrix` | mechanical matrix branch ported | differentiable |
+| `@DynamicalSystem/private/get_B.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_b_matrix` | mechanical matrix branch ported | differentiable |
 | `@DynamicalSystem/private/get_BinvA.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_binv_a` | ported | differentiable under nonsingular mass matrix |
 | `@DynamicalSystem/private/get_F.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_F_from_fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_F_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F_from_fnl.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` | functional equivalent ported | differentiable |
+| `@DynamicalSystem/private/get_F_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_F_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_F_non_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
@@ -28,9 +28,9 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/private/get_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_dF_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_degree.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_degree.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_degree` | functional term-sequence behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_fnl_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_fnl_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_fnl_non_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_fnl_semi_input_dim.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/get_kappas.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
@@ -40,8 +40,8 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/private/set_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_F_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_Fext.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_Ftens_from_fnlmulti.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/set_Ftens_from_fnlmulti.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_polynomial_terms_from_second_order` | dense/multi-index equivalent ported | differentiable |
+| `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
 | `@DynamicalSystem/private/set_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_dF_from_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/private/set_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |

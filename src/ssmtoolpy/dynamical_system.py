@@ -336,3 +336,168 @@ def mechanical_binv_a(m_matrix: Array, c_matrix: Array, k_matrix: Array) -> Arra
     top = jnp.concatenate([jnp.zeros((n, n), dtype=m_matrix.dtype), jnp.eye(n, dtype=m_matrix.dtype)], axis=1)
     bottom = jnp.concatenate([-jnp.linalg.solve(m_matrix, k_matrix), -jnp.linalg.solve(m_matrix, c_matrix)], axis=1)
     return jnp.concatenate([top, bottom], axis=0)
+
+
+def mechanical_a_matrix(m_matrix: Array, k_matrix: Array) -> Array:
+    """Return the first-order mechanical ``A`` matrix from ``get_A.m``.
+
+    ``A = [[-K, 0], [0, M]]``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to ``m_matrix`` and ``k_matrix``.
+    """
+
+    m_matrix = jnp.asarray(m_matrix)
+    k_matrix = jnp.asarray(k_matrix)
+    n = m_matrix.shape[0]
+    zeros = jnp.zeros((n, n), dtype=jnp.result_type(m_matrix, k_matrix))
+    top = jnp.concatenate([-k_matrix, zeros], axis=1)
+    bottom = jnp.concatenate([zeros, m_matrix], axis=1)
+    return jnp.concatenate([top, bottom], axis=0)
+
+
+def mechanical_b_matrix(m_matrix: Array, c_matrix: Array) -> Array:
+    """Return the first-order mechanical ``B`` matrix from ``get_B.m``.
+
+    ``B = [[C, M], [M, 0]]``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to ``m_matrix`` and ``c_matrix``.
+    """
+
+    m_matrix = jnp.asarray(m_matrix)
+    c_matrix = jnp.asarray(c_matrix)
+    n = m_matrix.shape[0]
+    zeros = jnp.zeros((n, n), dtype=jnp.result_type(m_matrix, c_matrix))
+    top = jnp.concatenate([c_matrix, m_matrix], axis=1)
+    bottom = jnp.concatenate([m_matrix, zeros], axis=1)
+    return jnp.concatenate([top, bottom], axis=0)
+
+
+def polynomial_input_dim(terms: tuple[MultiIndexPolynomial | Array | None, ...]) -> int:
+    """Infer nonlinear input dimension from the first nonempty polynomial/tensor.
+
+    This ports the intrusive parts of ``get_F_input_dim.m`` and
+    ``get_fnl_input_dim.m``.
+
+    Differentiability
+    -----------------
+    Not differentiable. This is shape metadata inference.
+    """
+
+    for term in terms:
+        if term is None:
+            continue
+        if isinstance(term, MultiIndexPolynomial):
+            if term.coeffs.size:
+                return int(term.ind.shape[1])
+        else:
+            array = jnp.asarray(term)
+            if array.size and bool(jnp.any(array != 0)):
+                return int(array.shape[1])
+    raise ValueError("Failed to set input dimension of nonlinearity")
+
+
+def polynomial_degree(terms: tuple[MultiIndexPolynomial | Array | None, ...]) -> int:
+    """Return the number of polynomial term slots.
+
+    This mirrors ``get_degree.m`` for an already assembled term sequence.
+
+    Differentiability
+    -----------------
+    Not differentiable. This is metadata.
+    """
+
+    return len(terms)
+
+
+def first_order_polynomial_terms_from_second_order(
+    fnl_terms: tuple[MultiIndexPolynomial | None, ...],
+    *,
+    n: int,
+    total_dim: int | None = None,
+    system_order: int = 2,
+) -> tuple[MultiIndexPolynomial, ...]:
+    """Embed second-order internal-force multi-index terms in first-order form.
+
+    For mechanical second-order systems MATLAB uses ``[-fnl; 0]`` in the
+    first-order nonlinear term. If ``system_order == 1`` the sign is positive,
+    matching ``set_Ftens_from_fnlmulti.m``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values for fixed term structure.
+    """
+
+    if total_dim is None:
+        total_dim = 2 * n
+    sign = 1.0 if system_order == 1 else -1.0
+    converted = []
+    for term in fnl_terms:
+        if term is None or term.coeffs.size == 0:
+            converted.append(
+                MultiIndexPolynomial(
+                    coeffs=jnp.zeros((total_dim, 0)),
+                    ind=jnp.zeros((0, n), dtype=jnp.int32),
+                )
+            )
+            continue
+        coeffs = jnp.concatenate([sign * term.coeffs, jnp.zeros((total_dim - n, term.coeffs.shape[1]), dtype=term.coeffs.dtype)], axis=0)
+        converted.append(MultiIndexPolynomial(coeffs=coeffs, ind=term.ind))
+    return tuple(converted)
+
+
+def first_order_tensor_terms_from_second_order(
+    fnl_tensors: tuple[Array | None, ...],
+    *,
+    n: int,
+    total_dim: int | None = None,
+    system_order: int = 2,
+) -> tuple[Array, ...]:
+    """Embed second-order dense tensor nonlinearities in first-order form.
+
+    This is the dense-JAX counterpart of ``set_Ftens_from_fnltens.m``. Input
+    tensor modes are padded to ``total_dim``; existing second-order coordinates
+    occupy the leading modes.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to tensor values for fixed shapes.
+    """
+
+    if total_dim is None:
+        total_dim = 2 * n
+    sign = 1.0 if system_order == 1 else -1.0
+    converted = []
+    for tensor in fnl_tensors:
+        if tensor is None:
+            converted.append(jnp.zeros((total_dim, total_dim)))
+            continue
+        tensor = jnp.asarray(tensor)
+        degree = tensor.ndim - 1
+        out = jnp.zeros((total_dim, *([total_dim] * degree)), dtype=tensor.dtype)
+        slices = (slice(0, n), *[slice(0, tensor.shape[axis]) for axis in range(1, tensor.ndim)])
+        converted.append(out.at[slices].set(sign * tensor))
+    return tuple(converted)
+
+
+def first_order_terms_from_second_order(
+    fnl_terms: tuple[MultiIndexPolynomial | Array | None, ...],
+    *,
+    n: int,
+    total_dim: int | None = None,
+    system_order: int = 2,
+) -> tuple[MultiIndexPolynomial | Array, ...]:
+    """Embed second-order nonlinear terms, preserving multi-index or tensor form.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient/tensor values for fixed term
+    structure.
+    """
+
+    if all(term is None or isinstance(term, MultiIndexPolynomial) for term in fnl_terms):
+        return first_order_polynomial_terms_from_second_order(fnl_terms, n=n, total_dim=total_dim, system_order=system_order)
+    return first_order_tensor_terms_from_second_order(fnl_terms, n=n, total_dim=total_dim, system_order=system_order)

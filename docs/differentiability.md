@@ -59,6 +59,13 @@
 | `evaluate_first_order_vector_field` | differentiable under nondegeneracy assumptions | Requires nonsingular `B` and differentiable nonlinear/forcing terms. |
 | `second_order_residual` | piecewise differentiable | Residual/tangent terms are differentiable; norm-based `c0` is non-smooth at zero norms. |
 | `mechanical_binv_a` | differentiable under nondegeneracy assumptions | Requires nonsingular mass matrix. |
+| `mechanical_a_matrix` | differentiable | Algebraic mechanical first-order `A` matrix assembly. |
+| `mechanical_b_matrix` | differentiable | Algebraic mechanical first-order `B` matrix assembly. |
+| `polynomial_input_dim` | not differentiable | Shape metadata inference. |
+| `polynomial_degree` | not differentiable | Shape metadata inference. |
+| `first_order_polynomial_terms_from_second_order` | differentiable | Coefficient embedding for fixed term structure. |
+| `first_order_tensor_terms_from_second_order` | differentiable | Dense tensor embedding for fixed shapes. |
+| `first_order_terms_from_second_order` | differentiable | Dispatches to fixed-structure polynomial/tensor embedding. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
 | `DSOptions` | not differentiable | Configuration container. |
