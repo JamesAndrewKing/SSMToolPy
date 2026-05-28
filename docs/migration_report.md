@@ -32,6 +32,9 @@ is not a Python migration target for this package.
 | `misc/linear_response.m` | linear response utility | `ssmtoolpy.misc.first_order_linear_response` and `second_order_linear_response` | functional first- and second-order branches ported | differentiable under nonsingular frequency-domain operators; amplitudes are piecewise differentiable |
 | `misc/StEP.m` | polarization utility | `ssmtoolpy.manifold.step_polynomial` | ported for orders 1-3 | differentiable if supplied callable is differentiable |
 | `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
+| shared `R_0` assembly in `transient_traj_on_auto_ssm.m` and `reduced_dynamics_symbolic.m` | reduced dynamics utility | `ssmtoolpy.misc.assemble_auto_reduced_dynamics` | ported | differentiable for fixed polynomial structure |
+| `misc/transient_traj_on_auto_ssm.m` | reduced dynamics trajectory utility | `ssmtoolpy.misc.transient_traj_on_auto_ssm` | functional autonomous branch ported with fixed-step RK4 | differentiable for fixed step count and structures |
+| `misc/reduced_dynamics_symbolic.m` | reduced dynamics documentation utility | `ssmtoolpy.misc.reduced_dynamics_symbolic` | autonomous polar symbolic rendering ported | not differentiable |
 | `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
 | `misc/squaDist2pointSSM.m` | projection objective | `ssmtoolpy.misc.squared_distance_to_point_ssm` | ported against autonomous reconstruction API | differentiable |
 | `@DynamicalSystem/evaluate_Fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.first_order_nonlinearity` and `first_order_from_second_order_nonlinearity` | functional core ported | differentiable for intrusive terms |
@@ -146,6 +149,13 @@ Known blockers and design work:
   the mutable MATLAB `DS` object. The second-order helper has an explicit
   `conjugate_symmetric=True` option for MATLAB's common two-harmonic
   conjugate-pair layout.
+- `transient_traj_on_auto_ssm` is ported as a functional autonomous trajectory
+  helper. MATLAB uses adaptive `ode45`; Python uses fixed-step RK4 on the
+  requested sampling grid to keep the core JAX-transformable.
+- `reduced_dynamics_symbolic` currently ports the autonomous polar expression
+  branch. The optional non-autonomous symbolic forcing branch remains future
+  work and should be added alongside the corresponding non-autonomous reduced
+  dynamics APIs.
 - `proj2SSM` nonlinear optimization is not ported as an optimizer. The
   differentiable objective is exposed for use with a future JAX optimizer.
 - MATLAB `squaDist2pointSSM.m` calls `reduced_to_full(x,W_0)` although the local

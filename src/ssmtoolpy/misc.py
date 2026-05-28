@@ -60,6 +60,49 @@ class AutoReducedDynamicsData(NamedTuple):
     kappa: Array
 
 
+class TransientTrajectory(NamedTuple):
+    """Transient autonomous SSM trajectory.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric fields from
+    ``transient_traj_on_auto_ssm`` are differentiable for fixed reduced
+    dynamics, fixed step count, and fixed reconstruction structure.
+    """
+
+    time: Array
+    red: Array
+    phy: Array
+    full: Array
+
+
+class ReducedDynamicsSymbolicOptions(NamedTuple):
+    """Formatting options for ``reduced_dynamics_symbolic``.
+
+    Differentiability
+    -----------------
+    Not differentiable. This controls string generation only.
+    """
+
+    isauto: bool = True
+    isdamped: bool = True
+    num_digits: int = 6
+
+
+class ReducedDynamicsSymbolicResult(NamedTuple):
+    """String representation of polar reduced dynamics.
+
+    Differentiability
+    -----------------
+    Not differentiable. This mirrors MATLAB symbolic output for documentation
+    and reporting, not numerical transformation.
+    """
+
+    equations: tuple[str, ...]
+    rho_equations: tuple[str, ...]
+    theta_equations: tuple[str, ...]
+
+
 class LinearResponseResult(NamedTuple):
     """Periodic linear-response samples and amplitudes.
 
@@ -267,6 +310,250 @@ def auto_red_dyn(state: Array, data: AutoReducedDynamicsData) -> Array:
     y = lamd[:, None] * state
     monomials = jnp.prod(state.T[:, None, :] ** kappa[None, :, :], axis=-1).T
     return y + beta @ monomials
+
+
+def assemble_auto_reduced_dynamics(lamd_master: Array, reduced_dynamics: tuple[MultiIndexPolynomial, ...]) -> AutoReducedDynamicsData:
+    """Assemble autonomous reduced dynamics data from ``R_0`` coefficients.
+
+    This ports the coefficient-gathering block shared by MATLAB
+    ``transient_traj_on_auto_ssm.m`` and ``reduced_dynamics_symbolic.m``.
+    ``reduced_dynamics[0]`` is the linear term and higher entries contain
+    nonlinear coefficient/exponent blocks.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to coefficient values for fixed polynomial
+    structure. The tuple structure and exponent matrices are discrete.
+    """
+
+    lamd = jnp.asarray(lamd_master)
+    beta_blocks = []
+    kappa_blocks = []
+    for poly in reduced_dynamics[1:]:
+        coeffs = jnp.asarray(poly.coeffs)
+        ind = jnp.asarray(poly.ind, dtype=jnp.int32)
+        if coeffs.shape[1] > 0:
+            beta_blocks.append(coeffs)
+            kappa_blocks.append(ind)
+    if beta_blocks:
+        beta = jnp.concatenate(beta_blocks, axis=1)
+        kappa = jnp.concatenate(kappa_blocks, axis=0)
+    else:
+        beta = jnp.zeros((lamd.shape[0], 0), dtype=lamd.dtype)
+        kappa = jnp.zeros((0, lamd.shape[0]), dtype=jnp.int32)
+    return AutoReducedDynamicsData(lamd=lamd, beta=beta, kappa=kappa)
+
+
+def _rk4_integrate_autonomous(data: AutoReducedDynamicsData, initial_state: Array, tf: float | Array, nsteps: int) -> Array:
+    dt = jnp.asarray(tf) / nsteps
+
+    def vector_field(state: Array) -> Array:
+        return auto_red_dyn(state[:, None], data)[:, 0]
+
+    def step(state: Array, _: Array) -> tuple[Array, Array]:
+        k1 = vector_field(state)
+        k2 = vector_field(state + 0.5 * dt * k1)
+        k3 = vector_field(state + 0.5 * dt * k2)
+        k4 = vector_field(state + dt * k3)
+        next_state = state + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        return next_state, next_state
+
+    _, tail = jax.lax.scan(step, jnp.asarray(initial_state), jnp.arange(nsteps))
+    return jnp.concatenate((jnp.asarray(initial_state)[None, :], tail), axis=0)
+
+
+def transient_traj_on_auto_ssm(
+    lamd_master: Array,
+    reduced_dynamics: tuple[MultiIndexPolynomial, ...],
+    parametrization: tuple[MultiIndexPolynomial, ...],
+    tf: float | Array,
+    nsteps: int,
+    outdof: Array,
+    *,
+    z0: Array | None = None,
+    initial_reduced: Array | None = None,
+    left_eigenvectors: Array | None = None,
+    b_matrix: Array | None = None,
+) -> TransientTrajectory:
+    """Integrate autonomous reduced dynamics and reconstruct on the SSM.
+
+    This is the functional JAX port of MATLAB
+    ``transient_traj_on_auto_ssm.m``. If ``initial_reduced`` is not supplied,
+    the initial full state ``z0`` is projected linearly with
+    ``project_to_ssm_linear(z0, left_eigenvectors, b_matrix)``.
+
+    MATLAB uses adaptive ``ode45``. This layer uses a fixed-step RK4 integrator
+    over the requested sampling grid so the numerical core is JAX-transformable
+    with a static ``nsteps``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to numeric inputs for fixed ``nsteps``, fixed
+    reduced-dynamics structure, and fixed parametrization structure. It is a
+    fixed-step integrator, not event/adaptive-step differentiable.
+    """
+
+    if initial_reduced is None:
+        if z0 is None or left_eigenvectors is None or b_matrix is None:
+            raise ValueError("Provide initial_reduced or z0, left_eigenvectors, and b_matrix")
+        initial_state = project_to_ssm_linear(z0, left_eigenvectors, b_matrix)
+    else:
+        initial_state = jnp.asarray(initial_reduced)
+    data = assemble_auto_reduced_dynamics(lamd_master, reduced_dynamics)
+    red = _rk4_integrate_autonomous(data, initial_state, tf, nsteps)
+    time = jnp.linspace(0.0, jnp.asarray(tf), nsteps + 1)
+    full = reduced_to_full(red.T, parametrization).T
+    phy = full[:, jnp.asarray(outdof, dtype=jnp.int32)]
+    return TransientTrajectory(time=time, red=red, phy=phy, full=full)
+
+
+def _format_number(value: complex, digits: int) -> str:
+    real_value = float(jnp.real(value))
+    if abs(real_value) < 0.5 * 10 ** (-digits):
+        real_value = 0.0
+    text = f"{real_value:.{digits}g}"
+    return "0" if text == "-0" else text
+
+
+def _append_signed(terms: list[str], coefficient: complex, factor: str, digits: int) -> None:
+    coeff = float(jnp.real(coefficient))
+    if coeff == 0.0:
+        return
+    magnitude = abs(coeff)
+    coeff_text = "" if abs(magnitude - 1.0) < 0.5 * 10 ** (-digits) and factor else _format_number(magnitude, digits)
+    body = factor if coeff_text == "" else coeff_text if factor == "" else f"{coeff_text}*{factor}"
+    sign = "-" if coeff < 0 else "+"
+    terms.append(f"{sign} {body}")
+
+
+def _join_expression(initial: str, terms: list[str]) -> str:
+    expression = initial
+    for term in terms:
+        if expression == "0" and term.startswith("+ "):
+            expression = term[2:]
+        elif expression == "0" and term.startswith("- "):
+            expression = f"-{term[2:]}"
+        else:
+            expression = f"{expression} {term}"
+    return expression
+
+
+def _rho_factor(powers: Array) -> str:
+    parts = []
+    for idx, power in enumerate(tuple(int(v) for v in powers.tolist()), start=1):
+        if power == 0:
+            continue
+        if power == 1:
+            parts.append(f"rho_{idx}")
+        else:
+            parts.append(f"rho_{idx}^{power}")
+    return "*".join(parts)
+
+
+def _angle_factor(coefficients: Array) -> str:
+    pieces = []
+    for idx, coeff in enumerate(tuple(int(v) for v in coefficients.tolist()), start=1):
+        if coeff == 0:
+            continue
+        if coeff == 1:
+            pieces.append(f"theta_{idx}")
+        elif coeff == -1:
+            pieces.append(f"-theta_{idx}")
+        else:
+            pieces.append(f"{coeff}*theta_{idx}")
+    return " + ".join(pieces).replace("+ -", "- ")
+
+
+def reduced_dynamics_symbolic(
+    lamd_master: Array,
+    reduced_dynamics: tuple[MultiIndexPolynomial, ...],
+    options: ReducedDynamicsSymbolicOptions = ReducedDynamicsSymbolicOptions(),
+) -> ReducedDynamicsSymbolicResult:
+    """Render autonomous reduced dynamics in MATLAB's polar symbolic form.
+
+    This ports the autonomous branch of ``reduced_dynamics_symbolic.m`` for
+    documentation and regression output. The input spectrum is expected in
+    conjugate-pair order ``lambda_1, conj(lambda_1), ...``; only the first
+    entry of each pair contributes a polar ``(rho_i, theta_i)`` equation, as in
+    the MATLAB implementation.
+
+    Differentiability
+    -----------------
+    Not differentiable. This function performs thresholding and string
+    generation. Use ``auto_red_dyn`` for differentiable numerical evaluation.
+    """
+
+    if not options.isauto:
+        raise NotImplementedError("Non-autonomous symbolic reduced dynamics are not ported yet")
+
+    lamd = jnp.asarray(lamd_master)
+    lamd_re = jnp.real(lamd[0::2])
+    lamd_im = jnp.imag(lamd[0::2])
+    mode_count = lamd_re.shape[0]
+    digits = options.num_digits
+
+    if not options.isdamped:
+        threshold = 1e-6 * jnp.linalg.norm(lamd)
+        lamd_re = jnp.where(jnp.abs(lamd_re) < threshold, 0.0, lamd_re)
+        lamd_im = jnp.where(jnp.abs(lamd_im) < threshold, 0.0, lamd_im)
+
+    rho_terms: list[list[str]] = [[] for _ in range(mode_count)]
+    theta_terms: list[list[str]] = [[] for _ in range(mode_count)]
+    eye = jnp.eye(mode_count, dtype=jnp.int32)
+
+    for poly in reduced_dynamics[1:]:
+        coeffs = jnp.asarray(poly.coeffs)
+        ind = jnp.asarray(poly.ind, dtype=jnp.int32)
+        if coeffs.shape[1] == 0:
+            continue
+        for mode in range(mode_count):
+            betai = coeffs[2 * mode, :]
+            if not options.isdamped:
+                bounds = jnp.maximum(1e-6 * jnp.linalg.norm(betai), 1e-8)
+                betai = jnp.where(jnp.abs(jnp.real(betai)) < bounds, 1j * jnp.imag(betai), betai)
+                betai = jnp.where(jnp.abs(jnp.imag(betai)) < bounds, jnp.real(betai), betai)
+            for term_idx in range(ind.shape[0]):
+                be = complex(betai[term_idx])
+                if be == 0:
+                    continue
+                powers_left = ind[term_idx, 0::2]
+                powers_right = ind[term_idx, 1::2]
+                rho_power = powers_left + powers_right
+                angle_coeff = powers_left - powers_right - eye[mode]
+                rho_factor = _rho_factor(rho_power)
+                theta_factor = _angle_factor(angle_coeff)
+                cos_factor = "1" if theta_factor == "" else f"cos({theta_factor})"
+                sin_factor = "0" if theta_factor == "" else f"sin({theta_factor})"
+                real_be = float(jnp.real(be))
+                imag_be = float(jnp.imag(be))
+                if cos_factor != "1":
+                    _append_signed(rho_terms[mode], real_be, f"{rho_factor}*{cos_factor}" if rho_factor else cos_factor, digits)
+                else:
+                    _append_signed(rho_terms[mode], real_be, rho_factor, digits)
+                if sin_factor != "0":
+                    _append_signed(rho_terms[mode], -imag_be, f"{rho_factor}*{sin_factor}" if rho_factor else sin_factor, digits)
+
+                theta_rho_power = rho_power.at[mode].add(-1)
+                theta_rho_factor = _rho_factor(theta_rho_power)
+                if sin_factor != "0":
+                    _append_signed(theta_terms[mode], real_be, f"{theta_rho_factor}*{sin_factor}" if theta_rho_factor else sin_factor, digits)
+                if cos_factor != "1":
+                    _append_signed(theta_terms[mode], imag_be, f"{theta_rho_factor}*{cos_factor}" if theta_rho_factor else cos_factor, digits)
+                else:
+                    _append_signed(theta_terms[mode], imag_be, theta_rho_factor, digits)
+
+    rho_equations = []
+    theta_equations = []
+    for mode in range(mode_count):
+        rho_initial = "0"
+        if float(lamd_re[mode]) != 0.0:
+            rho_initial = f"{_format_number(complex(lamd_re[mode]), digits)}*rho_{mode + 1}"
+        theta_initial = _format_number(complex(lamd_im[mode]), digits)
+        rho_equations.append(f"rho_{mode + 1}_dot = {_join_expression(rho_initial, rho_terms[mode])}")
+        theta_equations.append(f"theta_{mode + 1}_dot = {_join_expression(theta_initial, theta_terms[mode])}")
+
+    equations = tuple(item for pair in zip(rho_equations, theta_equations, strict=False) for item in pair)
+    return ReducedDynamicsSymbolicResult(tuple(equations), tuple(rho_equations), tuple(theta_equations))
 
 
 def real_to_conjugate_state(u: Array, data: ProjectionData) -> Array:

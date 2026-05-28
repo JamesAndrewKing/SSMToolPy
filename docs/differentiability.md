@@ -42,6 +42,12 @@
 | `spblkdiag` | differentiable | Dense block diagonal assembly; tested with `jax.jacfwd`. |
 | `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; `pinv`/`lsqminnorm` assume stable rank; iterative names use `jax.scipy.sparse.linalg` implicit linear solves. |
 | `auto_red_dyn` | differentiable | For fixed integer exponent matrix; tested with `jax.grad`. |
+| `assemble_auto_reduced_dynamics` | differentiable for fixed polynomial structure | Concatenates fixed `R_0` coefficient blocks; exponent arrays and tuple structure are discrete. |
+| `TransientTrajectory` | not differentiable | Result container. Numeric fields from trajectory integration carry value differentiability. |
+| `transient_traj_on_auto_ssm` | differentiable for fixed step count and fixed structures | Uses fixed-step RK4 rather than adaptive `ode45`; tested with `jax.jit` and `jax.jacfwd`. |
+| `ReducedDynamicsSymbolicOptions` | not differentiable | String-formatting options. |
+| `ReducedDynamicsSymbolicResult` | not differentiable | String result container. |
+| `reduced_dynamics_symbolic` | not differentiable | Performs thresholding and string generation for documentation; autonomous branch ported. |
 | `LinearResponseResult` | not differentiable | Result container. Numeric fields from response kernels carry value differentiability. |
 | `first_order_linear_response` | differentiable under nondegeneracy assumptions | Requires nonsingular `A - i*kappa*Omega*B`; response and norms tested with `jax.jit`/`jax.jacfwd`. Output amplitudes are piecewise differentiable because they use infinity norms. |
 | `second_order_linear_response` | differentiable under nondegeneracy assumptions | Requires nonsingular dynamic stiffness matrices; tested with `jax.grad`. The `conjugate_symmetric` convention is static/discrete, and amplitudes are piecewise differentiable. |

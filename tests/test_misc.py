@@ -7,17 +7,21 @@ from ssmtoolpy import (
     MultiIndexPolynomial,
     NonAutonomousTerm,
     ProjectionData,
+    ReducedDynamicsSymbolicOptions,
+    assemble_auto_reduced_dynamics,
     auto_red_dyn,
     extract_output,
     first_order_linear_response,
     nonlinear_projection_objective,
     project_to_ssm_linear,
     real_to_conjugate_state,
+    reduced_dynamics_symbolic,
     reduced_to_full_traj,
     second_order_linear_response,
     solve_invariance_equation,
     spblkdiag,
     squared_distance_to_point_ssm,
+    transient_traj_on_auto_ssm,
 )
 
 
@@ -187,3 +191,64 @@ def test_second_order_linear_response_conjugate_symmetric_branch_matches_matlab_
     phi = jnp.linspace(0.0, 2.0 * jnp.pi, 12)
     expected = jnp.real(jnp.array([first, jnp.conj(first)]) @ jnp.exp(1j * kappas[:, None] * phi[None, :]))
     np.testing.assert_allclose(np.asarray(result.response[0, 0]), np.asarray(expected), rtol=1e-6, atol=1e-6)
+
+
+def test_assemble_auto_reduced_dynamics_concatenates_higher_order_terms():
+    r0 = (
+        MultiIndexPolynomial(coeffs=jnp.eye(2), ind=jnp.array([[1, 0], [0, 1]])),
+        MultiIndexPolynomial(coeffs=jnp.array([[1.0, 2.0], [3.0, 4.0]]), ind=jnp.array([[2, 0], [1, 1]])),
+        MultiIndexPolynomial(coeffs=jnp.array([[5.0], [6.0]]), ind=jnp.array([[0, 2]])),
+    )
+    data = assemble_auto_reduced_dynamics(jnp.array([-1.0, -2.0]), r0)
+    np.testing.assert_allclose(np.asarray(data.beta), np.array([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]]))
+    np.testing.assert_array_equal(np.asarray(data.kappa), np.array([[2, 0], [1, 1], [0, 2]]))
+
+
+def test_transient_traj_on_auto_ssm_linear_system_matches_exponential_and_jit_grad():
+    r0 = (MultiIndexPolynomial(coeffs=jnp.eye(2), ind=jnp.array([[1, 0], [0, 1]])),)
+    w0 = (MultiIndexPolynomial(coeffs=jnp.eye(2), ind=jnp.array([[1, 0], [0, 1]])),)
+    lamd = jnp.array([-1.0, -2.0])
+    q0 = jnp.array([1.0, 2.0])
+
+    traj = transient_traj_on_auto_ssm(lamd, r0, w0, tf=1.0, nsteps=100, outdof=jnp.array([0, 1]), initial_reduced=q0)
+    expected_final = q0 * jnp.exp(lamd)
+    np.testing.assert_allclose(np.asarray(traj.red[-1]), np.asarray(expected_final), rtol=1e-7, atol=2e-7)
+    np.testing.assert_allclose(np.asarray(traj.phy[-1]), np.asarray(expected_final), rtol=1e-7, atol=2e-7)
+
+    jit_red = jax.jit(lambda initial: transient_traj_on_auto_ssm(lamd, r0, w0, 0.5, 20, jnp.array([0]), initial_reduced=initial).red)(q0)
+    assert jit_red.shape == (21, 2)
+    jac = jax.jacfwd(lambda initial: transient_traj_on_auto_ssm(lamd, r0, w0, 0.25, 10, jnp.array([0]), initial_reduced=initial).phy[-1, 0])(q0)
+    assert jac.shape == (2,)
+
+
+def test_transient_traj_on_auto_ssm_uses_linear_projection_when_needed():
+    r0 = (MultiIndexPolynomial(coeffs=jnp.eye(1), ind=jnp.array([[1]])),)
+    w0 = (MultiIndexPolynomial(coeffs=jnp.array([[2.0]]), ind=jnp.array([[1]])),)
+    traj = transient_traj_on_auto_ssm(
+        jnp.array([0.0]),
+        r0,
+        w0,
+        tf=0.2,
+        nsteps=2,
+        outdof=jnp.array([0]),
+        z0=jnp.array([3.0, 4.0]),
+        left_eigenvectors=jnp.array([[1.0], [0.0]]),
+        b_matrix=jnp.eye(2),
+    )
+    np.testing.assert_allclose(np.asarray(traj.red[:, 0]), np.array([3.0, 3.0, 3.0]))
+    np.testing.assert_allclose(np.asarray(traj.phy[:, 0]), np.array([6.0, 6.0, 6.0]))
+
+
+def test_reduced_dynamics_symbolic_autonomous_source_derived():
+    r0 = (
+        MultiIndexPolynomial(coeffs=jnp.eye(2, dtype=jnp.complex64), ind=jnp.array([[1, 0], [0, 1]])),
+        MultiIndexPolynomial(coeffs=jnp.array([[2.0 + 3.0j], [2.0 - 3.0j]]), ind=jnp.array([[2, 1]])),
+    )
+    result = reduced_dynamics_symbolic(
+        jnp.array([-0.1 + 1.5j, -0.1 - 1.5j]),
+        r0,
+        ReducedDynamicsSymbolicOptions(isauto=True, isdamped=True, num_digits=4),
+    )
+    assert result.rho_equations == ("rho_1_dot = -0.1*rho_1 + 2*rho_1^3",)
+    assert result.theta_equations == ("theta_1_dot = 1.5 + 3*rho_1^2",)
+    assert result.equations == result.rho_equations + result.theta_equations
