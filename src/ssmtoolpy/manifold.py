@@ -17,6 +17,7 @@ from ssmtoolpy.multi_index import (
     multi_subtraction,
     nsumk,
 )
+from ssmtoolpy.misc import solve_invariance_equation
 
 
 Array = jnp.ndarray
@@ -108,6 +109,54 @@ class NonAutonomousStructure(NamedTuple):
     r1: tuple[NonAutonomousCoefficientSeries, ...]
     kappas: Array
     forcing_orders: Array
+
+
+class AutonomousFirstOrderData(NamedTuple):
+    """Data for autonomous first-order SSM coefficient solves.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. The functional kernels carry value
+    differentiability under their stated nondegeneracy assumptions.
+    """
+
+    k_multi: Array
+    lambda_master: Array
+    left_basis: Array
+    right_basis: Array
+    reltol: float = 1e-6
+    solver: str = "backslash"
+
+
+class AutonomousSecondOrderData(NamedTuple):
+    """Data for autonomous second-order SSM coefficient solves.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. The functional kernels carry value
+    differentiability under their stated nondegeneracy assumptions.
+    """
+
+    k_multi: Array
+    lambda_master: Array
+    left_displacement_basis: Array
+    right_displacement_basis: Array
+    reltol: float = 1e-6
+    solver: str = "backslash"
+
+
+class AutonomousSSMSolveResult(NamedTuple):
+    """Autonomous SSM coefficient solve result.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric fields inherit the
+    differentiability of the solve kernel that produced them.
+    """
+
+    reduced_dynamics: Array
+    parametrization: Array
+    rhs: Array
 
 
 def _multi_indices(dim: int, order: int, ordering: Ordering) -> Array:
@@ -404,6 +453,220 @@ def autonomous_resonant_terms(
     lambda_k = jnp.asarray(lambda_combinations).reshape((1, -1))
     abstol = reltol * jnp.min(jnp.abs(lambda_m))
     return _matlab_find(jnp.abs(lambda_m - lambda_k) < abstol)
+
+
+def _matrix_from_rhs(rhs: Array, rows: int, cols: int) -> Array:
+    rhs = jnp.asarray(rhs)
+    if rhs.ndim == 2:
+        return rhs
+    if rhs.shape[0] != rows * cols:
+        raise ValueError("Flattened RHS has incompatible length")
+    return jnp.reshape(rhs, (cols, rows)).T
+
+
+def _lambda_combinations(k_multi: Array, lambda_master: Array) -> Array:
+    return jnp.sum(jnp.asarray(k_multi) * jnp.asarray(lambda_master)[:, None], axis=0)
+
+
+def autonomous_first_order_reduced_dynamics(
+    rhs: Array,
+    lambda_master: Array,
+    lambda_combinations: Array,
+    left_basis: Array,
+    right_basis: Array,
+    b_matrix: Array,
+    *,
+    reltol: float = 1e-6,
+) -> tuple[Array, Array]:
+    """Project resonant first-order invariance RHS terms into reduced dynamics.
+
+    This ports ``@Manifold/private/Aut_1stOrder_RedDyn.m``. Inputs use
+    zero-based Python ordering and ``rhs`` may be either ``(N, z_k)`` or a
+    MATLAB-style column-major flattened vector. The returned reduced-dynamics
+    matrix has shape ``(l, z_k)``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to ``rhs``, bases and ``b_matrix`` for a fixed
+    resonance pattern. Resonance detection itself is discrete and thresholded.
+    """
+
+    lambda_m = jnp.asarray(lambda_master)
+    lambda_k = jnp.asarray(lambda_combinations)
+    left = jnp.asarray(left_basis)
+    right = jnp.asarray(right_basis)
+    b_matrix = jnp.asarray(b_matrix)
+    n = right.shape[0]
+    l = lambda_m.shape[0]
+    z_k = lambda_k.shape[0]
+    rhs_matrix = _matrix_from_rhs(rhs, n, z_k)
+    mode_idx, combo_idx = autonomous_resonant_terms(lambda_m, lambda_k, reltol)
+    r0 = jnp.zeros((l, z_k), dtype=jnp.result_type(rhs_matrix, left, right, b_matrix))
+    for mode, combo in zip(mode_idx.tolist(), combo_idx.tolist(), strict=False):
+        value = jnp.vdot(left[:, mode], rhs_matrix[:, combo])
+        r0 = r0.at[mode, combo].add(value)
+    updated_rhs = rhs_matrix - (b_matrix @ right) @ r0
+    return r0, updated_rhs
+
+
+def autonomous_first_order_ssm(
+    rhs: Array,
+    data: AutonomousFirstOrderData,
+    a_matrix: Array,
+    b_matrix: Array,
+) -> AutonomousSSMSolveResult:
+    """Solve autonomous first-order SSM coefficients at one polynomial order.
+
+    This ports the functional core of ``@Manifold/private/Aut_1stOrder_SSM.m``:
+    resonant RHS components are moved into reduced dynamics and the remaining
+    cohomological equations ``(B*lambda_K - A) W_k = RHS_k`` are solved column
+    by column.
+
+    Differentiability
+    -----------------
+    Differentiable under fixed resonance pattern and nonsingular column
+    cohomological matrices. The solver choice and multi-index data are static.
+    """
+
+    lambda_k = _lambda_combinations(data.k_multi, data.lambda_master)
+    r0, updated_rhs = autonomous_first_order_reduced_dynamics(
+        rhs,
+        data.lambda_master,
+        lambda_k,
+        data.left_basis,
+        data.right_basis,
+        b_matrix,
+        reltol=data.reltol,
+    )
+    a_matrix = jnp.asarray(a_matrix)
+    b_matrix = jnp.asarray(b_matrix)
+    columns = []
+    for combo in range(lambda_k.shape[0]):
+        matrix = b_matrix * lambda_k[combo] - a_matrix
+        columns.append(solve_invariance_equation(matrix, updated_rhs[:, combo], data.solver))
+    w0 = jnp.stack(columns, axis=1)
+    return AutonomousSSMSolveResult(r0, w0, updated_rhs)
+
+
+def autonomous_second_order_reduced_dynamics(
+    mode_indices: Array,
+    combo_indices: Array,
+    theta: Array,
+    phi: Array,
+    damping: Array,
+    lambda_combinations: Array,
+    lambda_master: Array,
+    mass: Array,
+    velocity_rhs: Array,
+    displacement_rhs: Array,
+    *,
+    dim: int | None = None,
+    z_k: int | None = None,
+) -> Array:
+    """Compute second-order autonomous reduced-dynamics coefficients.
+
+    This ports the non-1:1-resonance branch of
+    ``@Manifold/private/Aut_2ndOrder_RedDyn.m``. If multiple master modes are
+    resonant for the same multi-index, MATLAB raises for unsupported 1:1
+    internal resonance; this port does the same.
+
+    Differentiability
+    -----------------
+    Differentiable for a fixed single-mode resonance pattern and nonsingular
+    scalar denominators. Resonance indices are discrete inputs.
+    """
+
+    mode_indices = jnp.asarray(mode_indices, dtype=jnp.int32)
+    combo_indices = jnp.asarray(combo_indices, dtype=jnp.int32)
+    theta = jnp.asarray(theta)
+    phi = jnp.asarray(phi)
+    damping = jnp.asarray(damping)
+    lambda_k = jnp.asarray(lambda_combinations)
+    lambda_m = jnp.asarray(lambda_master)
+    mass = jnp.asarray(mass)
+    velocity_rhs = jnp.asarray(velocity_rhs)
+    displacement_rhs = jnp.asarray(displacement_rhs)
+    l = lambda_m.shape[0] if dim is None else dim
+    z_count = lambda_k.shape[0] if z_k is None else z_k
+    result = jnp.zeros((l, z_count), dtype=jnp.result_type(theta, phi, damping, mass, velocity_rhs, displacement_rhs, lambda_m))
+
+    unique_combos = sorted({int(value) for value in combo_indices.tolist()})
+    for combo in unique_combos:
+        modes = [int(mode_indices[idx]) for idx, value in enumerate(combo_indices.tolist()) if int(value) == combo]
+        if len(modes) > 1:
+            raise NotImplementedError("1:1 internal resonance is not supported for second-order autonomous solves")
+        mode = modes[0]
+        theta_f = theta[:, mode]
+        phi_f = phi[:, mode]
+        lhs = jnp.vdot(theta_f, damping @ phi_f + mass @ ((lambda_k[combo] + lambda_m[mode]) * phi_f))
+        rhs = lambda_k[combo] * jnp.vdot(theta_f, mass @ velocity_rhs[:, combo]) + jnp.vdot(
+            theta_f,
+            displacement_rhs[:, combo],
+        )
+        result = result.at[mode, combo].set(-rhs / lhs)
+    return result
+
+
+def autonomous_second_order_ssm(
+    wr: Array,
+    fn: Array,
+    data: AutonomousSecondOrderData,
+    mass: Array,
+    damping: Array,
+    stiffness: Array,
+) -> AutonomousSSMSolveResult:
+    """Solve autonomous second-order SSM coefficients at one order.
+
+    This ports the analytic reduced-dynamics branch of
+    ``@Manifold/private/Aut_2ndOrder_SSM.m``. The returned parametrization is
+    stacked as ``[w_k; dot(w_k)]`` to match MATLAB's first-order state layout.
+
+    Differentiability
+    -----------------
+    Differentiable under fixed resonance pattern and nonsingular dynamic
+    stiffness matrices. Unsupported multi-mode internal resonances raise
+    ``NotImplementedError``.
+    """
+
+    wr = jnp.asarray(wr)
+    fn = jnp.asarray(fn)
+    mass = jnp.asarray(mass)
+    damping = jnp.asarray(damping)
+    stiffness = jnp.asarray(stiffness)
+    n = mass.shape[0]
+    lambda_k = _lambda_combinations(data.k_multi, data.lambda_master)
+    theta = jnp.asarray(data.left_displacement_basis)
+    phi = jnp.asarray(data.right_displacement_basis)
+    displacement_rhs = -(damping @ wr[:n, :] + mass @ wr[n:, :]) - fn[:n, :]
+    velocity_rhs = -wr[:n, :]
+    mode_idx, combo_idx = autonomous_resonant_terms(data.lambda_master, lambda_k, data.reltol)
+    r0 = autonomous_second_order_reduced_dynamics(
+        mode_idx,
+        combo_idx,
+        theta,
+        phi,
+        damping,
+        lambda_k,
+        data.lambda_master,
+        mass,
+        velocity_rhs,
+        displacement_rhs,
+        dim=data.lambda_master.shape[0],
+        z_k=lambda_k.shape[0],
+    )
+    w_columns = []
+    wdot_columns = []
+    for combo in range(lambda_k.shape[0]):
+        lhs_term = (mass @ ((lambda_k[combo] + data.lambda_master)[None, :] * phi) + damping @ phi) @ r0[:, combo]
+        rhs_column = lhs_term + lambda_k[combo] * (mass @ velocity_rhs[:, combo]) + displacement_rhs[:, combo]
+        matrix = -(stiffness + lambda_k[combo] * damping + lambda_k[combo] ** 2 * mass)
+        w_col = solve_invariance_equation(matrix, rhs_column, data.solver)
+        wdot_col = lambda_k[combo] * w_col + phi @ r0[:, combo] + velocity_rhs[:, combo]
+        w_columns.append(w_col)
+        wdot_columns.append(wdot_col)
+    w = jnp.stack(w_columns, axis=1)
+    wdot = jnp.stack(wdot_columns, axis=1)
+    return AutonomousSSMSolveResult(r0, jnp.concatenate((w, wdot), axis=0), jnp.concatenate((displacement_rhs, velocity_rhs), axis=0))
 
 
 def nonautonomous_resonant_terms(

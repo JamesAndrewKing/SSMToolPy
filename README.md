@@ -61,6 +61,7 @@ Ported:
 - dense and JAX `BCOO` sparse tensor Tucker-style products and row-pattern tensor composition
 - first- and second-order linear frequency-response kernels
 - autonomous reduced-dynamics assembly, fixed-step transient SSM trajectories, and autonomous polar symbolic rendering
+- autonomous first- and second-order one-order SSM cohomological solve kernels
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps

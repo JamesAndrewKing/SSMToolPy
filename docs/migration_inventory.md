@@ -59,10 +59,10 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/compute_perturbed_whisker.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/compute_sensitivity_coefficients.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/compute_whisker.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/Aut_1stOrder_RedDyn.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/Aut_1stOrder_SSM.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/Aut_2ndOrder_RedDyn.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/Aut_2ndOrder_SSM.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/Aut_1stOrder_RedDyn.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_first_order_reduced_dynamics` | functional resonant projection ported | differentiable for fixed resonance pattern |
+| `@Manifold/private/Aut_1stOrder_SSM.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_first_order_ssm` | functional coefficient solve ported | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/Aut_2ndOrder_RedDyn.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_second_order_reduced_dynamics` | single-resonance branch ported; 1:1 resonance remains unsupported like MATLAB error path | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/Aut_2ndOrder_SSM.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_second_order_ssm` | analytic reduced-dynamics branch ported | differentiable under fixed resonance/nondegeneracy assumptions |
 | `@Manifold/private/Aut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.autonomous_resonant_terms` | ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/check_COMPtype.m` | manifold validation utility | `ssmtoolpy.manifold.check_comp_type` | ported as functional selector | not differentiable |
 | `@Manifold/private/check_DStype.m` | manifold validation utility | `ssmtoolpy.manifold.check_ds_type` | ported as functional classifier | not differentiable |

@@ -94,6 +94,13 @@
 | `resonance_analysis` | not differentiable | Integer combination enumeration, spectral quotient truncation, and thresholded resonance selection. |
 | `choose_master_subspace` | not differentiable | Discrete mode selection and resonance analysis on supplied spectral data. |
 | `autonomous_resonant_terms` | not differentiable | Thresholded resonance-index selection; returns zero-based index arrays in MATLAB `find` order. |
+| `AutonomousFirstOrderData` | not differentiable | Static data container for autonomous first-order cohomological solves. |
+| `AutonomousSecondOrderData` | not differentiable | Static data container for autonomous second-order cohomological solves. |
+| `AutonomousSSMSolveResult` | not differentiable | Result container; numeric fields inherit solve-kernel differentiability. |
+| `autonomous_first_order_reduced_dynamics` | differentiable for fixed resonance pattern | Projects resonant RHS columns into reduced dynamics and subtracts `B*V_M*R`; tested with `jax.grad`. Resonance selection is thresholded/discrete. |
+| `autonomous_first_order_ssm` | differentiable under nondegeneracy assumptions | One-order first-order SSM solve; assumes fixed resonance pattern and nonsingular cohomological matrices. |
+| `autonomous_second_order_reduced_dynamics` | differentiable under nondegeneracy assumptions | Single-resonance second-order reduced-dynamics projection; 1:1 resonance raises `NotImplementedError`. |
+| `autonomous_second_order_ssm` | differentiable under nondegeneracy assumptions | Analytic one-order second-order SSM solve; tested with `jax.jacfwd`, assumes fixed resonance pattern and nonsingular dynamic stiffness matrices. |
 | `nonautonomous_resonant_terms` | not differentiable | Enumerates integer multi-indices and threshold-selects resonances; returns zero-based indices. |
 | `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |
 | `nonautonomous_struct_setup` | not differentiable | Initializes discrete non-autonomous coefficient containers and harmonic metadata. |

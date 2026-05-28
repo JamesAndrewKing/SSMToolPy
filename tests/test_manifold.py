@@ -3,12 +3,18 @@ import jax.numpy as jnp
 import numpy as np
 
 from ssmtoolpy import (
+    AutonomousFirstOrderData,
+    AutonomousSecondOrderData,
     MasterSubspace,
     MultiIndexPolynomial,
     NonAutonomousResonanceData,
     ResonanceAnalysis,
+    autonomous_first_order_reduced_dynamics,
+    autonomous_first_order_ssm,
     autonomous_invariance_residual,
     autonomous_resonant_terms,
+    autonomous_second_order_reduced_dynamics,
+    autonomous_second_order_ssm,
     check_comp_type,
     check_ds_type,
     choose_master_subspace,
@@ -86,6 +92,103 @@ def test_coeffs_mixed_terms_explicit_indices_for_nonaut_style_terms():
     got = coeffs_mixed_terms(1, 1, w, r, dim=2, output_dim=2, mix="R1", ordering="revlex", explicit_indices=True)
     assert got.shape == (2, 2)
     assert np.all(np.isfinite(np.asarray(got)))
+
+
+def test_autonomous_first_order_reduced_dynamics_projects_resonant_rhs_and_grad():
+    rhs = jnp.array([[10.0, 20.0], [30.0, 40.0]])
+    lambda_master = jnp.array([-1.0, -2.0])
+    lambda_combinations = jnp.array([-1.0, -3.0])
+    r0, updated = autonomous_first_order_reduced_dynamics(
+        rhs,
+        lambda_master,
+        lambda_combinations,
+        left_basis=jnp.eye(2),
+        right_basis=jnp.eye(2),
+        b_matrix=jnp.eye(2),
+        reltol=1e-8,
+    )
+    np.testing.assert_allclose(np.asarray(r0), np.array([[10.0, 0.0], [0.0, 0.0]]))
+    np.testing.assert_allclose(np.asarray(updated), np.array([[0.0, 20.0], [30.0, 40.0]]))
+
+    grad = jax.grad(
+        lambda values: jnp.sum(
+            autonomous_first_order_reduced_dynamics(
+                values.reshape(2, 2),
+                lambda_master,
+                lambda_combinations,
+                jnp.eye(2),
+                jnp.eye(2),
+                jnp.eye(2),
+                reltol=1e-8,
+            )[0]
+        )
+    )(rhs.ravel())
+    assert grad.shape == (4,)
+
+
+def test_autonomous_first_order_ssm_solves_columnwise_cohomological_equations():
+    rhs = jnp.array([[10.0, 20.0], [30.0, 40.0]])
+    data = AutonomousFirstOrderData(
+        k_multi=jnp.array([[1, 3], [0, 0]]),
+        lambda_master=jnp.array([-1.0, -2.0]),
+        left_basis=jnp.eye(2),
+        right_basis=jnp.eye(2),
+        reltol=1e-8,
+    )
+    result = autonomous_first_order_ssm(rhs, data, a_matrix=jnp.diag(jnp.array([1.0, 2.0])), b_matrix=jnp.eye(2))
+    np.testing.assert_allclose(np.asarray(result.reduced_dynamics), np.array([[10.0, 0.0], [0.0, 0.0]]))
+    expected_w = np.array([[0.0 / -2.0, 20.0 / -4.0], [30.0 / -3.0, 40.0 / -5.0]])
+    np.testing.assert_allclose(np.asarray(result.parametrization), expected_w, rtol=1e-6)
+
+
+def test_autonomous_second_order_reduced_dynamics_single_resonance_source_derived():
+    r0 = autonomous_second_order_reduced_dynamics(
+        mode_indices=jnp.array([0]),
+        combo_indices=jnp.array([0]),
+        theta=jnp.array([[1.0]]),
+        phi=jnp.array([[1.0]]),
+        damping=jnp.array([[0.5]]),
+        lambda_combinations=jnp.array([-1.0]),
+        lambda_master=jnp.array([-1.0]),
+        mass=jnp.array([[2.0]]),
+        velocity_rhs=jnp.array([[-3.0]]),
+        displacement_rhs=jnp.array([[4.0]]),
+    )
+    np.testing.assert_allclose(np.asarray(r0), np.array([[10.0 / 3.5]]), rtol=1e-6)
+
+
+def test_autonomous_second_order_ssm_nonresonant_solve_and_jacfwd():
+    data = AutonomousSecondOrderData(
+        k_multi=jnp.array([[2]]),
+        lambda_master=jnp.array([-1.0]),
+        left_displacement_basis=jnp.array([[1.0]]),
+        right_displacement_basis=jnp.array([[1.0]]),
+        reltol=1e-8,
+    )
+    wr = jnp.array([[1.0], [2.0]])
+    fn = jnp.zeros((2, 1))
+    result = autonomous_second_order_ssm(
+        wr,
+        fn,
+        data,
+        mass=jnp.array([[2.0]]),
+        damping=jnp.array([[0.5]]),
+        stiffness=jnp.array([[5.0]]),
+    )
+    np.testing.assert_allclose(np.asarray(result.reduced_dynamics), np.array([[0.0]]), atol=1e-8)
+    np.testing.assert_allclose(np.asarray(result.parametrization), np.array([[1.0 / 24.0], [-13.0 / 12.0]]), rtol=1e-6)
+
+    jac = jax.jacfwd(
+        lambda values: autonomous_second_order_ssm(
+            values.reshape(2, 1),
+            fn,
+            data,
+            mass=jnp.array([[2.0]]),
+            damping=jnp.array([[0.5]]),
+            stiffness=jnp.array([[5.0]]),
+        ).parametrization.reshape(-1)
+    )(wr.ravel())
+    assert jac.shape == (2, 2)
 
 
 def test_check_ds_type_matches_matlab_decision_rules():

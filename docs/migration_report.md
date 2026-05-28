@@ -78,6 +78,10 @@ is not a Python migration target for this package.
 | `@Manifold/private/check_DStype.m` | manifold validation utility | `ssmtoolpy.manifold.check_ds_type` | ported as functional classifier | not differentiable |
 | `@Manifold/private/check_COMPtype.m` | manifold validation utility | `ssmtoolpy.manifold.check_comp_type` | ported as functional selector | not differentiable |
 | `@Manifold/private/Aut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.autonomous_resonant_terms` | ported with zero-based Python indices | not differentiable |
+| `@Manifold/private/Aut_1stOrder_RedDyn.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_first_order_reduced_dynamics` | functional resonant projection ported | differentiable for fixed resonance pattern |
+| `@Manifold/private/Aut_1stOrder_SSM.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_first_order_ssm` | functional coefficient solve ported | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/Aut_2ndOrder_RedDyn.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_second_order_reduced_dynamics` | single-resonance branch ported; 1:1 resonance remains unsupported like MATLAB error path | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/Aut_2ndOrder_SSM.m` | autonomous cohomological kernel | `ssmtoolpy.manifold.autonomous_second_order_ssm` | analytic reduced-dynamics branch ported | differentiable under fixed resonance/nondegeneracy assumptions |
 | `@Manifold/private/nonAut_resonant_terms.m` | manifold resonance utility | `ssmtoolpy.manifold.nonautonomous_resonant_terms` | zero/k branches ported with zero-based Python indices | not differentiable |
 | `@Manifold/private/nonAut_conj_red.m` | non-autonomous forcing bookkeeping | `ssmtoolpy.manifold.nonautonomous_conjugate_reduction` | ported with zero-based Python index maps | not differentiable |
 | `@Manifold/private/nonAut_struct_setup.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_struct_setup` | ported as immutable Python containers | not differentiable |
@@ -173,6 +177,12 @@ Known blockers and design work:
 - `coeffs_composition` and `coeffs_mixed_terms` currently cover lexicographic
   and reverse-lexicographic computation. The conjugate-order branches are tied
   to the full cohomological solver and remain unported.
+- Autonomous first- and second-order SSM coefficient kernels are ported as
+  functional one-order solves. They do not yet assemble full `W_0`/`R_0`
+  sequences or replace `cohomological_solution.m`.
+- The second-order autonomous reduced-dynamics kernel preserves MATLAB's
+  limitation for 1:1 internal resonance in `COMPtype=second` by raising
+  `NotImplementedError`.
 - `fnl_nonintrusive`, `fnl_semi_intrusive`, `dfnl_nonintrusive`, and
   `dfnl_semi_intrusive` currently cover the reverse-lexicographic branches.
   The conjugate-order branches and the intrusive tensor composition helpers
