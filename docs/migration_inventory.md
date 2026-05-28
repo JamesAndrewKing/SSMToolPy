@@ -51,7 +51,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@DynamicalSystem/private/set_fnl_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
 | `@DynamicalSystem/residual.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_residual` | functional core ported | piecewise differentiable |
 | `@Manifold/Manifold.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/choose_E.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/choose_E.m` | modal subspace selection | `ssmtoolpy.manifold.choose_master_subspace` and `resonance_analysis` | functional spectral-data branch ported | not differentiable |
 | `@Manifold/cohomological_solution.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/compuate_invariance_residual.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/compute_analyticity_domain.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |

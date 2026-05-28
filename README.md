@@ -48,6 +48,7 @@ Ported:
 - dynamical-system private helper equivalents for mechanical matrices, nonlinear/forcing metadata, callable input probing, and second-order to first-order nonlinear/forcing conversion
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
+- functional Manifold master-subspace selection and inner/outer resonance analysis
 - non-autonomous Manifold harmonic conjugacy reduction and coefficient-structure setup helpers
 - non-autonomous Manifold coefficient insertion/update helper
 - non-autonomous Manifold mixed `W1 R0 + W0 R1` coefficient algebra

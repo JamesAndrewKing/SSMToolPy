@@ -73,8 +73,13 @@
 | `NonAutonomousResonanceData` | not differentiable | Metadata container for non-autonomous resonance detection. |
 | `NonAutonomousCoefficientSeries` | not differentiable | Metadata container for one harmonic's non-autonomous coefficient series. |
 | `NonAutonomousStructure` | not differentiable | Metadata container initialized by `nonautonomous_struct_setup`. |
+| `ResonanceSide` | not differentiable | Metadata container for one side of SSM resonance analysis. |
+| `ResonanceAnalysis` | not differentiable | Metadata container for inner/outer resonance analysis. |
+| `MasterSubspace` | not differentiable | Metadata container for selected modal subspace and resonance results. |
 | `check_ds_type` | not differentiable | Discrete dtype/metadata decision matching Manifold DS-type selection. |
 | `check_comp_type` | not differentiable | Discrete algorithm-selection rule for first- versus second-order Manifold computation. |
+| `resonance_analysis` | not differentiable | Integer combination enumeration, spectral quotient truncation, and thresholded resonance selection. |
+| `choose_master_subspace` | not differentiable | Discrete mode selection and resonance analysis on supplied spectral data. |
 | `autonomous_resonant_terms` | not differentiable | Thresholded resonance-index selection; returns zero-based index arrays in MATLAB `find` order. |
 | `nonautonomous_resonant_terms` | not differentiable | Enumerates integer multi-indices and threshold-selects resonances; returns zero-based indices. |
 | `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |

@@ -15,6 +15,49 @@ Ordering = Literal["lex", "revlex"]
 ResonanceOrder = Literal["zero", "k"]
 
 
+class ResonanceSide(NamedTuple):
+    """One side of SSM non-resonance analysis.
+
+    Differentiability
+    -----------------
+    Not differentiable. Resonance analysis enumerates integer combinations and
+    threshold-selects near resonances.
+    """
+
+    occurs: bool
+    sigma: int
+    combinations: Array
+    eigs: Array
+
+
+class ResonanceAnalysis(NamedTuple):
+    """Inner and outer resonance analysis result.
+
+    Differentiability
+    -----------------
+    Not differentiable. This is discrete spectral metadata.
+    """
+
+    inner: ResonanceSide
+    outer: ResonanceSide
+
+
+class MasterSubspace(NamedTuple):
+    """Selected master modal subspace and resonance metadata.
+
+    Differentiability
+    -----------------
+    Not differentiable. This is spectral selection and discrete resonance
+    metadata; eigensolver differentiability is outside this helper.
+    """
+
+    spectrum: Array
+    basis: Array
+    adjoint_basis: Array
+    normal_modes: Array
+    resonance: ResonanceAnalysis
+
+
 class NonAutonomousResonanceData(NamedTuple):
     """Data required by ``nonautonomous_resonant_terms``.
 
@@ -197,6 +240,123 @@ def check_comp_type(
         comp_type = "first"
         ds_mode = "complex"
     return comp_type, ds_mode
+
+
+def _resonance_multiples(dim: int, sigma: int, sigma_max: int) -> Array:
+    sigma_check = min(sigma_max, sigma)
+    rows = []
+    for order in range(2, sigma_check + 1):
+        rows.extend(tuple(int(value) for value in row) for row in nsumk(dim, order, "nonnegative").tolist())
+    if not rows:
+        return jnp.zeros((0, dim), dtype=jnp.int32)
+    return jnp.asarray(rows, dtype=jnp.int32)
+
+
+def resonance_analysis(
+    lambda_master: Array,
+    lambda_slave: Array,
+    reltol: float,
+    *,
+    sigma_in_max: int = 10,
+    sigma_out_max: int = 10,
+) -> ResonanceAnalysis:
+    """Check near inner and outer resonances for a chosen master spectrum.
+
+    This ports the nested ``resonance_analysis`` routine in
+    ``@Manifold/choose_E.m``. The result records the spectral quotients
+    ``sigma_in`` and ``sigma_out`` and any near-resonant integer combinations
+    of master eigenvalues up to the MATLAB default truncation order 10.
+
+    Differentiability
+    -----------------
+    Not differentiable. The routine uses integer enumeration, truncation,
+    thresholding, and discrete resonant-combination selection.
+    """
+
+    lambda_m = jnp.ravel(jnp.asarray(lambda_master))
+    lambda_s = jnp.ravel(jnp.asarray(lambda_slave))
+    if lambda_m.size == 0:
+        raise ValueError("lambda_master must contain at least one eigenvalue")
+
+    ref = jnp.min(jnp.abs(lambda_m))
+    if bool(ref < 1e-10):
+        ref = jnp.max(jnp.abs(lambda_m))
+    abstol = reltol * ref
+
+    all_lambda = jnp.concatenate([lambda_m, lambda_s]) if lambda_s.size else lambda_m
+    sigma_in = int(jnp.trunc(jnp.min(jnp.real(all_lambda)) / jnp.max(jnp.real(lambda_m))))
+    sigma_out = 0 if lambda_s.size == 0 else int(jnp.trunc(jnp.min(jnp.real(lambda_s)) / jnp.max(jnp.real(lambda_m))))
+
+    empty_combinations = jnp.zeros((0, lambda_m.shape[0]), dtype=jnp.int32)
+    empty_eigs = jnp.asarray([], dtype=lambda_m.dtype)
+
+    if sigma_out < 2 or lambda_s.size == 0:
+        outer = ResonanceSide(False, sigma_out, empty_combinations, empty_eigs)
+    else:
+        multiples = _resonance_multiples(lambda_m.shape[0], sigma_out, sigma_out_max)
+        combinations = multiples @ lambda_m
+        combo_matrix = combinations[:, None]
+        slave_matrix = lambda_s[None, :]
+        combo_idx, eig_idx = _matlab_find(jnp.abs(combo_matrix - slave_matrix) < abstol)
+        outer = ResonanceSide(
+            bool(combo_idx.size > 0),
+            sigma_out,
+            multiples[combo_idx] if combo_idx.size else empty_combinations,
+            lambda_s[eig_idx] if eig_idx.size else empty_eigs,
+        )
+
+    if sigma_in < 2:
+        inner = ResonanceSide(False, sigma_in, empty_combinations, empty_eigs)
+    else:
+        multiples = _resonance_multiples(lambda_m.shape[0], sigma_in, sigma_in_max)
+        combinations = multiples @ lambda_m
+        combo_matrix = combinations[:, None]
+        master_matrix = lambda_m[None, :]
+        combo_idx, eig_idx = _matlab_find(jnp.abs(combo_matrix - master_matrix) < abstol)
+        inner = ResonanceSide(
+            bool(combo_idx.size > 0),
+            sigma_in,
+            multiples[combo_idx] if combo_idx.size else empty_combinations,
+            lambda_m[eig_idx] if eig_idx.size else empty_eigs,
+        )
+
+    return ResonanceAnalysis(inner=inner, outer=outer)
+
+
+def choose_master_subspace(
+    eigenvalues: Array,
+    right_eigenvectors: Array,
+    left_eigenvectors: Array,
+    tangent_modes: Array,
+    *,
+    reltol: float,
+) -> MasterSubspace:
+    """Select a master modal subspace and run resonance analysis.
+
+    This is the functional equivalent of ``@Manifold/choose_E.m`` once spectral
+    data have already been computed. ``tangent_modes`` are zero-based Python
+    indices; MATLAB's object mutation is replaced by a returned
+    ``MasterSubspace`` container.
+
+    Differentiability
+    -----------------
+    Not differentiable. This performs discrete mode selection and resonance
+    analysis on supplied spectral data.
+    """
+
+    lambdas = jnp.ravel(jnp.asarray(eigenvalues))
+    tangent = jnp.ravel(jnp.asarray(tangent_modes, dtype=jnp.int32))
+    tangent_set = {int(value) for value in tangent.tolist()}
+    normal = jnp.asarray([idx for idx in range(lambdas.shape[0]) if idx not in tangent_set], dtype=jnp.int32)
+    lambda_master = lambdas[tangent]
+    lambda_slave = lambdas[normal]
+    return MasterSubspace(
+        spectrum=lambda_master,
+        basis=jnp.asarray(right_eigenvectors)[:, tangent],
+        adjoint_basis=jnp.asarray(left_eigenvectors)[:, tangent],
+        normal_modes=normal,
+        resonance=resonance_analysis(lambda_master, lambda_slave, reltol),
+    )
 
 
 def autonomous_resonant_terms(

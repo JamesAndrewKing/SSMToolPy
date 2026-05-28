@@ -3,11 +3,14 @@ import jax.numpy as jnp
 import numpy as np
 
 from ssmtoolpy import (
+    MasterSubspace,
     MultiIndexPolynomial,
     NonAutonomousResonanceData,
+    ResonanceAnalysis,
     autonomous_resonant_terms,
     check_comp_type,
     check_ds_type,
+    choose_master_subspace,
     coeffs_composition,
     coeffs_mixed_terms,
     dfnl_nonintrusive,
@@ -19,6 +22,7 @@ from ssmtoolpy import (
     nonautonomous_resonant_terms,
     nonautonomous_struct_setup,
     nonautonomous_w1r0_plus_w0r1,
+    resonance_analysis,
     step_polynomial,
 )
 
@@ -103,6 +107,35 @@ def test_autonomous_resonant_terms_source_derived_zero_based():
     modes, combinations = autonomous_resonant_terms(lambda_master, lambda_combinations, reltol=0.1)
     np.testing.assert_array_equal(np.asarray(modes), np.array([0, 1]))
     np.testing.assert_array_equal(np.asarray(combinations), np.array([0, 2]))
+
+
+def test_resonance_analysis_detects_outer_and_inner_resonances():
+    outer = resonance_analysis(jnp.array([-1.0 + 1.0j, -1.0 - 1.0j]), jnp.array([-2.0 + 0.0j, -3.0 + 0.0j]), reltol=1e-8)
+    assert isinstance(outer, ResonanceAnalysis)
+    assert outer.outer.occurs is True
+    assert outer.outer.sigma == 3
+    np.testing.assert_array_equal(np.asarray(outer.outer.combinations[0]), np.array([1, 1]))
+    np.testing.assert_allclose(np.asarray(outer.outer.eigs[0]), -2.0 + 0.0j)
+    assert outer.inner.sigma == 3
+
+    inner = resonance_analysis(jnp.array([-1.0, -2.0]), jnp.array([-5.0]), reltol=1e-8)
+    assert inner.inner.occurs is True
+    assert any(np.array_equal(row, np.array([2, 0])) for row in np.asarray(inner.inner.combinations))
+    assert any(np.isclose(value, -2.0) for value in np.asarray(inner.inner.eigs))
+
+
+def test_choose_master_subspace_selects_modes_and_normal_modes():
+    eigenvalues = jnp.array([-1.0 + 1.0j, -1.0 - 1.0j, -2.0 + 0.0j, -3.0 + 0.0j])
+    v = jnp.arange(16.0).reshape(4, 4)
+    w = jnp.arange(100.0, 116.0).reshape(4, 4)
+    subspace = choose_master_subspace(eigenvalues, v, w, jnp.array([0, 1]), reltol=1e-8)
+
+    assert isinstance(subspace, MasterSubspace)
+    np.testing.assert_allclose(np.asarray(subspace.spectrum), np.array([-1.0 + 1.0j, -1.0 - 1.0j]))
+    np.testing.assert_allclose(np.asarray(subspace.basis), np.asarray(v[:, :2]))
+    np.testing.assert_allclose(np.asarray(subspace.adjoint_basis), np.asarray(w[:, :2]))
+    np.testing.assert_array_equal(np.asarray(subspace.normal_modes), np.array([2, 3]))
+    assert subspace.resonance.outer.occurs is True
 
 
 def test_nonautonomous_resonant_terms_zero_order_source_derived():
