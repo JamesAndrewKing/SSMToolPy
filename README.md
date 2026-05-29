@@ -26,6 +26,17 @@ points = jnp.array([[2.0], [3.0]])
 value = expand_multiindex(poly, points)
 ```
 
+The simplest MATLAB example models are also available as source-derived JAX
+builders:
+
+```python
+import jax.numpy as jnp
+from ssmtoolpy import lorenz_first_order_model
+
+model = lorenz_first_order_model(sigma=10.0, rho=28.0, beta=8.0 / 3.0)
+rhs = model.system.odefun(0.0, jnp.array([1.0, 2.0, 3.0]))
+```
+
 ## Tests
 
 ```bash
@@ -73,6 +84,9 @@ Ported:
 - autonomous first- and second-order one-order SSM cohomological solve kernels
 - MATLAB `.mat` solution readers for SSM EP/PO/torus payloads and saved
   numerical-integration/periodic-orbit initial-condition fixtures
+- source-derived ports of the simplest MATLAB examples:
+  `PlanarSystem/build_model.m`, `BenchamrkSSM1stOrder/build_model.m`, and
+  `Lorenz1stOrder/build_model.m`/`lorenz.m`
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps
@@ -84,6 +98,6 @@ Not yet ported:
 - external COCO `po_read_solution`/`tor_read_solution` payload readers
 - full sparse Tensor Toolbox-compatible storage beyond the current JAX `BCOO`
   tensor-composition adapters
-- most examples, plotting utilities, and external COCO solution-reader payloads
+- larger examples, plotting utilities, and external COCO solution-reader payloads
 
 See `docs/migration_report.md` and `docs/differentiability.md` for details.

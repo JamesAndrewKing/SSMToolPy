@@ -234,3 +234,15 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/tensor_composition.m` | tensor composition kernel | `ssmtoolpy.tensor.tensor_composition` and `tensor_product` | ported for dense tensors and JAX `BCOO` sparse tensors | differentiable for fixed dense pattern; sparse path supports forward-mode for fixed sparsity |
 | `misc/tensor_to_multi_index.m` | conversion utility | `ssmtoolpy.multi_index.tensor_to_multi_index` | ported for dense tensors | not differentiable |
 | `misc/transient_traj_on_auto_ssm.m` | reduced dynamics trajectory utility | `ssmtoolpy.misc.transient_traj_on_auto_ssm` | functional autonomous branch ported with fixed-step RK4 | differentiable for fixed step count and structures |
+
+## Example Inventory
+
+The examples live outside `SSMTool/src`; entries here are added as they are
+inspected and migrated.
+
+| MATLAB file | Category | Planned Python destination | Migration status | Differentiability classification |
+| --- | --- | --- | --- | --- |
+| `examples/PlanarSystem/build_model.m` | compact example model | `ssmtoolpy.examples.planar_system_model` and `planar_system_vector_field` | source-derived matrices/tensors and closed-form RHS ported; `demo.mlx` continuation workflow not ported | constructor not differentiable; RHS differentiable |
+| `examples/BenchamrkSSM1stOrder/build_model.m` | compact example model | `ssmtoolpy.examples.benchmark_ssm_1st_order_model` | source-derived alias of identical planar model ported; upstream typo preserved in API name spelling after `benchmark` normalization | constructor not differentiable; RHS differentiable through model |
+| `examples/Lorenz1stOrder/build_model.m` | compact example model | `ssmtoolpy.examples.lorenz_first_order_model` | source-derived first-order matrix/tensor model ported; `demo.mlx` workflow not ported | constructor not differentiable; ODE evaluation differentiable |
+| `examples/Lorenz1stOrder/lorenz.m` | compact example RHS | `ssmtoolpy.examples.lorenz_vector_field` | source-derived RHS ported | differentiable |

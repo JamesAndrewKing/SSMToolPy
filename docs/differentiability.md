@@ -68,6 +68,12 @@
 | `reduced_to_full_complex` | differentiable | For fixed polynomial/forcing structure; transform coverage not yet verified. |
 | `reduced_to_full_traj` | differentiable | Single-time reconstruction; tested with `jax.jit` and `jax.jacfwd` for autonomous structure. |
 | `DynamicalSystem` | not differentiable | Immutable model-data container; methods inherit their functional kernel differentiability. |
+| `FirstOrderExampleModel` | not differentiable | Source-derived example data container; stored arrays and `system.odefun` carry value differentiability. |
+| `planar_system_model` | not differentiable | Constructor for the MATLAB `PlanarSystem/build_model.m` coefficients. Returned ODE evaluation is differentiable under nonsingular `B`; tested with `jax.jacfwd` through `planar_system_vector_field`. |
+| `planar_system_vector_field` | differentiable | Closed-form MATLAB planar example RHS; tested with `jax.jit` and `jax.jacfwd`. |
+| `benchmark_ssm_1st_order_model` | not differentiable | Constructor alias for the source-identical MATLAB `BenchamrkSSM1stOrder/build_model.m`. Returned ODE evaluation inherits the planar model status. |
+| `lorenz_first_order_model` | not differentiable | Constructor for `Lorenz1stOrder/build_model.m`. Returned ODE evaluation is differentiable under nonsingular `B`; tensor coefficients are fixed. |
+| `lorenz_vector_field` | differentiable | Closed-form `Lorenz1stOrder/lorenz.m` RHS; tested with `jax.jit`, `jax.jacfwd`, and parameter `jax.grad`. |
 | `LinearSpectrum` | not differentiable | Result container for non-differentiable spectral analysis. |
 | `add_forcing` | not differentiable | Constructor/metadata conversion for MATLAB-style force columns; returned forcing evaluation is differentiable. |
 | `sort_modes` | not differentiable | Eigenvalue sorting and conjugate-pair ordering are discrete. |

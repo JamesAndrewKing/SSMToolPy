@@ -63,6 +63,10 @@ is not a Python migration target for this package.
 | `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
 | `@DynamicalSystem/private/get_F_from_fnl.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` | functional equivalent ported | differentiable |
 | `frc/frc_ab.m` and `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
+| `examples/PlanarSystem/build_model.m` | example model | `ssmtoolpy.examples.planar_system_model` and `planar_system_vector_field` | source-derived model and RHS ported | constructor not differentiable; RHS differentiable |
+| `examples/BenchamrkSSM1stOrder/build_model.m` | example model | `ssmtoolpy.examples.benchmark_ssm_1st_order_model` | source-derived alias of identical planar model ported | constructor not differentiable; RHS differentiable through model |
+| `examples/Lorenz1stOrder/build_model.m` | example model | `ssmtoolpy.examples.lorenz_first_order_model` | source-derived first-order model ported | constructor not differentiable; ODE evaluation differentiable |
+| `examples/Lorenz1stOrder/lorenz.m` | example RHS | `ssmtoolpy.examples.lorenz_vector_field` | source-derived RHS ported | differentiable |
 | `@SSM/private/cal_ab_dab.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.cal_ab_dab` | ported | differentiable |
 | `@SSM/private/compute_reduced_dynamics_2D_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.compute_reduced_dynamics_2d_polar` | functional coefficient-evaluation core ported | differentiable for fixed harmonic structure |
 | `@SSM/private/ode_2DSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian` | functional coefficient-evaluation core ported | differentiable for fixed polynomial/harmonic structure |
@@ -159,6 +163,8 @@ is not a Python migration target for this package.
   `FRSOptions.m`.
 
 The complete per-file inventory is in `docs/migration_inventory.md`.
+Example inventory entries are tracked separately in the same inventory because
+they live outside `SSMTool/src`.
 
 ## Not Yet Ported
 
@@ -174,6 +180,10 @@ Known blockers and design work:
   `misc/tensor_composition.m`, but it is not a full Sandia Tensor Toolbox clone.
   Broader sparse-coordinate APIs may still be needed for high-level class
   parity.
+- The first example ports expose optional JAX `BCOO` sparse tensor terms for the
+  MATLAB `sptensor` coefficients. The returned `DynamicalSystem` instances keep
+  dense terms for now because the current ODE evaluator contracts dense tensors
+  directly.
 - Multi-index notation remains a priority for practical performance. The
   MATLAB implementation is often more efficient in multi-index form than tensor
   form, so future cohomological and intrusive-force ports should prefer the
@@ -258,4 +268,48 @@ Known blockers and design work:
   validation, and MATLAB-style field-name export. They are configuration
   containers rather than JAX-transformable numerical kernels.
 - MATLAB R2024b spot fixtures have been generated for selected low-level
-  helpers; broad fixture generation for full examples remains outstanding.
+  helpers. The initial example tests use deterministic source-derived formulas;
+  broad MATLAB-generated fixture generation for larger full examples remains
+  outstanding.
+
+## Next recommended batch
+
+Subsystem: next-simple examples with compact model builders and limited COCO
+surface area.
+
+MATLAB files involved:
+
+- `SSMTool/examples/*/build_model.m` files whose models are explicit matrices,
+  tensors, or short finite-dimensional systems.
+- Adjacent RHS helpers such as `ode.m`, `*_vectorfield.m`, or equivalent files
+  in those same example directories.
+- Avoid large FE mesh/import builders until the compact ODE examples are covered.
+
+Planned Python modules:
+
+- Extend `ssmtoolpy.examples` for source-derived model builders and closed-form
+  RHS helpers.
+- Add `tests/test_examples.py` cases comparing model tensors/matrices and ODE
+  values against MATLAB formulas or generated fixtures.
+
+Expected tests:
+
+- Source-derived matrix/tensor nonzero checks.
+- ODE/RHS value checks at deterministic states.
+- `jax.jit` plus `jax.jacfwd` or `jax.grad` smoke tests where the RHS is smooth.
+- Sparse `BCOO` storage checks for MATLAB `sptensor` coefficients where used.
+
+Known risks:
+
+- Many demo scripts call COCO continuation, plotting, or mutable MATLAB classes.
+  Port the model/RHS layer first and document unported continuation workflows.
+- Some examples rely on external meshes, generated data, or Tensor Toolbox
+  storage conventions beyond the current sparse adapter.
+
+Differentiability concerns:
+
+- Model builders and sparse index extraction are not differentiable.
+- Smooth polynomial/vector-field RHS helpers are differentiable for fixed tensor
+  structure.
+- Continuation, event detection, sorting, and stability post-processing remain
+  non-differentiable or only piecewise differentiable.
