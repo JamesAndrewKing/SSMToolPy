@@ -1,18 +1,10 @@
-*.m~
-# ASV files
-*.asv
-# Data files
-*.mat
-# Figures
-*.fig
-*.eps
-*.png
-*.lsf
-# text files
-coco_scr.txt
-coco_log.txt
-diary
-# DS Store binary files
+__pycache__/
+*.py[cod]
 .DS_Store
-# Matlab SSMTool
-/SSMTool/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+dist/
+build/
+*.egg-info/
