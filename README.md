@@ -27,11 +27,16 @@ print(coefficients[2:6])
 - `PlanarSystem`: numerical core from `demo.mlx`, covered by
   `examples/planar_system.py`, `tests/test_planar_system.py`, and
   `tests/test_core_graph_solver.py`.
+- `BenchamrkSSM1stOrder`: source-confirmed duplicate of `PlanarSystem`, covered
+  by `examples/benchmark_ssm_1st_order.py` and
+  `tests/test_benchmark_ssm_1st_order.py`.
 
 ## Reproduced Notebooks
 
 - `notebooks/planar_system.ipynb` mirrors the tested PlanarSystem numerical
   core.
+- `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
+  comparison from the MATLAB live script.
 
 ## Testing
 

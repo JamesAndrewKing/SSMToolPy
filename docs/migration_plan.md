@@ -27,8 +27,8 @@ Estimated complexity from smallest to largest useful regression targets:
 
 1. `PlanarSystem/demo.mlx`: 2D first-order polynomial system with closed-form
    graph coefficients in the live script.
-2. `BenchamrkSSM1stOrder/demo.mlx`: appears to use the same model as
-   PlanarSystem; useful as a duplicate-name regression after PlanarSystem.
+2. `BenchamrkSSM1stOrder/demo.mlx`: source-confirmed duplicate of
+   PlanarSystem; reproduced as a named regression target.
 3. `Lorenz1stOrder/demo.mlx`: 3D first-order polynomial vector field with a
    1D unstable SSM and trajectory comparison.
 4. `TwoOscillators/demo.mlx`: small 2DOF second-order oscillator with forcing.
@@ -48,7 +48,7 @@ Estimated complexity from smallest to largest useful regression targets:
 ## `.mlx` to Notebook Ordering
 
 1. `PlanarSystem/demo.mlx` -> `notebooks/planar_system.ipynb`
-2. `BenchamrkSSM1stOrder/demo.mlx`
+2. `BenchamrkSSM1stOrder/demo.mlx` -> `notebooks/benchmark_ssm_1st_order.ipynb`
 3. `Lorenz1stOrder/demo.mlx`
 4. `TwoOscillators/demo.mlx`
 5. Remaining low-dimensional oscillator workflows
@@ -74,6 +74,18 @@ The live script states the expected formula:
 `a_k = 1 / (sqrt(24) - k)` for `k = 2, 3, 4, 5`; all higher coefficients used
 in the script are zero.
 
+## Completed Benchmark Duplicate Closure
+
+- `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
+- `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
+- `SSMTool/examples/PlanarSystem/build_model.m`
+- `SSMTool/examples/PlanarSystem/demo.mlx`
+
+`BenchamrkSSM1stOrder/build_model.m` is source-equivalent to
+`PlanarSystem/build_model.m`. Its live script includes the same vector field,
+the same analytical coefficients, and an explicit coefficient-difference check
+for `coeffs(2,2:5)`.
+
 ## Current Python Skeleton
 
 - `src/ssmtoolpy/__init__.py`
@@ -82,9 +94,12 @@ in the script are zero.
 - `src/ssmtoolpy/core/invariance.py`
 - `src/ssmtoolpy/systems/planar.py`
 - `examples/planar_system.py`
+- `examples/benchmark_ssm_1st_order.py`
 - `tests/test_planar_system.py`
 - `tests/test_core_graph_solver.py`
+- `tests/test_benchmark_ssm_1st_order.py`
 - `notebooks/planar_system.ipynb`
+- `notebooks/benchmark_ssm_1st_order.ipynb`
 
 ## Testing Strategy
 
@@ -96,6 +111,7 @@ in the script are zero.
 - Sparse monomial polynomial evaluation and coefficient collection tests.
 - Invariance residual test for the graph polynomial.
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
+- Source-derived duplicate workflow tests for `BenchamrkSSM1stOrder`.
 
 ## Differentiability Strategy
 

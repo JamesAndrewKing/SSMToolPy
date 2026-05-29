@@ -23,10 +23,16 @@
   graph coefficients `a_2` through `a_5` for the first-mode SSM are now
   computed by the minimal scalar first-order graph solver and checked against
   the formula stated in the live script.
+- `BenchamrkSSM1stOrder` from
+  `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`: reproduced as a
+  source-confirmed duplicate of PlanarSystem, with a named Python example and
+  tests covering the misspelled source path.
 
 ## Reproduced notebooks
 
 - `notebooks/planar_system.ipynb` calls the tested PlanarSystem numerical API.
+- `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
+  comparison and calls the same tested numerical API.
 
 ## Skipped or deferred items
 
@@ -44,6 +50,8 @@
 - The first target has no MATLAB-generated fixture file; reference values are
   source-derived from `demo.mlx`, `build_model.m`, and the inspected
   homological solve in `Aut_1stOrder_SSM.m`.
+- `BenchamrkSSM1stOrder` intentionally reuses the PlanarSystem implementation
+  because the MATLAB model source is equivalent.
 
 ## Exact commands run
 
@@ -51,6 +59,21 @@
 - `ls`
 - `sed -n '1,260p' AGENTS.md`
 - `git status --short`
+- `sed -n '1,260p' AGENTS.md`
+- `sed -n '1,240p' docs/current_status.md`
+- `sed -n '1,280p' docs/migration_plan.md`
+- `sed -n '1,300p' docs/migration_inventory.md`
+- `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
+- `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,220p' SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
+- `sed -n '1,220p' SSMTool/examples/PlanarSystem/build_model.m`
+- `unzip -p SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx matlab/document.xml`
+- `unzip -p SSMTool/examples/PlanarSystem/demo.mlx matlab/document.xml`
+- `python examples/benchmark_ssm_1st_order.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
 - `find SSMTool -maxdepth 3 -type d`
 - `rg --files SSMTool`
 - `find docs src tests examples notebooks -maxdepth 3 -type f`
@@ -121,68 +144,78 @@
 - Final `python -m pytest` passed: 14 tests.
 - `python examples/planar_system.py` passed and reported zero maximum
   difference from the `demo.mlx` coefficient formula.
+- Baseline for the Benchmark batch passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 14 tests.
+- `BenchamrkSSM1stOrder/build_model.m` was confirmed source-equivalent to
+  `PlanarSystem/build_model.m` after whitespace normalization.
+- `python examples/benchmark_ssm_1st_order.py` passed and reported zero
+  difference from the analytical coefficients.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 18 tests.
 
 ## Next recommended batch
 
 ### Target
 
-- Reproduce the duplicate `BenchamrkSSM1stOrder/demo.mlx` workflow as a named
-  regression target by confirming it is mathematically identical to
-  PlanarSystem, adding a Python example or test alias only where useful, and
-  documenting it as reproduced without adding new numerical abstractions.
+- Start the `Lorenz1stOrder/demo.mlx` migration by reproducing its first
+  bounded numerical subproblem: build the JAX Lorenz vector field and source
+  model matrices/tensor terms, verify the standard-parameter linear spectrum at
+  the origin, and document the dependency closure for the later unstable SSM
+  graph computation.
 
 ### MATLAB files involved
 
-- `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
-- `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
-- `SSMTool/examples/PlanarSystem/build_model.m`
-- `SSMTool/examples/PlanarSystem/demo.mlx`
+- `SSMTool/examples/Lorenz1stOrder/build_model.m`
+- `SSMTool/examples/Lorenz1stOrder/lorenz.m`
+- `SSMTool/examples/Lorenz1stOrder/demo.mlx`
 
 ### MATLAB examples or `.mlx` workflows involved
 
-- `SSMTool/examples/PlanarSystem/demo.mlx`
-- `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
+- `SSMTool/examples/Lorenz1stOrder/demo.mlx`
 
 ### Planned Python modules
 
-- Prefer no new core modules.
-- Possibly add a small example-specific alias or metadata in
-  `src/ssmtoolpy/systems/planar.py` only if tests or example clarity require it.
+- `src/ssmtoolpy/systems/lorenz.py`
+- Reuse existing polynomial helpers if useful; do not add a general SSM solver
+  yet unless required by the bounded subproblem.
 
 ### Planned examples or notebooks
 
-- Add `examples/benchmark_ssm_1st_order.py` only if it adds a clear reproduced
-  example entry without duplicating logic.
-- Add `notebooks/benchmark_ssm_1st_order.ipynb` only if the `.mlx` source has
-  presentation content distinct from PlanarSystem.
+- `examples/lorenz_1st_order.py` for the vector field, matrix/tensor model,
+  and eigenvalue check.
+- `notebooks/lorenz_1st_order.ipynb` only for the same tested numerical core;
+  trajectory plotting and SSM visualization can remain deferred.
 
 ### Expected tests
 
-- Source comparison test showing the Benchmark and PlanarSystem MATLAB
-  `build_model.m` files define the same `A`, `B`, and nonlinear terms.
-- Regression test showing the Benchmark target obtains the same solver-derived
-  coefficients as PlanarSystem.
-- Existing PlanarSystem and core tests remain passing.
+- Lorenz matrix and nonlinear tensor terms match `build_model.m` for
+  `sigma=10`, `rho=28`, `beta=8/3`.
+- JAX vector field matches `lorenz.m` on deterministic states.
+- Linear eigenvalues match the live-script values approximately
+  `-22.828`, `-2.667`, and `11.828`.
+- JAX transform test for the differentiable Lorenz vector field.
+- Existing PlanarSystem, Benchmark, and core tests remain passing.
 
 ### Known risks
 
-- The directory name is misspelled as `BenchamrkSSM1stOrder`; preserve the
-  source path spelling in docs and tests.
-- The `.mlx` workflow may contain little or no content beyond the duplicate
-  model; avoid creating duplicate user-facing files if documentation plus tests
-  are cleaner.
+- The full Lorenz `.mlx` workflow computes a 1D unstable SSM and compares
+  trajectories; that is larger than the first bounded target.
+- Eigenvalue ordering can differ between libraries; tests should compare sorted
+  real values for the standard parameters.
 
 ### Differentiability concerns
 
-- No new differentiable numerical function is expected.
-- If a new public wrapper is added, it should inherit the existing
-  PlanarSystem differentiability classifications and be covered by a JAX
-  transform test if marked differentiable.
+- Lorenz vector field is polynomial and differentiable.
+- Eigenvalue computations are differentiable only under nondegeneracy
+  assumptions and should not be marked simply differentiable in this batch.
 
 ### Acceptance criteria
 
-- `BenchamrkSSM1stOrder` is recorded as a reproduced workflow or explicitly
-  documented as a duplicate of PlanarSystem with source-derived proof.
-- At least one regression test covers the Benchmark workflow name/path.
-- No broad APIs or duplicated numerical implementation are introduced.
+- Lorenz source model and vector field are implemented in a small
+  example-specific module with docstrings and differentiability classifications.
+- A regression test covers the standard-parameter eigenvalues stated in
+  `demo.mlx`.
+- A regression test covers the MATLAB `lorenz.m` vector field formula.
+- A JAX transform test covers the differentiable Lorenz vector field.
+- `python -m compileall src tests examples` and `python -m pytest` pass.
 - `python -m compileall src tests examples` and `python -m pytest` pass.
