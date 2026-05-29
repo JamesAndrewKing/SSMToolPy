@@ -5,7 +5,7 @@
 | Path | Role | Dependency status | Planned Python destination | Migration status | Test status | Differentiability |
 | --- | --- | --- | --- | --- | --- | --- |
 | `SSMTool/src/@DynamicalSystem/*.m` | core | Needed by full examples; bypassed for first subproblem | `src/ssmtoolpy/systems/`, later `core/` | deferred | not tested | not yet verified |
-| `SSMTool/src/@Manifold/*.m` | core | Needed by full SSM coefficient computation | `src/ssmtoolpy/core/invariance.py` and related modules | deferred | not tested | not yet verified |
+| `SSMTool/src/@Manifold/*.m` | core | Needed by full SSM coefficient computation; scalar graph form inspected for PlanarSystem | `src/ssmtoolpy/core/invariance.py` and related modules | minimal scalar graph slice implemented | tested for PlanarSystem slice | differentiable under nonresonance for implemented slice |
 | `SSMTool/src/@SSM/*.m` | core/continuation | Needed by full SSM workflows and FRC/FRS | later algorithms and continuation modules | deferred | not tested | mixed; not yet verified |
 | `SSMTool/src/frc/*.m` | core/FRS utility | Needed by forced response workflows | later `core/` or `algorithms/` | deferred | not tested | not yet verified |
 | `SSMTool/src/misc/*.m` | utility/plotting/core mix | Needed selectively by examples | case-by-case | deferred | not tested | mixed; not yet verified |
@@ -15,7 +15,7 @@
 
 | Workflow | MATLAB files | Estimated complexity | Usefulness | Planned Python destination | Planned notebook | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| PlanarSystem | `build_model.m`, `demo.mlx` | very low | high first regression | `src/ssmtoolpy/systems/planar.py`, `examples/planar_system.py` | `notebooks/planar_system.ipynb` | implemented this batch |
+| PlanarSystem | `build_model.m`, `demo.mlx` | very low | high first regression | `src/ssmtoolpy/systems/planar.py`, `examples/planar_system.py` | `notebooks/planar_system.ipynb` | solver-derived coefficient subproblem implemented |
 | BenchamrkSSM1stOrder | `build_model.m`, `demo.mlx` | very low | confirms PlanarSystem duplicate workflow | likely reuse PlanarSystem module | later notebook | deferred |
 | Lorenz1stOrder | `build_model.m`, `lorenz.m`, `demo.mlx` | low-medium | canonical first-order nonlinear system | `systems/lorenz.py` | later notebook | deferred |
 | TwoOscillators | `build_model.m`, `demo.mlx`, `demoSymbolicExpression.mlx` | medium | small second-order oscillator with forcing | later systems module | later notebooks | deferred |
@@ -39,3 +39,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `SSMTool/examples/PlanarSystem/build_model.m` | example model | `A`, `B`, and polynomial terms `x^2..x^5` in second equation | `build_planar_system`, `planar_vector_field` | implemented | tested | differentiable |
 | `SSMTool/examples/PlanarSystem/demo.mlx` | `.mlx` workflow | closed-form graph coefficients and graph parameterization | `planar_ssm_graph_coefficients`, `evaluate_planar_ssm_graph` | implemented as subproblem | tested | differentiable under nondegeneracy / differentiable |
+| `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m` | core | nonresonant solve `(B*K_Lambda - A) W_k = RHS` | `solve_scalar_graph_coefficients` | scalar graph slice implemented | tested | differentiable under nonresonance |
+| `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m` | core | resonance detection before coefficient solve | no public API yet | nonresonant PlanarSystem case documented only | not directly tested | not yet verified |
+| `SSMTool/src/@Manifold/private/coeffs_setup.m` | core | master eigenvalue and multi-index setup | `multiindices_of_total_degree` | tiny index slice implemented | tested | not differentiable |
+| `SSMTool/src/@Manifold/private/multi_nsumk.m` | core utility | small nonnegative multi-index combinations | `multiindices_of_total_degree` | tiny total-degree slice implemented | tested | not differentiable |

@@ -7,11 +7,13 @@ MATLAB reference files:
 
 from __future__ import annotations
 
-from jax import config as jax_config
-
-jax_config.update("jax_enable_x64", True)
-
 import jax.numpy as jnp
+
+from ssmtoolpy.core.invariance import solve_scalar_graph_coefficients
+from ssmtoolpy.core.polynomial import (
+    collect_univariate_coefficients,
+    evaluate_monomial_polynomial,
+)
 
 
 Array = jnp.ndarray
@@ -42,12 +44,38 @@ def planar_vector_field(z: Array) -> Array:
     """
 
     z = jnp.asarray(z)
-    x = z[0]
-    y = z[1]
+    a, _ = build_planar_system()
+    nonlinear = evaluate_monomial_polynomial(
+        z, planar_nonlinear_exponents(), planar_nonlinear_coefficients()
+    )
+    return a @ z + nonlinear
+
+
+def planar_nonlinear_exponents() -> Array:
+    """Return sparse nonlinear exponents from MATLAB ``build_model.m``.
+
+    Each row is an exponent vector for ``[x, y]``. The MATLAB sparse tensors
+    set only powers ``x**2`` through ``x**5`` in the second output equation.
+
+    Differentiability: not differentiable. This returns integer exponents.
+    """
+
+    return jnp.array([[2, 0], [3, 0], [4, 0], [5, 0]], dtype=jnp.int32)
+
+
+def planar_nonlinear_coefficients() -> Array:
+    """Return sparse nonlinear coefficients from MATLAB ``build_model.m``.
+
+    The shape is ``(outputs, terms)``. The first output has no nonlinear terms;
+    the second output has unit coefficients for ``x**2`` through ``x**5``.
+
+    Differentiability: differentiable. The returned constants are JAX arrays.
+    """
+
     return jnp.array(
         [
-            -x,
-            -jnp.sqrt(24.0) * y + x**2 + x**3 + x**4 + x**5,
+            [0.0, 0.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0],
         ]
     )
 
@@ -68,12 +96,12 @@ def planar_ssm_graph_coefficients(
     denominator requires ``decay`` not to equal any active degree 2 through 5.
     """
 
-    if order < 0:
-        raise ValueError("order must be nonnegative")
-
-    degrees = jnp.arange(order + 1, dtype=jnp.float64)
-    active = (degrees >= 2.0) & (degrees <= 5.0)
-    return jnp.where(active, 1.0 / (decay - degrees), 0.0)
+    a, _ = build_planar_system()
+    exponents = planar_nonlinear_exponents()[:, :1]
+    forcing = collect_univariate_coefficients(
+        exponents, planar_nonlinear_coefficients()[1], order
+    )
+    return solve_scalar_graph_coefficients(a[0, 0], -decay, forcing)
 
 
 def evaluate_planar_ssm_graph(x: Array, coefficients: Array) -> Array:

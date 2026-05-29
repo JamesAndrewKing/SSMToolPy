@@ -2,16 +2,27 @@
 
 ## Implemented modules
 
+- `src/ssmtoolpy/core/multiindex.py`
+  - `multiindices_of_total_degree`
+- `src/ssmtoolpy/core/polynomial.py`
+  - `evaluate_monomial_polynomial`
+  - `collect_univariate_coefficients`
+- `src/ssmtoolpy/core/invariance.py`
+  - `solve_scalar_graph_coefficients`
 - `src/ssmtoolpy/systems/planar.py`
   - `build_planar_system`
   - `planar_vector_field`
+  - `planar_nonlinear_exponents`
+  - `planar_nonlinear_coefficients`
   - `planar_ssm_graph_coefficients`
   - `evaluate_planar_ssm_graph`
 
 ## Reproduced examples
 
 - `PlanarSystem` numerical subproblem from `SSMTool/examples/PlanarSystem/demo.mlx`:
-  graph coefficients `a_2` through `a_5` for the first-mode SSM.
+  graph coefficients `a_2` through `a_5` for the first-mode SSM are now
+  computed by the minimal scalar first-order graph solver and checked against
+  the formula stated in the live script.
 
 ## Reproduced notebooks
 
@@ -20,17 +31,19 @@
 ## Skipped or deferred items
 
 - Full MATLAB `DynamicalSystem`, `SSM`, and `Manifold` class behavior.
-- General autonomous coefficient solving.
+- General multi-dimensional autonomous coefficient solving.
+- Resonant reduced-dynamics extraction from `Aut_1stOrder_RedDyn.m`.
 - Continuation, FRC/FRS, plotting, and external finite-element workflows.
 - Notebook execution checks; no notebook execution tooling was configured before
   this batch.
 
 ## Known limitations
 
-- This batch reproduces a stated closed-form subproblem, not the full
-  `compute_whisker` MATLAB implementation.
+- This batch reproduces a one-master, one-transverse nonresonant scalar graph
+  subproblem, not the full `compute_whisker` MATLAB implementation.
 - The first target has no MATLAB-generated fixture file; reference values are
-  source-derived from `demo.mlx` and `build_model.m`.
+  source-derived from `demo.mlx`, `build_model.m`, and the inspected
+  homological solve in `Aut_1stOrder_SSM.m`.
 
 ## Exact commands run
 
@@ -63,6 +76,28 @@
 - `python examples/planar_system.py`
 - `git status --short`
 - `find docs src tests examples notebooks -maxdepth 3 -type f`
+- `sed -n '1,260p' AGENTS.md`
+- `sed -n '1,220p' docs/current_status.md`
+- `sed -n '1,260p' docs/migration_plan.md`
+- `sed -n '1,260p' docs/migration_inventory.md`
+- `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
+- `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,260p' SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- `sed -n '1,260p' SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m`
+- `sed -n '1,260p' SSMTool/src/@Manifold/private/coeffs_setup.m`
+- `sed -n '1,220p' SSMTool/src/@Manifold/private/multi_nsumk.m`
+- `sed -n '1,240p' src/ssmtoolpy/systems/planar.py`
+- `sed -n '1,240p' tests/test_planar_system.py`
+- `sed -n '1,200p' examples/planar_system.py`
+- `sed -n '1,120p' src/ssmtoolpy/__init__.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `python examples/planar_system.py`
+- `sed -n '1,260p' docs/migration_report.md`
+- `sed -n '1,220p' README.md`
+- `git status --short`
 
 ## Failures and debugging notes
 
@@ -76,67 +111,78 @@
 - Final `python -m pytest` passed: 6 tests.
 - `python examples/planar_system.py` passed and printed
   `[0.34494897, 0.52659863, 1.11237244, -9.89897949]` for `a2..a5`.
+- Baseline for this batch passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 6 tests.
+- First post-implementation `python -m pytest` run failed because the test
+  expected gradient for `3*x**2 - 2*x*y` was hand-computed as `[4, -1]`; the
+  correct value at `(0.5, -0.25)` is `[3.5, -1]`. The test expectation was
+  corrected.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 14 tests.
+- `python examples/planar_system.py` passed and reported zero maximum
+  difference from the `demo.mlx` coefficient formula.
 
 ## Next recommended batch
 
 ### Target
 
-- Extend from the PlanarSystem closed-form coefficient check to the smallest
-  general first-order autonomous graph coefficient solver needed to reproduce
-  PlanarSystem through order 5 without hard-coding the answer.
+- Reproduce the duplicate `BenchamrkSSM1stOrder/demo.mlx` workflow as a named
+  regression target by confirming it is mathematically identical to
+  PlanarSystem, adding a Python example or test alias only where useful, and
+  documenting it as reproduced without adding new numerical abstractions.
 
 ### MATLAB files involved
 
+- `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
+- `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
 - `SSMTool/examples/PlanarSystem/build_model.m`
 - `SSMTool/examples/PlanarSystem/demo.mlx`
-- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
-- `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m`
-- `SSMTool/src/@Manifold/private/coeffs_setup.m`
-- `SSMTool/src/@Manifold/private/multi_nsumk.m`
 
 ### MATLAB examples or `.mlx` workflows involved
 
 - `SSMTool/examples/PlanarSystem/demo.mlx`
-- Optionally compare `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx` if it is
-  confirmed to be the same model.
+- `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
 
 ### Planned Python modules
 
-- `src/ssmtoolpy/core/multiindex.py`
-- `src/ssmtoolpy/core/polynomial.py`
-- Possibly `src/ssmtoolpy/core/invariance.py`
+- Prefer no new core modules.
+- Possibly add a small example-specific alias or metadata in
+  `src/ssmtoolpy/systems/planar.py` only if tests or example clarity require it.
 
 ### Planned examples or notebooks
 
-- Update `examples/planar_system.py` to compute coefficients via the general
-  solver and compare to the closed-form formula.
-- Keep `notebooks/planar_system.ipynb` focused on the tested API.
+- Add `examples/benchmark_ssm_1st_order.py` only if it adds a clear reproduced
+  example entry without duplicating logic.
+- Add `notebooks/benchmark_ssm_1st_order.ipynb` only if the `.mlx` source has
+  presentation content distinct from PlanarSystem.
 
 ### Expected tests
 
-- Multi-index generation for one-dimensional and two-dimensional small orders.
-- Polynomial tensor evaluation against deterministic source-derived cases.
-- PlanarSystem coefficient solve through order 5.
-- JAX transform tests for differentiable polynomial evaluation.
+- Source comparison test showing the Benchmark and PlanarSystem MATLAB
+  `build_model.m` files define the same `A`, `B`, and nonlinear terms.
+- Regression test showing the Benchmark target obtains the same solver-derived
+  coefficients as PlanarSystem.
+- Existing PlanarSystem and core tests remain passing.
 
 ### Known risks
 
-- MATLAB tensor normalization and ordering conventions must be verified before
-  broadening beyond the one-dimensional graph case.
-- General coefficient solving may introduce linear solves with resonance or
-  near-resonance denominators.
+- The directory name is misspelled as `BenchamrkSSM1stOrder`; preserve the
+  source path spelling in docs and tests.
+- The `.mlx` workflow may contain little or no content beyond the duplicate
+  model; avoid creating duplicate user-facing files if documentation plus tests
+  are cleaner.
 
 ### Differentiability concerns
 
-- Coefficient solves are differentiable only under nonresonance and nonsingular
-  homological-equation assumptions.
-- Multi-index enumeration and truncation are not differentiable with respect to
-  order or index choices.
+- No new differentiable numerical function is expected.
+- If a new public wrapper is added, it should inherit the existing
+  PlanarSystem differentiability classifications and be covered by a JAX
+  transform test if marked differentiable.
 
 ### Acceptance criteria
 
-- PlanarSystem coefficients are produced by a minimal general solver, not only
-  by the closed-form helper.
-- The existing PlanarSystem tests still pass.
-- New tests cover the smallest polynomial/multi-index functionality used by
-  that solver.
+- `BenchamrkSSM1stOrder` is recorded as a reproduced workflow or explicitly
+  documented as a duplicate of PlanarSystem with source-derived proof.
+- At least one regression test covers the Benchmark workflow name/path.
+- No broad APIs or duplicated numerical implementation are introduced.
+- `python -m compileall src tests examples` and `python -m pytest` pass.

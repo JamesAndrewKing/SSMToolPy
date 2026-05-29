@@ -8,6 +8,8 @@ import pytest
 from ssmtoolpy.systems.planar import (
     build_planar_system,
     evaluate_planar_ssm_graph,
+    planar_nonlinear_coefficients,
+    planar_nonlinear_exponents,
     planar_ssm_graph_coefficients,
     planar_vector_field,
 )
@@ -35,6 +37,17 @@ def test_planar_vector_field_matches_tensor_terms() -> None:
     np.testing.assert_allclose(np.asarray(planar_vector_field(z)), np.asarray(expected))
 
 
+def test_planar_sparse_terms_match_matlab_build_model() -> None:
+    np.testing.assert_array_equal(
+        np.asarray(planar_nonlinear_exponents()),
+        np.array([[2, 0], [3, 0], [4, 0], [5, 0]]),
+    )
+    np.testing.assert_allclose(
+        np.asarray(planar_nonlinear_coefficients()),
+        np.array([[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0]]),
+    )
+
+
 def test_planar_graph_coefficients_match_demo_formula() -> None:
     coefficients = planar_ssm_graph_coefficients(order=8)
     expected = np.zeros(9)
@@ -42,6 +55,18 @@ def test_planar_graph_coefficients_match_demo_formula() -> None:
         expected[degree] = 1.0 / (np.sqrt(24.0) - degree)
 
     np.testing.assert_allclose(np.asarray(coefficients), expected, rtol=1e-12)
+
+
+def test_planar_graph_coefficients_are_computed_by_solver() -> None:
+    coefficients = planar_ssm_graph_coefficients(order=5)
+    residual = jnp.array(
+        [
+            (degree * -1.0 + jnp.sqrt(24.0)) * coefficients[degree] - 1.0
+            for degree in range(2, 6)
+        ]
+    )
+
+    np.testing.assert_allclose(np.asarray(residual), np.zeros(4), atol=1e-14)
 
 
 def test_planar_graph_coefficients_shape_and_validation() -> None:

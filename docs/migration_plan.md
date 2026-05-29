@@ -6,9 +6,11 @@ This is a clean-room, example-first restart. `SSMTool/` is the only
 implementation reference. The Python port should grow only through examples,
 not through speculative MATLAB API coverage.
 
-The initial implementation target is the smallest meaningful numerical
-subproblem found during inspection: the PlanarSystem graph SSM coefficients
-explicitly stated in `SSMTool/examples/PlanarSystem/demo.mlx`.
+The implemented starting target is the smallest meaningful numerical subproblem
+found during inspection: the PlanarSystem graph SSM coefficients explicitly
+stated in `SSMTool/examples/PlanarSystem/demo.mlx`. The current implementation
+derives those coefficients through a one-master, one-transverse first-order
+graph homological solve rather than hard-coding the closed-form formula.
 
 ## Repository Inspection Summary
 
@@ -52,25 +54,36 @@ Estimated complexity from smallest to largest useful regression targets:
 5. Remaining low-dimensional oscillator workflows
 6. FE, COMSOL, FRS, DAE, and parametric resonance workflows
 
-## Current Target Dependency Closure
+## Completed PlanarSystem Dependency Closure
 
 - `SSMTool/examples/PlanarSystem/build_model.m`
 - `SSMTool/examples/PlanarSystem/demo.mlx`
 
 The MATLAB live script also calls `DynamicalSystem`, `SSM`,
-`linear_spectral_analysis`, `choose_E`, and `compute_whisker`. For this first
-batch, the dependency closure is reduced to the explicit graph coefficient
-subproblem because the live script states the expected formula:
+`linear_spectral_analysis`, `choose_E`, and `compute_whisker`. The implemented
+dependency closure remains intentionally reduced to the scalar graph coefficient
+subproblem, with the homological-equation form checked against:
+
+- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m`
+- `SSMTool/src/@Manifold/private/coeffs_setup.m`
+- `SSMTool/src/@Manifold/private/multi_nsumk.m`
+
+The live script states the expected formula:
 
 `a_k = 1 / (sqrt(24) - k)` for `k = 2, 3, 4, 5`; all higher coefficients used
 in the script are zero.
 
-## Minimal Python Skeleton
+## Current Python Skeleton
 
 - `src/ssmtoolpy/__init__.py`
+- `src/ssmtoolpy/core/multiindex.py`
+- `src/ssmtoolpy/core/polynomial.py`
+- `src/ssmtoolpy/core/invariance.py`
 - `src/ssmtoolpy/systems/planar.py`
 - `examples/planar_system.py`
 - `tests/test_planar_system.py`
+- `tests/test_core_graph_solver.py`
 - `notebooks/planar_system.ipynb`
 
 ## Testing Strategy
@@ -78,7 +91,9 @@ in the script are zero.
 - Import and shape tests for the PlanarSystem matrices.
 - Correctness tests for the polynomial vector field from MATLAB sparse tensor
   entries.
-- Regression tests for the closed-form graph coefficients.
+- Regression tests for solver-derived graph coefficients against the closed-form formula.
+- Multi-index generation tests for the one- and two-dimensional cases used near term.
+- Sparse monomial polynomial evaluation and coefficient collection tests.
 - Invariance residual test for the graph polynomial.
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
 
