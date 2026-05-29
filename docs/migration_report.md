@@ -57,6 +57,20 @@ is not a Python migration target for this package.
 | `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
 | `@DynamicalSystem/private/get_F_from_fnl.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` | functional equivalent ported | differentiable |
 | `frc/frc_ab.m` and `misc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
+| `@SSM/private/cal_ab_dab.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.cal_ab_dab` | ported | differentiable |
+| `@SSM/private/compute_reduced_dynamics_2D_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.compute_reduced_dynamics_2d_polar` | functional coefficient-evaluation core ported | differentiable for fixed harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian` | functional coefficient-evaluation core ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_x` | functional coefficient-evaluation core ported with JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_params` | functional coefficient-evaluation core ported with JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom` | fixed-ROM alias ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom_jac_x` | fixed-ROM coordinate Jacobian alias ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom_jac_params` | fixed-ROM parameter Jacobian alias ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian` | explicit coefficient evaluator ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian_jac_x` | state Jacobian ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian_jac_params` | parameter Jacobian ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar` | explicit coefficient evaluator ported | differentiable for fixed structure and positive radii |
+| `@SSM/private/ode_2mDSSM_polar_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar_jac_x` | state Jacobian ported via JAX AD | differentiable for fixed structure and positive radii |
+| `@SSM/private/ode_2mDSSM_polar_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar_jac_params` | parameter Jacobian ported via JAX AD | differentiable for fixed structure and positive radii |
 | `frc/compute_gamma.m` | FRC utility | `ssmtoolpy.frc.compute_gamma` | ported | not differentiable |
 | `frc/frc_psi.m` | FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
 | `frc/frc_Jacobian.m` | FRC kernel | `ssmtoolpy.frc.frc_jacobian` | ported | differentiable for `rho != 0` |
@@ -87,6 +101,11 @@ is not a Python migration target for this package.
 | `@Manifold/private/nonAut_struct_setup.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_struct_setup` | ported as immutable Python containers | not differentiable |
 | `@Manifold/private/nonAut_assembleCoefficients.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_assemble_coefficients` | ported as immutable one-harmonic update | differentiable for fixed index structure |
 | `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for lex/revlex-style Python polynomial containers | differentiable for fixed index structure |
+| `@Manifold/private/nonAut_1stOrder_leadTerms.m` | non-autonomous first-order leading solve | `ssmtoolpy.manifold.nonautonomous_zeroth_order_forcing` and `nonautonomous_first_order_lead_terms` | functional leading-order branch ported | differentiable under fixed active/resonance structure |
+| `@Manifold/private/nonAut_1stOrder_SolveInvEq.m` | non-autonomous first-order coefficient solve | `ssmtoolpy.manifold.nonautonomous_first_order_solve_invariance` | functional one-harmonic/order solve ported | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/nonAut_1stOrder_highTerms.m` and `nonAut_1stOrder_whisker.m` | non-autonomous first-order orchestration | `ssmtoolpy.manifold` functional building blocks | partially ported: setup, leading terms, mixed terms, per-order solve | not yet verified as full workflow |
+| `@Manifold/private/fnl_intrusive.m` | intrusive force composition | `ssmtoolpy.manifold.fnl_intrusive` | functional multi-index core ported | differentiable for fixed index structure |
+| `@Manifold/private/dfnl_intrusive.m` | intrusive Jacobian composition | `ssmtoolpy.manifold.dfnl_intrusive` | functional multi-index core ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_nonIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_semiIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/dfnl_nonIntrusive.m` | non-autonomous Jacobian force composition | `ssmtoolpy.manifold.dfnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
@@ -97,6 +116,11 @@ is not a Python migration target for this package.
 | `ManifoldOptions.m` | options class | `ssmtoolpy.options.ManifoldOptions` | ported | not differentiable |
 | `FRCOptions.m` | options class | `ssmtoolpy.options.FRCOptions` | ported | not differentiable |
 | `FRSOptions.m` | options class | `ssmtoolpy.options.FRSOptions` | ported | not differentiable |
+| `misc/SSM_ep_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_ep_solution` | ported | not differentiable |
+| `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_po_solution` | SSM FRC payload ported; external COCO `po_read_solution` payload not ported | not differentiable |
+| `misc/SSM_tor_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_tor_solution` | SSM FRC payload ported; external COCO `tor_read_solution` payload not ported | not differentiable |
+| `misc/read_num_int_sol.m` | solution reader | `ssmtoolpy.io.read_num_int_sol` | ported | not differentiable |
+| `misc/read_po_ssm_init.m` | solution reader | `ssmtoolpy.io.read_po_ssm_init` | ported | not differentiable |
 
 ## Source Inventory Summary
 
@@ -145,6 +169,9 @@ Known blockers and design work:
 - `compute_fixed_points_2d` uses an internal marching-squares style locator
   instead of MATLAB's `contourc`/`polyxpoly`; tests cover representative grid
   intersections, but dense contour parity is not yet exhaustively validated.
+- The 2D SSM reduced-dynamics kernels are functional coefficient evaluators.
+  They do not port the mutable MATLAB branch that recomputes non-autonomous
+  whisker coefficients on an `SSM` object when `Omega` changes.
 - `solve_invariance_equation` uses `jax.scipy.sparse.linalg` for iterative
   solver names. JAX provides `cg`, `bicgstab`, and `gmres`; MATLAB names without
   exact JAX equivalents are mapped conservatively (`bicg`/`cgs` to `bicgstab`,
@@ -183,10 +210,14 @@ Known blockers and design work:
 - The second-order autonomous reduced-dynamics kernel preserves MATLAB's
   limitation for 1:1 internal resonance in `COMPtype=second` by raising
   `NotImplementedError`.
-- `fnl_nonintrusive`, `fnl_semi_intrusive`, `dfnl_nonintrusive`, and
-  `dfnl_semi_intrusive` currently cover the reverse-lexicographic branches.
-  The conjugate-order branches and the intrusive tensor composition helpers
-  remain unported.
+- Intrusive, non-intrusive, and semi-intrusive force-composition helpers now
+  cover functional multi-index/revlex cores. Conjugate-order branches remain
+  tied to the full cohomological solver and are not ported.
+- Non-autonomous first-order helpers cover setup, leading zeroth-order forcing,
+  mixed products, and a per-harmonic/per-order invariance solve. The complete
+  mutable `nonAut_1stOrder_whisker` workflow remains future orchestration work.
+- SSM solution readers cover the SSM `.mat` payloads. External COCO readers
+  such as `po_read_solution` and `tor_read_solution` are not ported yet.
 - Manifold resonance helpers return zero-based Python indices while preserving
   MATLAB `find` ordering. The MATLAB source returns one-based indices.
 - Non-autonomous Manifold setup helpers use immutable tuple/NamedTuple

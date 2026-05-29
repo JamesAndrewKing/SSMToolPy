@@ -73,20 +73,20 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/coeffs_mixed_terms.m` | manifold coefficient algebra | `ssmtoolpy.manifold.coeffs_mixed_terms` | lex/revlex branches ported | differentiable for fixed index structure |
 | `@Manifold/private/coeffs_output.m` | coefficient output utility | `ssmtoolpy.coefficients.coeffs_output` | ported | not differentiable |
 | `@Manifold/private/coeffs_setup.m` | manifold coefficient setup | `ssmtoolpy.coefficients.conjugate_ordering` plus future setup API | partially ported: nested conjugate ordering only | not differentiable |
-| `@Manifold/private/dfnl_intrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/dfnl_intrusive.m` | intrusive Jacobian composition | `ssmtoolpy.manifold.dfnl_intrusive` | functional multi-index core ported | differentiable for fixed index structure |
 | `@Manifold/private/dfnl_nonIntrusive.m` | non-autonomous Jacobian force composition | `ssmtoolpy.manifold.dfnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/dfnl_semiIntrusive.m` | non-autonomous Jacobian force composition | `ssmtoolpy.manifold.dfnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
-| `@Manifold/private/fnl_intrusive.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/fnl_intrusive.m` | intrusive force composition | `ssmtoolpy.manifold.fnl_intrusive` | functional multi-index core ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_nonIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_nonintrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/fnl_semiIntrusive.m` | manifold force composition | `ssmtoolpy.manifold.fnl_semi_intrusive` | revlex branch ported | differentiable for fixed index structure |
 | `@Manifold/private/multi_addition.m` | core utility | `ssmtoolpy.multi_index.multi_addition` | ported | not differentiable |
 | `@Manifold/private/multi_index_2_ordering.m` | core utility | `ssmtoolpy.multi_index.multi_index_2_ordering` | ported | not differentiable |
 | `@Manifold/private/multi_nsumk.m` | core utility | `ssmtoolpy.multi_index.multi_nsumk` | ported | not differentiable |
 | `@Manifold/private/multi_subtraction.m` | core utility | `ssmtoolpy.multi_index.multi_subtraction` | ported | not differentiable |
-| `@Manifold/private/nonAut_1stOrder_SolveInvEq.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_1stOrder_highTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_1stOrder_leadTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_1stOrder_whisker.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_1stOrder_SolveInvEq.m` | non-autonomous first-order coefficient solve | `ssmtoolpy.manifold.nonautonomous_first_order_solve_invariance` | functional one-harmonic/order solve ported | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/nonAut_1stOrder_highTerms.m` | non-autonomous first-order coefficient orchestration | `ssmtoolpy.manifold.nonautonomous_first_order_solve_invariance` plus existing force/mixed helpers | core per-harmonic/order solve ported; full object loop not ported | differentiable under fixed structures |
+| `@Manifold/private/nonAut_1stOrder_leadTerms.m` | non-autonomous first-order leading solve | `ssmtoolpy.manifold.nonautonomous_zeroth_order_forcing`, `nonautonomous_first_order_lead_terms` | functional leading-order branch ported | differentiable under fixed active/resonance structure |
+| `@Manifold/private/nonAut_1stOrder_whisker.m` | non-autonomous first-order whisker orchestration | `ssmtoolpy.manifold` functional building blocks | partially ported: setup, leading terms, mixed terms, per-order solve | not yet verified as full workflow |
 | `@Manifold/private/nonAut_2ndOrder_RedDyn.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_2ndOrder_SolveInvEq.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/private/nonAut_2ndOrder_highTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
@@ -135,7 +135,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/private/auto_ode_2mDSSM_cartesian.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/cal_FRS_via_ana.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/cal_FRS_via_cont_ep.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/cal_ab_dab.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/cal_ab_dab.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.cal_ab_dab` | ported | differentiable |
 | `@SSM/private/cal_rhos.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/check_auto_reduced_dynamics.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/check_spectrum_and_internal_resonance.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
@@ -146,7 +146,7 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/private/compute_full_response_traj.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/compute_gamma.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/compute_output_polar2D.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/compute_reduced_dynamics_2D_polar.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/compute_reduced_dynamics_2D_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.compute_reduced_dynamics_2d_polar` | functional coefficient-evaluation core ported | differentiable for fixed harmonic structure |
 | `@SSM/private/create_data_for_po_amp.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/create_reduced_dynamics_data.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/damped_backbone_l2.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
@@ -163,18 +163,18 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/private/leading_order_nonauto_SSM.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/monitor_scaled_states.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/monitor_states.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian_DFDP.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian_DFDX.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian_fixROM.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDP.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDX.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_cartesian.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_cartesian_DFDP.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_cartesian_DFDX.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_polar.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_polar_DFDP.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/ode_2mDSSM_polar_DFDX.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/ode_2DSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian` | functional coefficient-evaluation core ported; mutable Omega recomputation branch not ported | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_params` | functional coefficient-evaluation core ported; sensitivity-coefficient blocks remain outside scope as in commented MATLAB code | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_x` | functional coefficient-evaluation core ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom` | ported as explicit-coefficient fixed-ROM alias | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom_jac_params` | ported as explicit-coefficient fixed-ROM parameter Jacobian | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2DSSM_cartesian_fixROM_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_fixrom_jac_x` | ported as explicit-coefficient fixed-ROM coordinate Jacobian | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian` | ported as explicit coefficient evaluator | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian_jac_params` | ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_cartesian_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_cartesian_jac_x` | ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
+| `@SSM/private/ode_2mDSSM_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar` | ported as explicit coefficient evaluator | differentiable for fixed structure and positive radii |
+| `@SSM/private/ode_2mDSSM_polar_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar_jac_params` | ported via JAX AD | differentiable for fixed structure and positive radii |
+| `@SSM/private/ode_2mDSSM_polar_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2md_ssm_polar_jac_x` | ported via JAX AD | differentiable for fixed structure and positive radii |
 | `@SSM/private/plot3_frc_full.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/plot_frc_full.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/po_amp.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
@@ -194,10 +194,10 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `frc/frc_ab.m` | FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
 | `frc/frc_psi.m` | FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
 | `frc/get_contour_xy.m` | FRC utility | `ssmtoolpy.frc.get_contour_xy` | ported | not differentiable |
-| `misc/SSM_ep_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
+| `misc/SSM_ep_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_ep_solution` | ported | not differentiable |
 | `misc/SSM_plot_torus.m` | numerical/utility function | `ssmtoolpy.misc` | not yet ported | not yet verified |
-| `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
-| `misc/SSM_tor_read_solution.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
+| `misc/SSM_po_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_po_solution` | SSM FRC payload ported; external COCO `po_read_solution` payload not ported | not differentiable |
+| `misc/SSM_tor_read_solution.m` | solution reader | `ssmtoolpy.io.read_ssm_tor_solution` | SSM FRC payload ported; external COCO `tor_read_solution` payload not ported | not differentiable |
 | `misc/StEP.m` | polarization utility | `ssmtoolpy.manifold.step_polynomial` | ported for orders 1-3 | differentiable if supplied callable is differentiable |
 | `misc/auto_red_dyn.m` | reduced dynamics kernel | `ssmtoolpy.misc.auto_red_dyn` | ported | differentiable |
 | `misc/expand_multiindex.m` | core kernel | `ssmtoolpy.multi_index.expand_multiindex` | ported | differentiable |
@@ -220,8 +220,8 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `misc/plot_backbone_curves.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/plot_stab_lines.m` | plotting/diagnostic utility | `not planned for numerical core yet` | not yet ported | not yet verified |
 | `misc/proj2SSM.m` | projection utility | `ssmtoolpy.misc.project_to_ssm_linear` and `nonlinear_projection_objective` | partially ported: linear projection and nonlinear objective only | differentiable |
-| `misc/read_num_int_sol.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
-| `misc/read_po_ssm_init.m` | solution reader | `ssmtoolpy.io` | not yet ported | not differentiable |
+| `misc/read_num_int_sol.m` | solution reader | `ssmtoolpy.io.read_num_int_sol` | ported | not differentiable |
+| `misc/read_po_ssm_init.m` | solution reader | `ssmtoolpy.io.read_po_ssm_init` | ported | not differentiable |
 | `misc/reduced_dynamics_symbolic.m` | reduced dynamics documentation utility | `ssmtoolpy.misc.reduced_dynamics_symbolic` | autonomous polar symbolic rendering ported | not differentiable |
 | `misc/reduced_to_full.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full` | partially ported | differentiable |
 | `misc/reduced_to_full_complex.m` | reconstruction kernel | `ssmtoolpy.reduction.reduced_to_full_complex` | partially ported | not yet verified |

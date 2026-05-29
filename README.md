@@ -43,6 +43,7 @@ Ported:
 - multi-index partition enumeration for Manifold coefficient assembly
 - coefficient ordering/reconstruction helpers used by Manifold coefficient assembly
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
+- functional 2D and 2mD SSM reduced-dynamics kernels in polar and Cartesian coordinates
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
 - dynamical-system private helper equivalents for mechanical matrices, nonlinear/forcing metadata, callable input probing, and second-order to first-order nonlinear/forcing conversion
@@ -55,6 +56,9 @@ Ported:
 - non-autonomous Manifold mixed `W1 R0 + W0 R1` coefficient algebra
 - revlex Manifold non-intrusive and semi-intrusive force-composition helpers
 - revlex Manifold non-autonomous Jacobian force-composition helpers
+- intrusive Manifold multi-index force-composition and Jacobian-action helpers
+- non-autonomous Manifold first-order leading forcing and one-order invariance
+  solve helpers
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives
@@ -62,6 +66,8 @@ Ported:
 - first- and second-order linear frequency-response kernels
 - autonomous reduced-dynamics assembly, fixed-step transient SSM trajectories, and autonomous polar symbolic rendering
 - autonomous first- and second-order one-order SSM cohomological solve kernels
+- MATLAB `.mat` solution readers for SSM EP/PO/torus payloads and saved
+  numerical-integration/periodic-orbit initial-condition fixtures
 - Khatri-Rao product
 - FRC `frc_ab`
 - basic reduced-to-full reconstruction maps
@@ -70,8 +76,9 @@ Not yet ported:
 
 - high-level `DynamicalSystem`, `Manifold`, and `SSM` classes
 - COCO continuation workflows
+- external COCO `po_read_solution`/`tor_read_solution` payload readers
 - full sparse Tensor Toolbox-compatible storage beyond the current JAX `BCOO`
   tensor-composition adapters
-- most examples and plotting/solution-reader utilities
+- most examples, plotting utilities, and external COCO solution-reader payloads
 
 See `docs/migration_report.md` and `docs/differentiability.md` for details.

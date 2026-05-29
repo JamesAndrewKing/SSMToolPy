@@ -29,6 +29,22 @@
 | `tensor_product` | differentiable for dense inputs; differentiable under fixed sparse-structure assumptions for sparse inputs | Dense Tucker-style contraction is tested with `jax.jacfwd`. Sparse `BCOO` contraction is tested with `jax.jit` and forward-mode `jax.jacfwd`; reverse-mode through sparse-sparse `bcoo_spdot_general` is not implemented in JAX 0.10.1. |
 | `tensor_composition` | differentiable for fixed dense pattern; differentiable under fixed sparse-structure assumptions for sparse inputs | Dense row-pattern sum is tested with `jax.jit`, `jax.grad`, and `jax.vmap`. Sparse `BCOO` composition is tested with `jax.jit` and forward-mode `jax.jacfwd`; integer patterns and result shapes are static/discrete. |
 | `frc_ab` | differentiable | Tested with `jax.grad` and `jax.vmap`. |
+| `cal_ab_dab` | differentiable | Autonomous polar normal-form terms and radius derivatives; tested with `jax.jacfwd`. |
+| `ReducedDynamicsHarmonic` | not differentiable | Static non-autonomous reduced-dynamics harmonic container. |
+| `compute_reduced_dynamics_2d_polar` | differentiable for fixed harmonic structure | Polar-grid 2D reduced dynamics; harmonic sign normalization and coefficient presence are discrete. Tested with `jax.grad`. |
+| `ode_2d_ssm_cartesian` | differentiable for fixed polynomial/harmonic structure | Functional Cartesian 2D SSM reduced dynamics; MATLAB object recomputation branch is outside this kernel. Tested with `jax.jit` and `jax.jacfwd`. |
+| `ode_2d_ssm_cartesian_jac_x` | differentiable for fixed polynomial/harmonic structure | Jacobian with respect to Cartesian reduced coordinates via `jax.jacfwd`. |
+| `ode_2d_ssm_cartesian_jac_params` | differentiable for fixed polynomial/harmonic structure | Jacobian with respect to `[Omega, epsilon]`; frequency-dependence of recomputed coefficients is outside this functional kernel. |
+| `ode_2d_ssm_cartesian_fixrom` | differentiable for fixed polynomial/harmonic structure | Fixed-ROM alias for explicit coefficient evaluation. |
+| `ode_2d_ssm_cartesian_fixrom_jac_x` | differentiable for fixed polynomial/harmonic structure | Fixed-ROM coordinate Jacobian alias. |
+| `ode_2d_ssm_cartesian_fixrom_jac_params` | differentiable for fixed polynomial/harmonic structure | Fixed-ROM parameter Jacobian alias. |
+| `ReducedDynamics2mDData` | not differentiable | Static coefficient container for 2m-dimensional reduced-dynamics ODE kernels. |
+| `ode_2md_ssm_cartesian` | differentiable for fixed polynomial/harmonic structure | 2mD Cartesian reduced dynamics; tested with `jax.jit`. |
+| `ode_2md_ssm_cartesian_jac_x` | differentiable for fixed polynomial/harmonic structure | State Jacobian via `jax.jacfwd`; tested against direct AD. |
+| `ode_2md_ssm_cartesian_jac_params` | differentiable for fixed polynomial/harmonic structure | Parameter Jacobian via `jax.jacfwd`; base-force scaling is a static option. |
+| `ode_2md_ssm_polar` | differentiable for fixed polynomial/harmonic structure and positive radii | Polar reduced dynamics includes divisions by radii; tested with `jax.jit`. |
+| `ode_2md_ssm_polar_jac_x` | differentiable for fixed polynomial/harmonic structure and positive radii | State Jacobian via `jax.jacfwd`; tested against direct AD. |
+| `ode_2md_ssm_polar_jac_params` | differentiable for fixed polynomial/harmonic structure and positive radii | Parameter Jacobian via `jax.jacfwd`; base-force scaling is a static option. |
 | `compute_gamma` | not differentiable | Discrete multi-index lookup into reduced-dynamics coefficients. |
 | `frc_psi` | piecewise differentiable | Uses `atan2`; tested with `jax.grad` and `jax.vmap`, excluding branch-cut/undefined cases. |
 | `frc_jacobian` | differentiable | Differentiable for `rho != 0`; tested with `jax.jacfwd`. |
@@ -86,6 +102,10 @@
 | `NonAutonomousResonanceData` | not differentiable | Metadata container for non-autonomous resonance detection. |
 | `NonAutonomousCoefficientSeries` | not differentiable | Metadata container for one harmonic's non-autonomous coefficient series. |
 | `NonAutonomousStructure` | not differentiable | Metadata container initialized by `nonautonomous_struct_setup`. |
+| `NonAutonomousFirstOrderData` | not differentiable | Static data container for non-autonomous first-order solves. |
+| `NonAutonomousLeadResult` | not differentiable | Result container. |
+| `NonAutonomousSolveResult` | not differentiable | Result container. |
+| `IntrusiveCompositionData` | not differentiable | Static data container for intrusive multi-index composition. |
 | `ResonanceSide` | not differentiable | Metadata container for one side of SSM resonance analysis. |
 | `ResonanceAnalysis` | not differentiable | Metadata container for inner/outer resonance analysis. |
 | `MasterSubspace` | not differentiable | Metadata container for selected modal subspace and resonance results. |
@@ -105,16 +125,30 @@
 | `nonautonomous_conjugate_reduction` | not differentiable | Exact harmonic matching and norm-thresholded conjugacy detection with discrete index-map output. |
 | `nonautonomous_struct_setup` | not differentiable | Initializes discrete non-autonomous coefficient containers and harmonic metadata. |
 | `nonautonomous_assemble_coefficients` | differentiable for fixed index structure | Immutable insertion of solved non-autonomous coefficients and row-wise multi-index metadata; tested with `jax.grad`. |
+| `nonautonomous_zeroth_order_forcing` | not differentiable | Active harmonic selection by exact-zero testing. |
+| `nonautonomous_first_order_lead_terms` | differentiable under fixed active/resonance structure | Leading non-autonomous first-order solve; tested with `jax.grad`. Active harmonic selection, conjugate reduction, and resonance detection are discrete. |
+| `nonautonomous_first_order_solve_invariance` | differentiable under nondegeneracy assumptions | Per-harmonic/per-order first-order invariance solve; tested with `jax.jacfwd`, assumes fixed resonance pattern and nonsingular coefficient matrices. |
 | `nonautonomous_w1r0_plus_w0r1` | differentiable for fixed index structure | Non-autonomous mixed product `W1 R0 + W0 R1`; tested with `jax.grad`. |
 | `step_polynomial` | differentiable for fixed order | MATLAB `StEP` polarization for orders 1-3; differentiability depends on the supplied JAX-transformable callable. Tested with `jax.grad`. |
+| `fnl_intrusive` | differentiable for fixed index structure | Intrusive multi-index composition core; tested with `jax.grad`. Conjugate-order optimized branch is not ported. |
 | `fnl_nonintrusive` | differentiable for fixed index structure | Revlex non-intrusive Manifold force composition; uses complex polarization internally. Tested with `jax.grad`. |
 | `fnl_semi_intrusive` | differentiable for fixed index structure | Revlex semi-intrusive Manifold multilinear force composition; tested with `jax.jacfwd`. |
+| `dfnl_intrusive` | differentiable for fixed index structure | Intrusive Jacobian-action multi-index composition; tested with `jax.jacfwd`. Conjugate-order optimized branch is not ported. |
 | `dfnl_nonintrusive` | differentiable for fixed index structure | Revlex non-autonomous Jacobian composition; uses `step_polynomial` on the Jacobian callable. Tested with `jax.grad`. |
 | `dfnl_semi_intrusive` | differentiable for fixed index structure | Revlex non-autonomous semi-intrusive Jacobian action; tested with `jax.jacfwd`. |
 | `autonomous_invariance_residual` | piecewise differentiable | Autonomous invariance residual norm; supports complex reduced coordinates via explicit polynomial derivatives. Non-smooth at zero residual. Tested with `jax.grad` away from zero residual. |
 | `compute_auto_invariance_error` | piecewise differentiable | 2D/4D autonomous residual sampling average for fixed sampling grids; inherits norm non-smoothness. |
 | `coeffs_composition` | differentiable for fixed index structure | Lex/revlex coefficient composition; conjugate branch not yet ported. Tested with `jax.grad`. |
 | `coeffs_mixed_terms` | differentiable for fixed index structure | Lex/revlex mixed coefficient products; conjugate branch not yet ported. |
+| `SSMContinuationInfo` | not differentiable | Metadata container parsed from MATLAB `.mat` solution payloads. |
+| `NumericalIntegrationSummary` | not differentiable | File-reader result container. |
+| `PeriodicOrbitInitialConditions` | not differentiable | File-reader result container. |
+| `coco_fname` | not differentiable | Filesystem lookup helper matching COCO run/data directory conventions. |
+| `read_ssm_ep_solution` | not differentiable | MATLAB `.mat` file reader; converts external persisted data to Python/JAX arrays. |
+| `read_ssm_po_solution` | not differentiable | MATLAB `.mat` file reader; supports SSM FRC payloads, not external COCO `po_read_solution` data. |
+| `read_ssm_tor_solution` | not differentiable | MATLAB `.mat` file reader; supports SSM FRC payloads, not external COCO `tor_read_solution` data. |
+| `read_num_int_sol` | not differentiable | File aggregation and norm/amplitude extraction over saved numerical-integration results. |
+| `read_po_ssm_init` | not differentiable | File aggregation for saved SSM periodic-orbit initial conditions. |
 | `DSOptions` | not differentiable | Configuration container. |
 | `ManifoldOptions` | not differentiable | Configuration container. |
 | `FRCOptions` | not differentiable | Configuration container. |

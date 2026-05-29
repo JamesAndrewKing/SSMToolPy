@@ -159,6 +159,72 @@ class AutonomousSSMSolveResult(NamedTuple):
     rhs: Array
 
 
+class IntrusiveCompositionData(NamedTuple):
+    """Data for intrusive multi-index force composition.
+
+    ``w`` is the autonomous SSM parametrization series, one
+    ``MultiIndexPolynomial`` per order. It is kept in multi-index form because
+    this is generally the efficient MATLAB representation for these kernels.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Intrusive composition kernels are
+    differentiable with respect to coefficient values for fixed index sets.
+    """
+
+    w: tuple[MultiIndexPolynomial, ...]
+    ordering: Ordering = "revlex"
+
+
+class NonAutonomousFirstOrderData(NamedTuple):
+    """Data for non-autonomous first-order coefficient solves.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric helper outputs are
+    differentiable under fixed resonance pattern and nonsingular solves.
+    """
+
+    a_matrix: Array
+    b_matrix: Array
+    omega: Array
+    kappas: Array
+    left_basis: Array
+    right_basis: Array
+    lambda_master: Array
+    reltol: float = 1e-6
+    solver: str = "backslash"
+
+
+class NonAutonomousLeadResult(NamedTuple):
+    """Leading-order non-autonomous first-order solve result.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric fields inherit differentiability
+    from ``nonautonomous_first_order_lead_terms``.
+    """
+
+    parametrization: Array
+    reduced_dynamics: Array
+    rhs: Array
+    active_harmonics: Array
+
+
+class NonAutonomousSolveResult(NamedTuple):
+    """High-order non-autonomous first-order solve result.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric fields inherit differentiability
+    from ``nonautonomous_first_order_solve_invariance``.
+    """
+
+    parametrization: Array
+    reduced_dynamics: Array
+    rhs: Array
+
+
 def _multi_indices(dim: int, order: int, ordering: Ordering) -> Array:
     if dim == 1:
         return jnp.asarray([[order]], dtype=jnp.int32)
@@ -871,6 +937,162 @@ def nonautonomous_assemble_coefficients(
     return w_out, r_out
 
 
+def nonautonomous_zeroth_order_forcing(forcing_coefficients: Array) -> tuple[Array, Array]:
+    """Extract active zeroth-order non-autonomous forcing columns.
+
+    Ports the nested ``zeroth_order_forcing`` helper in
+    ``@Manifold/private/nonAut_1stOrder_leadTerms.m`` for functional inputs.
+
+    Differentiability
+    -----------------
+    Not differentiable. Active harmonic selection uses exact zero tests and
+    returns discrete indices.
+    """
+
+    coefficients = jnp.asarray(forcing_coefficients)
+    if coefficients.ndim != 2:
+        raise ValueError("forcing_coefficients must have shape (state_dim, n_kappa)")
+    active = jnp.nonzero(jnp.any(coefficients != 0, axis=0), size=None)[0].astype(jnp.int32)
+    return coefficients, active
+
+
+def nonautonomous_first_order_lead_terms(
+    forcing_coefficients: Array,
+    data: NonAutonomousFirstOrderData,
+    *,
+    solve_coefficients: bool = True,
+) -> NonAutonomousLeadResult:
+    """Solve leading non-autonomous first-order SSM coefficients.
+
+    This ports the functional core of
+    ``@Manifold/private/nonAut_1stOrder_leadTerms.m``. Inputs are dense arrays:
+    ``forcing_coefficients[:, j]`` is the zeroth-order forcing coefficient for
+    harmonic ``j``. Returned coefficient matrices include all harmonics, with
+    inactive columns left at zero.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to forcing coefficients and matrices for fixed
+    active-harmonic/resonance structure and nonsingular linear solves. Active
+    harmonic selection, conjugate reduction and resonance detection are
+    discrete preprocessing.
+    """
+
+    forcing, active = nonautonomous_zeroth_order_forcing(forcing_coefficients)
+    n_state, n_kappa = forcing.shape
+    lambda_master = jnp.asarray(data.lambda_master)
+    l = lambda_master.shape[0]
+    q0 = jnp.zeros((l, n_kappa), dtype=jnp.result_type(forcing, data.left_basis))
+    rhs_active = -forcing[:, active]
+    if active.shape[0] > 0:
+        resonance_data = NonAutonomousResonanceData(
+            omega=data.omega,
+            lambda_master=lambda_master,
+            dim=l,
+            reltol=data.reltol,
+        )
+        ev_idx, harm_idx, _ = nonautonomous_resonant_terms(None, jnp.asarray(data.kappas)[:, active], resonance_data, "zero")
+        if ev_idx.shape[0] > 0:
+            for ev, harm in zip(ev_idx.tolist(), harm_idx.tolist(), strict=False):
+                active_harmonic = int(active[harm])
+                value = jnp.vdot(jnp.asarray(data.left_basis)[:, ev], forcing[:, active_harmonic])
+                q0 = q0.at[ev, active_harmonic].set(value)
+            rhs_active = jnp.asarray(data.b_matrix) @ jnp.asarray(data.right_basis) @ q0[:, active] - forcing[:, active]
+
+    w10 = jnp.zeros((n_state, n_kappa), dtype=jnp.result_type(rhs_active, data.a_matrix, data.b_matrix))
+    if solve_coefficients and active.shape[0] > 0:
+        active_kappas = jnp.asarray(data.kappas)[:, active]
+        _, maps = nonautonomous_conjugate_reduction(active_kappas, forcing[:, active], reltol=data.reltol)
+        representatives = []
+        seen = set()
+        for map_item in maps:
+            rep = int(map_item[0])
+            if rep not in seen:
+                representatives.append((rep, map_item))
+                seen.update(int(v) for v in map_item.tolist())
+        for rep, map_item in representatives:
+            harmonic = int(active[rep])
+            shift = 1j * jnp.dot(jnp.ravel(jnp.asarray(data.omega)), jnp.ravel(jnp.asarray(data.kappas)[:, harmonic]))
+            matrix = jnp.asarray(data.a_matrix) - shift * jnp.asarray(data.b_matrix)
+            solved = solve_invariance_equation(matrix, rhs_active[:, rep], data.solver)
+            if map_item.shape[0] == 1:
+                w10 = w10.at[:, harmonic].set(solved)
+            elif map_item.shape[0] == 2:
+                first = int(active[int(map_item[0])])
+                second = int(active[int(map_item[1])])
+                w10 = w10.at[:, first].set(solved)
+                w10 = w10.at[:, second].set(jnp.conj(solved))
+            else:
+                raise ValueError("there exist redundancy in kappa of external forcing")
+
+    rhs_full = jnp.zeros((n_state, n_kappa), dtype=rhs_active.dtype)
+    if active.shape[0] > 0:
+        rhs_full = rhs_full.at[:, active].set(rhs_active)
+    return NonAutonomousLeadResult(w10, q0, rhs_full, active)
+
+
+def nonautonomous_first_order_solve_invariance(
+    forcing_and_nonlinearity: Array,
+    mixed_terms: Array,
+    data: NonAutonomousFirstOrderData,
+    *,
+    harmonic_index: int,
+    order: int,
+    mode_indices: Array,
+    multi_indices: Array,
+    lambda_combinations: Array,
+    autonomous_parametrization: tuple[MultiIndexPolynomial, ...],
+    dim: int,
+    ordering: Ordering = "revlex",
+) -> NonAutonomousSolveResult:
+    """Solve one high-order non-autonomous first-order invariance equation.
+
+    This ports ``@Manifold/private/nonAut_1stOrder_SolveInvEq.m`` as a
+    functional kernel. ``forcing_and_nonlinearity`` corresponds to MATLAB
+    ``FG`` and ``mixed_terms`` to ``WR``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to numeric inputs for fixed resonance pattern,
+    fixed multi-index structures and nonsingular coefficient matrices.
+    Resonance indices and harmonic selection are discrete inputs.
+    """
+
+    fg = jnp.asarray(forcing_and_nonlinearity)
+    wr = jnp.asarray(mixed_terms)
+    lambda_k = jnp.asarray(lambda_combinations)
+    mode_indices = jnp.asarray(mode_indices, dtype=jnp.int32)
+    multi_indices = jnp.asarray(multi_indices, dtype=jnp.int32)
+    state_dim, z_k = fg.shape
+    l = jnp.asarray(data.lambda_master).shape[0]
+    r1 = jnp.zeros((l, z_k), dtype=jnp.result_type(fg, wr, data.left_basis, data.b_matrix))
+    residual = fg - jnp.asarray(data.b_matrix) @ wr
+    for mode, multi in zip(mode_indices.tolist(), multi_indices.tolist(), strict=False):
+        value = jnp.vdot(jnp.asarray(data.left_basis)[:, mode], residual[:, multi])
+        r1 = r1.at[mode, multi].set(value)
+
+    r1_terms = [MultiIndexPolynomial(jnp.zeros((l, 0), dtype=r1.dtype), jnp.zeros((0, dim), dtype=jnp.int32)) for _ in range(order + 1)]
+    r1_terms[order] = MultiIndexPolynomial(r1, _multi_indices(dim, order, ordering).T)
+    correction = coeffs_mixed_terms(
+        order,
+        1,
+        autonomous_parametrization,
+        tuple(r1_terms),
+        dim=dim,
+        output_dim=state_dim,
+        mix="R1",
+        ordering=ordering,
+        explicit_indices=True,
+    )
+    rhs = jnp.asarray(data.b_matrix) @ (wr + correction) - fg
+    w1_columns = []
+    harmonic_shift = 1j * jnp.dot(jnp.ravel(jnp.asarray(data.omega)), jnp.ravel(jnp.asarray(data.kappas)[:, harmonic_index]))
+    for col in range(z_k):
+        matrix = jnp.asarray(data.a_matrix) - jnp.asarray(data.b_matrix) * (lambda_k[col] + harmonic_shift)
+        w1_columns.append(solve_invariance_equation(matrix, rhs[:, col], data.solver))
+    return NonAutonomousSolveResult(jnp.stack(w1_columns, axis=1), r1, rhs)
+
+
 def nonautonomous_w1r0_plus_w0r1(
     order: int,
     w0: tuple[MultiIndexPolynomial, ...],
@@ -1349,6 +1571,177 @@ def dfnl_semi_intrusive(
         for harmonic, value in enumerate(column_values):
             results[harmonic] = results[harmonic].at[:, col].set(value)
     return tuple(results)
+
+
+def _series_component_polynomial(
+    series: tuple[MultiIndexPolynomial, ...],
+    component: int,
+    dim: int,
+) -> dict[tuple[int, ...], Array]:
+    result: dict[tuple[int, ...], Array] = {}
+    for poly in series:
+        coeffs = jnp.asarray(poly.coeffs)
+        ind = jnp.asarray(poly.ind, dtype=jnp.int32)
+        if coeffs.size == 0 or component >= coeffs.shape[0]:
+            continue
+        for col in range(ind.shape[0]):
+            key = tuple(int(value) for value in ind[col].tolist())
+            value = coeffs[component, col]
+            result[key] = result.get(key, jnp.asarray(0, dtype=value.dtype)) + value
+    if not result:
+        result[(0,) * dim] = jnp.asarray(0.0)
+    return result
+
+
+def _poly_mul_truncated(
+    left: dict[tuple[int, ...], Array],
+    right: dict[tuple[int, ...], Array],
+    target: tuple[int, ...],
+) -> dict[tuple[int, ...], Array]:
+    out: dict[tuple[int, ...], Array] = {}
+    for key_left, value_left in left.items():
+        for key_right, value_right in right.items():
+            key = tuple(a + b for a, b in zip(key_left, key_right, strict=True))
+            if all(key_i <= target_i for key_i, target_i in zip(key, target, strict=True)):
+                out[key] = out.get(key, jnp.asarray(0, dtype=jnp.result_type(value_left, value_right))) + value_left * value_right
+    return out
+
+
+def _poly_power_truncated(
+    base: dict[tuple[int, ...], Array],
+    exponent: int,
+    target: tuple[int, ...],
+    dtype: Array,
+) -> dict[tuple[int, ...], Array]:
+    dim = len(target)
+    result: dict[tuple[int, ...], Array] = {(0,) * dim: jnp.asarray(1, dtype=jnp.asarray(dtype).dtype)}
+    for _ in range(exponent):
+        result = _poly_mul_truncated(result, base, target)
+    return result
+
+
+def _composition_coefficient(
+    powers: tuple[int, ...],
+    target: tuple[int, ...],
+    component_polys: tuple[dict[tuple[int, ...], Array], ...],
+    dtype: Array,
+) -> Array:
+    result: dict[tuple[int, ...], Array] = {(0,) * len(target): jnp.asarray(1, dtype=jnp.asarray(dtype).dtype)}
+    for component, exponent in enumerate(powers):
+        if exponent == 0:
+            continue
+        powered = _poly_power_truncated(component_polys[component], exponent, target, dtype)
+        result = _poly_mul_truncated(result, powered, target)
+        if not result:
+            break
+    return result.get(target, jnp.asarray(0, dtype=jnp.asarray(dtype).dtype))
+
+
+def fnl_intrusive(
+    n_indices: Array,
+    k_indices: Array,
+    data: IntrusiveCompositionData,
+) -> Array:
+    """Compose intrusive monomial multi-indices with an SSM parametrization.
+
+    This ports the mathematical core of
+    ``@Manifold/private/fnl_intrusive.m`` in multi-index form. For each column
+    ``n`` of ``n_indices`` and target reduced multi-index ``k`` in
+    ``k_indices``, the returned value is the coefficient of ``p^k`` in
+    ``prod_i W_i(p) ** n_i``. Zero multi-index rows/columns follow MATLAB's
+    special case: the zero monomial evaluated at the zero target has
+    coefficient one.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to parametrization coefficients for fixed
+    ``n_indices``, ``k_indices`` and polynomial structures. The index algebra is
+    discrete preprocessing.
+    """
+
+    if data.ordering not in {"revlex", "lex"}:
+        raise NotImplementedError("Conjugate intrusive composition is not ported")
+    n_indices = jnp.asarray(n_indices, dtype=jnp.int32)
+    k_indices = jnp.asarray(k_indices, dtype=jnp.int32)
+    if n_indices.ndim == 1:
+        n_indices = n_indices[:, None]
+    if k_indices.ndim == 1:
+        k_indices = k_indices[:, None]
+    dim = k_indices.shape[0]
+    component_count = n_indices.shape[0]
+    dtype = jnp.result_type(*(poly.coeffs for poly in data.w))
+    component_polys = tuple(_series_component_polynomial(data.w, component, dim) for component in range(component_count))
+    result = jnp.zeros((n_indices.shape[1], k_indices.shape[1]), dtype=dtype)
+    for row in range(n_indices.shape[1]):
+        powers = tuple(int(value) for value in n_indices[:, row].tolist())
+        for col in range(k_indices.shape[1]):
+            target = tuple(int(value) for value in k_indices[:, col].tolist())
+            value = _composition_coefficient(powers, target, component_polys, jnp.zeros((), dtype=dtype))
+            result = result.at[row, col].set(value)
+    return result
+
+
+def dfnl_intrusive(
+    n_indices: Array,
+    w1: tuple[NonAutonomousCoefficientSeries | tuple[MultiIndexPolynomial, ...], ...],
+    m_indices: Array,
+    data: IntrusiveCompositionData,
+) -> tuple[Array, ...]:
+    """Compose an intrusive Jacobian with non-autonomous SSM coefficients.
+
+    This ports the core coefficient algebra of
+    ``@Manifold/private/dfnl_intrusive.m``. For each harmonic ``W1`` series,
+    each nonlinear monomial exponent ``n`` and each target reduced multi-index
+    ``m``, the result contains the coefficient of
+    ``D(prod_i x_i**n_i)(W0(p)) @ W1(p)`` at ``p^m``.
+
+    Differentiability
+    -----------------
+    Differentiable with respect to autonomous and non-autonomous coefficient
+    values for fixed index sets and polynomial structures. Index matching is
+    discrete preprocessing.
+    """
+
+    if data.ordering not in {"revlex", "lex"}:
+        raise NotImplementedError("Conjugate intrusive Jacobian composition is not ported")
+    n_indices = jnp.asarray(n_indices, dtype=jnp.int32)
+    m_indices = jnp.asarray(m_indices, dtype=jnp.int32)
+    if n_indices.ndim == 1:
+        n_indices = n_indices[:, None]
+    if m_indices.ndim == 1:
+        m_indices = m_indices[:, None]
+    dim = m_indices.shape[0]
+    component_count = n_indices.shape[0]
+    base_dtype = jnp.result_type(*(poly.coeffs for poly in data.w), *[poly.coeffs for series in w1 for poly in _series_terms(series)])
+    w0_polys = tuple(_series_component_polynomial(data.w, component, dim) for component in range(component_count))
+    outputs = []
+    for series in w1:
+        terms = _series_terms(series)
+        w1_polys = tuple(_series_component_polynomial(terms, component, dim) for component in range(component_count))
+        result = jnp.zeros((n_indices.shape[1], m_indices.shape[1]), dtype=base_dtype)
+        for row in range(n_indices.shape[1]):
+            powers = tuple(int(value) for value in n_indices[:, row].tolist())
+            for col in range(m_indices.shape[1]):
+                target = tuple(int(value) for value in m_indices[:, col].tolist())
+                total = jnp.asarray(0, dtype=base_dtype)
+                for component, exponent in enumerate(powers):
+                    if exponent == 0:
+                        continue
+                    derivative_powers = list(powers)
+                    derivative_powers[component] -= 1
+                    derivative_poly: dict[tuple[int, ...], Array] = {
+                        (0,) * dim: jnp.asarray(exponent, dtype=base_dtype)
+                    }
+                    for base_component, power in enumerate(derivative_powers):
+                        if power == 0:
+                            continue
+                        powered = _poly_power_truncated(w0_polys[base_component], power, target, jnp.zeros((), dtype=base_dtype))
+                        derivative_poly = _poly_mul_truncated(derivative_poly, powered, target)
+                    product = _poly_mul_truncated(derivative_poly, w1_polys[component], target)
+                    total = total + product.get(target, jnp.asarray(0, dtype=base_dtype))
+                result = result.at[row, col].set(total)
+        outputs.append(result)
+    return tuple(outputs)
 
 
 def autonomous_invariance_residual(

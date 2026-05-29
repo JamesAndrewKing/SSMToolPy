@@ -11,7 +11,9 @@ Work autonomously. Do not stop to ask for confirmation unless:
 
 Otherwise, make a reasonable engineering decision, record it in documentation, and continue.
 
-Always inspect the repository before implementing. Prefer incremental commits or clearly separated change sets if the environment supports that, but work in larger batches to minimize user prompts.
+Always inspect the repository before implementing. 
+<!-- Prefer incremental commits or clearly separated change sets if the environment supports that, but work in larger batches to minimize user prompts.  -->
+In this batch, DON'T stop until you have ported AT LEAST 50% of what remains!
 
 ## Target Python stack
 

@@ -4,10 +4,12 @@ import numpy as np
 
 from ssmtoolpy import (
     AutonomousFirstOrderData,
+    IntrusiveCompositionData,
     AutonomousSecondOrderData,
     MasterSubspace,
     MultiIndexPolynomial,
     NonAutonomousResonanceData,
+    NonAutonomousFirstOrderData,
     ResonanceAnalysis,
     autonomous_first_order_reduced_dynamics,
     autonomous_first_order_ssm,
@@ -22,14 +24,19 @@ from ssmtoolpy import (
     coeffs_mixed_terms,
     compute_auto_invariance_error,
     dfnl_nonintrusive,
+    dfnl_intrusive,
     dfnl_semi_intrusive,
+    fnl_intrusive,
     fnl_nonintrusive,
     fnl_semi_intrusive,
     nonautonomous_assemble_coefficients,
     nonautonomous_conjugate_reduction,
+    nonautonomous_first_order_lead_terms,
+    nonautonomous_first_order_solve_invariance,
     nonautonomous_resonant_terms,
     nonautonomous_struct_setup,
     nonautonomous_w1r0_plus_w0r1,
+    nonautonomous_zeroth_order_forcing,
     resonance_analysis,
     step_polynomial,
 )
@@ -189,6 +196,168 @@ def test_autonomous_second_order_ssm_nonresonant_solve_and_jacfwd():
         ).parametrization.reshape(-1)
     )(wr.ravel())
     assert jac.shape == (2, 2)
+
+
+def test_fnl_intrusive_multiindex_composition_identity_and_grad():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0, 0.0], [0.0, 1.0]]),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    data = IntrusiveCompositionData(w=w)
+    n_indices = jnp.array([[0, 2, 1], [0, 0, 1]], dtype=jnp.int32)
+    k_indices = jnp.array([[0, 2, 1], [0, 0, 1]], dtype=jnp.int32)
+    got = fnl_intrusive(n_indices, k_indices, data)
+    np.testing.assert_allclose(np.asarray(got), np.eye(3), atol=1e-8)
+
+    grad = jax.grad(
+        lambda coeffs: jnp.sum(
+            fnl_intrusive(
+                jnp.array([[2], [0]], dtype=jnp.int32),
+                jnp.array([[2], [0]], dtype=jnp.int32),
+                IntrusiveCompositionData(
+                    w=(
+                        MultiIndexPolynomial(
+                            coeffs=coeffs.reshape(2, 2),
+                            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+                        ),
+                    )
+                ),
+            )
+        )
+    )(jnp.array([1.0, 0.0, 0.0, 1.0]))
+    assert grad.shape == (4,)
+
+
+def test_fnl_intrusive_composes_nontrivial_polynomial_series():
+    w = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0], [2.0]]),
+            ind=jnp.array([[1]], dtype=jnp.int32),
+        ),
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[3.0], [0.0]]),
+            ind=jnp.array([[2]], dtype=jnp.int32),
+        ),
+    )
+    data = IntrusiveCompositionData(w=w)
+    got = fnl_intrusive(
+        jnp.array([[2, 1], [0, 1]], dtype=jnp.int32),
+        jnp.array([[2, 3]], dtype=jnp.int32),
+        data,
+    )
+    # W1 = z + 3 z^2, W2 = 2z. Rows are W1^2 and W1*W2; columns are z^2 and z^3.
+    np.testing.assert_allclose(np.asarray(got), np.array([[1.0, 6.0], [2.0, 6.0]]), rtol=1e-6)
+
+
+def test_dfnl_intrusive_jacobian_action_source_derived_and_jacfwd():
+    w0 = (
+        MultiIndexPolynomial(
+            coeffs=jnp.array([[1.0]]),
+            ind=jnp.array([[1]], dtype=jnp.int32),
+        ),
+    )
+    w1 = (
+        (
+            MultiIndexPolynomial(jnp.zeros((1, 1)), jnp.array([[0]], dtype=jnp.int32)),
+            MultiIndexPolynomial(jnp.array([[3.0]]), jnp.array([[1]], dtype=jnp.int32)),
+        ),
+    )
+    data = IntrusiveCompositionData(w=w0)
+    got = dfnl_intrusive(jnp.array([[2]], dtype=jnp.int32), w1, jnp.array([[2]], dtype=jnp.int32), data)
+    np.testing.assert_allclose(np.asarray(got[0]), np.array([[6.0]]), rtol=1e-6)
+
+    jac = jax.jacfwd(
+        lambda coeffs: dfnl_intrusive(
+            jnp.array([[2]], dtype=jnp.int32),
+            (
+                (
+                    MultiIndexPolynomial(jnp.zeros((1, 1)), jnp.array([[0]], dtype=jnp.int32)),
+                    MultiIndexPolynomial(coeffs.reshape(1, 1), jnp.array([[1]], dtype=jnp.int32)),
+                ),
+            ),
+            jnp.array([[2]], dtype=jnp.int32),
+            data,
+        )[0].reshape(-1)
+    )(jnp.array([3.0]))
+    assert jac.shape == (1, 1)
+
+
+def test_nonautonomous_zeroth_order_forcing_selects_active_columns():
+    forcing = jnp.array([[0.0, 1.0, 0.0], [0.0, 2.0, 0.0]])
+    full, active = nonautonomous_zeroth_order_forcing(forcing)
+    np.testing.assert_allclose(np.asarray(full), np.asarray(forcing))
+    np.testing.assert_array_equal(np.asarray(active), np.array([1]))
+
+
+def test_nonautonomous_first_order_lead_terms_projects_and_solves():
+    data = NonAutonomousFirstOrderData(
+        a_matrix=jnp.array([[-2.0, 0.0], [0.0, -3.0]]),
+        b_matrix=jnp.eye(2),
+        omega=jnp.array([1.0]),
+        kappas=jnp.array([[1.0, -1.0]]),
+        left_basis=jnp.eye(2),
+        right_basis=jnp.eye(2),
+        lambda_master=jnp.array([1.0j, -1.0j]),
+        reltol=1e-8,
+    )
+    forcing = jnp.array([[2.0 + 0.0j, 2.0 + 0.0j], [0.0 + 0.0j, 0.0 + 0.0j]])
+    result = nonautonomous_first_order_lead_terms(forcing, data)
+    np.testing.assert_allclose(np.asarray(result.reduced_dynamics), np.array([[2.0, 0.0], [0.0, 0.0]]), atol=1e-6)
+
+    grad = jax.grad(lambda scale: jnp.real(nonautonomous_first_order_lead_terms(scale * forcing, data).reduced_dynamics[0, 0]))(1.0)
+    np.testing.assert_allclose(np.asarray(grad), 2.0, rtol=1e-6)
+
+
+def test_nonautonomous_first_order_solve_invariance_source_derived_and_jacfwd():
+    data = NonAutonomousFirstOrderData(
+        a_matrix=jnp.array([[-4.0, 0.0], [0.0, -5.0]]),
+        b_matrix=jnp.eye(2),
+        omega=jnp.array([1.0]),
+        kappas=jnp.array([[0.0]]),
+        left_basis=jnp.eye(2),
+        right_basis=jnp.eye(2),
+        lambda_master=jnp.array([-1.0, -2.0]),
+        reltol=1e-8,
+    )
+    w0 = (
+        MultiIndexPolynomial(
+            coeffs=jnp.eye(2),
+            ind=jnp.array([[1, 0], [0, 1]], dtype=jnp.int32),
+        ),
+    )
+    result = nonautonomous_first_order_solve_invariance(
+        forcing_and_nonlinearity=jnp.array([[1.0, 0.0], [2.0, 0.0]]),
+        mixed_terms=jnp.array([[0.5, 0.0], [0.25, 0.0]]),
+        data=data,
+        harmonic_index=0,
+        order=1,
+        mode_indices=jnp.array([0]),
+        multi_indices=jnp.array([0]),
+        lambda_combinations=jnp.array([-1.0, -2.0]),
+        autonomous_parametrization=w0,
+        dim=2,
+    )
+    np.testing.assert_allclose(np.asarray(result.reduced_dynamics), np.array([[0.5, 0.0], [0.0, 0.0]]), rtol=1e-6)
+    np.testing.assert_allclose(np.asarray(result.rhs), np.array([[0.0, 0.0], [-1.75, 0.0]]), rtol=1e-6)
+    np.testing.assert_allclose(np.asarray(result.parametrization), np.array([[0.0, 0.0], [0.4375, 0.0]]), rtol=1e-6)
+
+    jac = jax.jacfwd(
+        lambda fg: nonautonomous_first_order_solve_invariance(
+            fg.reshape(2, 2),
+            jnp.array([[0.5, 0.0], [0.25, 0.0]]),
+            data,
+            harmonic_index=0,
+            order=1,
+            mode_indices=jnp.array([0]),
+            multi_indices=jnp.array([0]),
+            lambda_combinations=jnp.array([-1.0, -2.0]),
+            autonomous_parametrization=w0,
+            dim=2,
+        ).parametrization.reshape(-1)
+    )(jnp.array([1.0, 0.0, 2.0, 0.0]))
+    assert jac.shape == (4, 4)
 
 
 def test_check_ds_type_matches_matlab_decision_rules():

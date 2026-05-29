@@ -13,6 +13,7 @@ authors = [{ name = "SSMToolPy contributors" }]
 dependencies = [
   "jax>=0.4.28",
   "jaxlib>=0.4.28",
+  "scipy>=1.11",
 ]
 
 [project.optional-dependencies]
@@ -24,4 +25,3 @@ test = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-
