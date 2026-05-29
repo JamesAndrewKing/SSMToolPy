@@ -225,6 +225,28 @@ class NonAutonomousSolveResult(NamedTuple):
     rhs: Array
 
 
+class NonAutonomousSecondOrderData(NamedTuple):
+    """Data for non-autonomous second-order coefficient solves.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Numeric solve kernels are
+    differentiable under fixed resonance patterns and nonsingular dynamic
+    stiffness matrices.
+    """
+
+    omega: Array
+    kappas: Array
+    theta: Array
+    phi: Array
+    lambda_master: Array
+    mass: Array
+    damping: Array
+    stiffness: Array
+    reltol: float = 1e-6
+    solver: str = "backslash"
+
+
 def _multi_indices(dim: int, order: int, ordering: Ordering) -> Array:
     if dim == 1:
         return jnp.asarray([[order]], dtype=jnp.int32)
@@ -1091,6 +1113,166 @@ def nonautonomous_first_order_solve_invariance(
         matrix = jnp.asarray(data.a_matrix) - jnp.asarray(data.b_matrix) * (lambda_k[col] + harmonic_shift)
         w1_columns.append(solve_invariance_equation(matrix, rhs[:, col], data.solver))
     return NonAutonomousSolveResult(jnp.stack(w1_columns, axis=1), r1, rhs)
+
+
+def nonautonomous_second_order_reduced_dynamics(
+    mode_indices: Array,
+    multi_indices: Array,
+    theta: Array,
+    phi: Array,
+    lambda_master: Array,
+    lambda_k: Array,
+    mass: Array,
+    damping: Array,
+    velocity_rhs: Array,
+    displacement_rhs: Array,
+    *,
+    dim: int,
+    z_k: int,
+    order: int,
+) -> Array:
+    """Compute resonant non-autonomous second-order reduced dynamics.
+
+    This ports ``@Manifold/private/nonAut_2ndOrder_RedDyn.m``. Index inputs
+    are zero-based.
+
+    Differentiability
+    -----------------
+    Differentiable for fixed resonance groups and nonsingular projected
+    systems. Resonance selection itself is discrete and supplied by the caller.
+    """
+
+    mode_indices = jnp.asarray(mode_indices, dtype=jnp.int32)
+    multi_indices = jnp.asarray(multi_indices, dtype=jnp.int32)
+    theta = jnp.asarray(theta)
+    phi = jnp.asarray(phi)
+    lambda_master = jnp.asarray(lambda_master)
+    lambda_k = jnp.asarray(lambda_k)
+    mass = jnp.asarray(mass)
+    damping = jnp.asarray(damping)
+    velocity_rhs = jnp.asarray(velocity_rhs)
+    displacement_rhs = jnp.asarray(displacement_rhs)
+    result = jnp.zeros((dim, z_k), dtype=jnp.result_type(theta, phi, lambda_master, lambda_k, mass, damping, velocity_rhs, displacement_rhs))
+
+    if order == 0:
+        if mode_indices.shape[0] == 0:
+            return result
+        theta_i = theta[:, mode_indices]
+        rhs = -jnp.conj(theta_i).T @ (lambda_k * (mass @ velocity_rhs) + displacement_rhs)
+        solved = jnp.linalg.pinv(jnp.eye(rhs.shape[0], dtype=rhs.dtype)) @ rhs
+        return result.at[mode_indices, :].set(solved)
+
+    unique_multi = sorted({int(value) for value in multi_indices.tolist()})
+    for multi in unique_multi:
+        modes = [int(mode_indices[idx]) for idx, value in enumerate(multi_indices.tolist()) if int(value) == multi]
+        theta_f = theta[:, modes]
+        phi_f = phi[:, modes]
+        rhs = -lambda_k[multi] * (jnp.conj(theta_f).T @ mass @ velocity_rhs[:, multi])
+        rhs = rhs - jnp.conj(theta_f).T @ displacement_rhs[:, multi]
+        matrix = jnp.conj(theta_f).T @ (
+            damping @ phi_f + mass @ ((lambda_k[multi] + lambda_master[jnp.asarray(modes)])[None, :] * phi_f)
+        )
+        solved = jnp.linalg.pinv(matrix) @ rhs
+        result = result.at[jnp.asarray(modes), multi].set(solved)
+    return result
+
+
+def nonautonomous_second_order_solve_invariance(
+    forcing_and_nonlinearity: Array,
+    mixed_terms: Array,
+    data: NonAutonomousSecondOrderData,
+    *,
+    harmonic_index: int,
+    order: int,
+    mode_indices: Array,
+    multi_indices: Array,
+    lambda_combinations: Array,
+) -> NonAutonomousSolveResult:
+    """Solve one non-autonomous second-order invariance equation.
+
+    This ports ``@Manifold/private/nonAut_2ndOrder_SolveInvEq.m`` as a
+    functional kernel. ``forcing_and_nonlinearity`` corresponds to MATLAB
+    ``FG`` and ``mixed_terms`` to ``WR``.
+
+    Differentiability
+    -----------------
+    Differentiable for fixed resonance pattern and nonsingular dynamic
+    stiffness matrices. Harmonic/multi-index selection is discrete.
+    """
+
+    fg = jnp.asarray(forcing_and_nonlinearity)
+    wr = jnp.asarray(mixed_terms)
+    mass = jnp.asarray(data.mass)
+    damping = jnp.asarray(data.damping)
+    stiffness = jnp.asarray(data.stiffness)
+    n = mass.shape[0]
+    dim = jnp.asarray(data.lambda_master).shape[0]
+    z_k = fg.shape[1]
+    harmonic_shift = 1j * jnp.dot(jnp.ravel(jnp.asarray(data.kappas)[:, harmonic_index]), jnp.ravel(jnp.asarray(data.omega)))
+    lambda_k_omega = jnp.asarray(lambda_combinations) + harmonic_shift
+    displacement_rhs = damping @ wr[:n, :] + mass @ wr[n:, :] - fg[:n, :]
+    velocity_rhs = wr[:n, :]
+    r1 = nonautonomous_second_order_reduced_dynamics(
+        mode_indices,
+        multi_indices,
+        data.theta,
+        data.phi,
+        data.lambda_master,
+        lambda_k_omega,
+        mass,
+        damping,
+        velocity_rhs,
+        displacement_rhs,
+        dim=dim,
+        z_k=z_k,
+        order=order,
+    )
+    w_cols = []
+    wdot_cols = []
+    for col in range(z_k):
+        lhs_term = (mass @ ((lambda_k_omega[col] + jnp.asarray(data.lambda_master))[None, :] * jnp.asarray(data.phi)) + damping @ jnp.asarray(data.phi)) @ r1[:, col]
+        rhs_col = lhs_term + lambda_k_omega[col] * (mass @ velocity_rhs[:, col]) + displacement_rhs[:, col]
+        matrix = -(stiffness + lambda_k_omega[col] * damping + lambda_k_omega[col] ** 2 * mass)
+        w_col = solve_invariance_equation(matrix, rhs_col, data.solver)
+        wdot_col = lambda_k_omega[col] * w_col + jnp.asarray(data.phi) @ r1[:, col] + velocity_rhs[:, col]
+        w_cols.append(w_col)
+        wdot_cols.append(wdot_col)
+    parametrization = jnp.concatenate((jnp.stack(w_cols, axis=1), jnp.stack(wdot_cols, axis=1)), axis=0)
+    rhs = jnp.concatenate((displacement_rhs, velocity_rhs), axis=0)
+    return NonAutonomousSolveResult(parametrization, r1, rhs)
+
+
+def nonautonomous_forcing_plus_nonlinearity(
+    forcing_contributions: tuple[Array, ...],
+    jacobian_contributions: tuple[Array, ...] = (),
+) -> tuple[Array, ...]:
+    """Combine non-autonomous forcing and nonlinear composition per harmonic.
+
+    This is the dependency-light summation core of
+    ``@Manifold/private/nonAut_Fext_plus_Fnl.m`` after the individual forcing
+    and Jacobian composition terms have been evaluated.
+
+    Differentiability
+    -----------------
+    Differentiable for fixed harmonic structure.
+    """
+
+    n_harmonics = max(len(forcing_contributions), len(jacobian_contributions))
+    if n_harmonics == 0:
+        return ()
+    template = None
+    for item in (*forcing_contributions, *jacobian_contributions):
+        template = jnp.asarray(item)
+        break
+    result = []
+    for index in range(n_harmonics):
+        value = jnp.zeros_like(template)
+        if index < len(forcing_contributions):
+            value = value + jnp.asarray(forcing_contributions[index])
+        if index < len(jacobian_contributions):
+            value = value + jnp.asarray(jacobian_contributions[index])
+        result.append(value)
+    return tuple(result)
 
 
 def nonautonomous_w1r0_plus_w0r1(

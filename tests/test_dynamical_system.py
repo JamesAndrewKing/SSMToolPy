@@ -4,9 +4,13 @@ import numpy as np
 import pytest
 
 from ssmtoolpy import (
+    DSOptions,
+    DynamicalSystem,
     FourierForcingTerm,
+    LinearSpectrum,
     MultiIndexPolynomial,
     PeriodicForcing,
+    add_forcing,
     evaluate_first_order_vector_field,
     evaluate_periodic_forcing,
     evaluate_polynomial_terms,
@@ -19,15 +23,18 @@ from ssmtoolpy import (
     forcing_kappas,
     infer_callable_input_dim,
     infer_semi_intrusive_input_dim,
+    linear_spectral_analysis,
     mechanical_binv_a,
     mechanical_a_matrix,
     mechanical_b_matrix,
     polynomial_degree,
     polynomial_input_dim,
+    normalize_modes,
     second_order_internal_force,
     second_order_internal_force_jacobian_x,
     second_order_internal_force_jacobian_xd,
     second_order_residual,
+    sort_modes,
 )
 
 
@@ -202,7 +209,7 @@ def test_first_order_terms_from_second_order_multiindex_sign_and_transform():
     converted = first_order_polynomial_terms_from_second_order(terms, n=2, total_dim=4, system_order=2)
     assert converted[0].coeffs.shape == (4, 2)
     np.testing.assert_allclose(np.asarray(converted[0].coeffs), np.array([[-1.0, -2.0], [-3.0, -4.0], [0.0, 0.0], [0.0, 0.0]]))
-    value = evaluate_polynomial_terms(converted, jnp.array([2.0, 3.0]))
+    value = evaluate_polynomial_terms(converted, jnp.array([2.0, 3.0, 0.0, 0.0]))
     np.testing.assert_allclose(np.asarray(value[:, 0]), np.array([-20.0, -42.0, 0.0, 0.0]))
 
     positive = first_order_terms_from_second_order(terms, n=2, total_dim=4, system_order=1)
@@ -222,3 +229,51 @@ def test_first_order_tensor_terms_from_second_order_dense_embedding():
     np.testing.assert_allclose(np.asarray(converted[0][0, 0, 0]), -2.0)
     np.testing.assert_allclose(np.asarray(converted[0][1, 1, 1]), -3.0)
     np.testing.assert_allclose(np.asarray(converted[0][2:, :, :]), np.zeros((2, 4, 4)))
+
+
+def test_add_forcing_and_dynamical_system_wrapper_methods():
+    m = jnp.array([[2.0, 0.0], [0.0, 3.0]])
+    c = jnp.array([[0.1, 0.0], [0.0, 0.2]])
+    k = jnp.array([[5.0, 1.0], [1.0, 4.0]])
+    forcing = add_forcing(1, jnp.array([[1.0, 2.0], [3.0, 4.0]]), kappas=jnp.array([1, -1]), epsilon=0.2, total_dim=4)
+    assert isinstance(forcing, PeriodicForcing)
+    assert len(forcing.terms) == 2
+    np.testing.assert_allclose(np.asarray(forcing.terms[0].terms[0].coeffs[:, 0]), np.array([1.0, 3.0, 0.0, 0.0]))
+
+    system = DynamicalSystem(order=2, m_matrix=m, c_matrix=c, k_matrix=k, fnl_terms=_second_order_terms()).with_forcing(
+        jnp.array([[1.0], [0.5]]),
+        kappas=jnp.array([1]),
+        epsilon=0.0,
+    )
+    np.testing.assert_allclose(np.asarray(system.a_matrix), np.asarray(mechanical_a_matrix(m, k)))
+    np.testing.assert_allclose(np.asarray(system.b_matrix), np.asarray(mechanical_b_matrix(m, c)))
+    assert system.n == 2
+    assert system.N == 4
+    assert system.degree == 1
+    np.testing.assert_array_equal(np.asarray(system.kappas), np.array([[1]]))
+
+    z = jnp.array([1.0, 2.0, 0.5, -1.0])
+    ode_value = system.odefun(0.0, z)
+    converted = first_order_terms_from_second_order(_second_order_terms(), n=2, total_dim=4, system_order=2)
+    expected = evaluate_first_order_vector_field(system.a_matrix, system.b_matrix, z, converted, system.forcing, 0.0)
+    np.testing.assert_allclose(np.asarray(ode_value), np.asarray(expected), rtol=1e-6)
+    jac = jax.jacfwd(lambda state: system.odefun(0.0, state))(z)
+    assert jac.shape == (4, 4)
+
+    residual = system.residual(jnp.array([1.0, 2.0]), jnp.array([0.5, -1.0]), jnp.array([0.25, 0.5]))
+    assert residual.residual.shape == (2,)
+
+
+def test_linear_spectral_analysis_sorting_and_normalization():
+    a = jnp.array([[-0.1, -2.0], [2.0, -0.1]])
+    spectrum = linear_spectral_analysis(a, jnp.eye(2), DSOptions(remove_zeros=False))
+    assert isinstance(spectrum, LinearSpectrum)
+    assert spectrum.eigenvalues.shape == (2,)
+    assert np.imag(np.asarray(spectrum.eigenvalues[0])) > 0
+    gram = jnp.conj(spectrum.left_eigenvectors).T @ spectrum.right_eigenvectors
+    np.testing.assert_allclose(np.asarray(gram), np.eye(2), rtol=1e-5, atol=1e-5)
+
+    unsorted = sort_modes(jnp.eye(2), jnp.array([-2.0 + 0.0j, -1.0 + 0.0j]), jnp.eye(2))
+    np.testing.assert_allclose(np.asarray(unsorted.eigenvalues), np.array([-1.0 + 0.0j, -2.0 + 0.0j]))
+    right, left = normalize_modes(jnp.eye(2), 2.0 * jnp.eye(2), jnp.eye(2))
+    np.testing.assert_allclose(np.asarray(jnp.conj(left).T @ right), np.eye(2), rtol=1e-6)

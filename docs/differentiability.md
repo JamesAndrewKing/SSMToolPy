@@ -45,6 +45,19 @@
 | `ode_2md_ssm_polar` | differentiable for fixed polynomial/harmonic structure and positive radii | Polar reduced dynamics includes divisions by radii; tested with `jax.jit`. |
 | `ode_2md_ssm_polar_jac_x` | differentiable for fixed polynomial/harmonic structure and positive radii | State Jacobian via `jax.jacfwd`; tested against direct AD. |
 | `ode_2md_ssm_polar_jac_params` | differentiable for fixed polynomial/harmonic structure and positive radii | Parameter Jacobian via `jax.jacfwd`; base-force scaling is a static option. |
+| `ReducedDynamicsData` | not differentiable | Static data container for SSM reduced-dynamics workflows. |
+| `POAmplitudeData` | not differentiable | Static data container for periodic-orbit amplitude objectives. |
+| `cal_rhos` | differentiable except at zero radius | Cartesian-to-radius conversion; tested with `jax.grad`. |
+| `monitor_state_names` | not differentiable | String metadata helper for continuation state labels. |
+| `scale_parameters` | differentiable | Elementwise scaling helper from `monitor_scaled_states.m`. |
+| `initial_fixed_point_guess` | piecewise differentiable | Polar regularization branches on radius signs and wraps phases modulo `2*pi`; solver refinement is not included. |
+| `check_spectrum_and_internal_resonance` | not differentiable | Thresholded spectral validation with exceptions on failure. |
+| `check_auto_reduced_dynamics` | not differentiable | Extracts and validates integer multi-index resonance conditions. |
+| `create_reduced_dynamics_data` | not differentiable | Metadata/container constructor; MATLAB disk-write side effect omitted. |
+| `reduced_data_to_2md` | not differentiable | Container conversion for 2mD ODE kernels. |
+| `create_po_amplitude_data` | not differentiable | Metadata/container constructor for periodic-orbit amplitude objectives. |
+| `auto_ode_2md_ssm_cartesian` | differentiable for fixed polynomial structure | Autonomous 2mD Cartesian reduced dynamics; tested with `jax.jit`. |
+| `detect_resonant_modes` | not differentiable | Rounds frequency ratios and thresholds internal resonance closeness. |
 | `compute_gamma` | not differentiable | Discrete multi-index lookup into reduced-dynamics coefficients. |
 | `frc_psi` | piecewise differentiable | Uses `atan2`; tested with `jax.grad` and `jax.vmap`, excluding branch-cut/undefined cases. |
 | `frc_jacobian` | differentiable | Differentiable for `rho != 0`; tested with `jax.jacfwd`. |
@@ -54,6 +67,12 @@
 | `reduced_to_full` | differentiable | For fixed polynomial structure; tested with `jax.jit`. Non-autonomous branch uses fixed Python structure. |
 | `reduced_to_full_complex` | differentiable | For fixed polynomial/forcing structure; transform coverage not yet verified. |
 | `reduced_to_full_traj` | differentiable | Single-time reconstruction; tested with `jax.jit` and `jax.jacfwd` for autonomous structure. |
+| `DynamicalSystem` | not differentiable | Immutable model-data container; methods inherit their functional kernel differentiability. |
+| `LinearSpectrum` | not differentiable | Result container for non-differentiable spectral analysis. |
+| `add_forcing` | not differentiable | Constructor/metadata conversion for MATLAB-style force columns; returned forcing evaluation is differentiable. |
+| `sort_modes` | not differentiable | Eigenvalue sorting and conjugate-pair ordering are discrete. |
+| `normalize_modes` | differentiable under nondegeneracy assumptions | Requires nonzero modal products; normally used after non-differentiable eigensolver steps. |
+| `linear_spectral_analysis` | not differentiable | Eigensolver, stiff/zero-mode removal, sorting, and normalization conventions are branch-sensitive. |
 | `extract_output` | piecewise differentiable | Norm outputs are differentiable away from zero/ties; amplitudes use infinity norms. |
 | `spblkdiag` | differentiable | Dense block diagonal assembly; tested with `jax.jacfwd`. |
 | `solve_invariance_equation` | differentiable under nondegeneracy assumptions | Direct solve requires nonsingular matrices; `pinv`/`lsqminnorm` assume stable rank; iterative names use `jax.scipy.sparse.linalg` implicit linear solves. |
@@ -128,6 +147,10 @@
 | `nonautonomous_zeroth_order_forcing` | not differentiable | Active harmonic selection by exact-zero testing. |
 | `nonautonomous_first_order_lead_terms` | differentiable under fixed active/resonance structure | Leading non-autonomous first-order solve; tested with `jax.grad`. Active harmonic selection, conjugate reduction, and resonance detection are discrete. |
 | `nonautonomous_first_order_solve_invariance` | differentiable under nondegeneracy assumptions | Per-harmonic/per-order first-order invariance solve; tested with `jax.jacfwd`, assumes fixed resonance pattern and nonsingular coefficient matrices. |
+| `NonAutonomousSecondOrderData` | not differentiable | Static data container for non-autonomous second-order solves. |
+| `nonautonomous_second_order_reduced_dynamics` | differentiable under fixed resonance pattern | Second-order resonant projection; tested with source-derived cases. Resonance grouping is discrete. |
+| `nonautonomous_second_order_solve_invariance` | differentiable under nondegeneracy assumptions | Per-harmonic/per-order second-order invariance solve; tested with `jax.jacfwd` on real force perturbations, assumes fixed resonance pattern and nonsingular dynamic stiffness matrices. |
+| `nonautonomous_forcing_plus_nonlinearity` | differentiable for fixed harmonic structure | Summation core for non-autonomous forcing plus nonlinear/Jacobian composition; tested with `jax.grad`. |
 | `nonautonomous_w1r0_plus_w0r1` | differentiable for fixed index structure | Non-autonomous mixed product `W1 R0 + W0 R1`; tested with `jax.grad`. |
 | `step_polynomial` | differentiable for fixed order | MATLAB `StEP` polarization for orders 1-3; differentiability depends on the supplied JAX-transformable callable. Tested with `jax.grad`. |
 | `fnl_intrusive` | differentiable for fixed index structure | Intrusive multi-index composition core; tested with `jax.grad`. Conjugate-order optimized branch is not ported. |

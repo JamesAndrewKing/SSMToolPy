@@ -8,6 +8,7 @@ from ssmtoolpy import (
     AutonomousSecondOrderData,
     MasterSubspace,
     MultiIndexPolynomial,
+    NonAutonomousSecondOrderData,
     NonAutonomousResonanceData,
     NonAutonomousFirstOrderData,
     ResonanceAnalysis,
@@ -33,7 +34,10 @@ from ssmtoolpy import (
     nonautonomous_conjugate_reduction,
     nonautonomous_first_order_lead_terms,
     nonautonomous_first_order_solve_invariance,
+    nonautonomous_forcing_plus_nonlinearity,
     nonautonomous_resonant_terms,
+    nonautonomous_second_order_reduced_dynamics,
+    nonautonomous_second_order_solve_invariance,
     nonautonomous_struct_setup,
     nonautonomous_w1r0_plus_w0r1,
     nonautonomous_zeroth_order_forcing,
@@ -714,3 +718,75 @@ def test_dfnl_semi_intrusive_revlex_quadratic_source_derived_and_jacfwd():
         w[0].coeffs.ravel()
     )
     assert jac.shape == (4, 4)
+
+
+def test_nonautonomous_second_order_reduced_dynamics_and_solve_jacfwd():
+    data = NonAutonomousSecondOrderData(
+        omega=jnp.array([1.0]),
+        kappas=jnp.array([[1.0]]),
+        theta=jnp.array([[1.0 + 0.0j]]),
+        phi=jnp.array([[1.0 + 0.0j]]),
+        lambda_master=jnp.array([-0.05 + 2.0j]),
+        mass=jnp.array([[1.0]]),
+        damping=jnp.array([[0.1]]),
+        stiffness=jnp.array([[4.0]]),
+    )
+    fg = jnp.array([[2.0 + 0.0j], [0.0 + 0.0j]])
+    wr = jnp.zeros((2, 1), dtype=jnp.complex64)
+    result = nonautonomous_second_order_solve_invariance(
+        fg,
+        wr,
+        data,
+        harmonic_index=0,
+        order=1,
+        mode_indices=jnp.zeros((0,), dtype=jnp.int32),
+        multi_indices=jnp.zeros((0,), dtype=jnp.int32),
+        lambda_combinations=jnp.array([0.0 + 0.0j]),
+    )
+    expected_matrix = -(4.0 + 1j * 0.1 - 1.0)
+    expected_w = -2.0 / expected_matrix
+    np.testing.assert_allclose(np.asarray(result.parametrization[0, 0]), np.asarray(expected_w), rtol=1e-6)
+    np.testing.assert_allclose(np.asarray(result.parametrization[1, 0]), np.asarray(1j * expected_w), rtol=1e-6)
+
+    jac = jax.jacfwd(
+        lambda force: jnp.real(nonautonomous_second_order_solve_invariance(
+            force.reshape(2, 1).astype(jnp.complex64),
+            wr,
+            data,
+            harmonic_index=0,
+            order=1,
+            mode_indices=jnp.zeros((0,), dtype=jnp.int32),
+            multi_indices=jnp.zeros((0,), dtype=jnp.int32),
+            lambda_combinations=jnp.array([0.0 + 0.0j]),
+        ).parametrization.reshape(-1))
+    )(jnp.real(fg).ravel())
+    assert jac.shape == (2, 2)
+
+    resonant = nonautonomous_second_order_reduced_dynamics(
+        jnp.array([0], dtype=jnp.int32),
+        jnp.array([0], dtype=jnp.int32),
+        data.theta,
+        data.phi,
+        data.lambda_master,
+        jnp.array([0.0 + 1.0j]),
+        data.mass,
+        data.damping,
+        jnp.zeros((1, 1), dtype=jnp.complex64),
+        jnp.array([[2.0 + 0.0j]]),
+        dim=1,
+        z_k=1,
+        order=1,
+    )
+    expected_r = -2.0 / (0.1 + (-0.05 + 3.0j))
+    np.testing.assert_allclose(np.asarray(resonant[0, 0]), np.asarray(expected_r), rtol=1e-6)
+
+
+def test_nonautonomous_forcing_plus_nonlinearity_sums_harmonics_and_grad():
+    force = (jnp.array([[1.0, 2.0]]), jnp.array([[3.0, 4.0]]))
+    jac = (jnp.array([[0.5, 0.25]]),)
+    got = nonautonomous_forcing_plus_nonlinearity(force, jac)
+    assert len(got) == 2
+    np.testing.assert_allclose(np.asarray(got[0]), np.array([[1.5, 2.25]]))
+    np.testing.assert_allclose(np.asarray(got[1]), np.array([[3.0, 4.0]]))
+    grad = jax.grad(lambda values: jnp.sum(nonautonomous_forcing_plus_nonlinearity((values.reshape(1, 2),), jac)[0]))(force[0].ravel())
+    np.testing.assert_allclose(np.asarray(grad), np.ones(2))

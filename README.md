@@ -44,9 +44,12 @@ Ported:
 - coefficient ordering/reconstruction helpers used by Manifold coefficient assembly
 - standalone FRC algebra, phase, stability, contour parsing, and grid fixed-point helpers
 - functional 2D and 2mD SSM reduced-dynamics kernels in polar and Cartesian coordinates
+- pure SSM reduced-dynamics metadata helpers for radii, monitor names,
+  initialization guesses, validation, and continuation data bundles
 - miscellaneous reconstruction, output, reduced-dynamics, projection-objective, block-diagonal, and linear-solve helpers
 - functional dynamical-system nonlinear force, forcing, residual, ODE RHS, and mechanical first-order conversion kernels
 - dynamical-system private helper equivalents for mechanical matrices, nonlinear/forcing metadata, callable input probing, and second-order to first-order nonlinear/forcing conversion
+- immutable functional `DynamicalSystem` wrapper with forcing setup and dense spectral analysis
 - lex/revlex Manifold coefficient composition and mixed-term algebra
 - Manifold computation-type classification and autonomous/non-autonomous resonance detection helpers
 - functional Manifold master-subspace selection and inner/outer resonance analysis
@@ -59,6 +62,8 @@ Ported:
 - intrusive Manifold multi-index force-composition and Jacobian-action helpers
 - non-autonomous Manifold first-order leading forcing and one-order invariance
   solve helpers
+- non-autonomous Manifold second-order reduced-dynamics projection and
+  one-order invariance solve helpers
 - MATLAB option defaults and validation as Python dataclasses
 - multi-index polynomial evaluation and derivatives
 - dense tensor polynomial evaluation and derivatives

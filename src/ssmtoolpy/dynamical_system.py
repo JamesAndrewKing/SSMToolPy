@@ -6,11 +6,15 @@ This module ports the dependency-light numerical core of selected
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field, replace
 from typing import Callable, NamedTuple
 
 import jax.numpy as jnp
+import numpy as np
+import scipy.linalg
 
 from ssmtoolpy.multi_index import MultiIndexPolynomial, expand_multiindex, expand_multiindex_derivative
+from ssmtoolpy.options import DSOptions
 from ssmtoolpy.tensor import expand_tensor, expand_tensor_derivative
 
 
@@ -63,6 +67,131 @@ class ResidualResult(NamedTuple):
     drdqd: Array
     drdq: Array
     c0: Array
+
+
+class LinearSpectrum(NamedTuple):
+    """Linear spectral data for a first-order or mechanical system.
+
+    Differentiability
+    -----------------
+    Not differentiable. Eigenvalue computation, mode sorting, removal of stiff
+    or zero modes, and normalization conventions are discrete/branching
+    operations.
+    """
+
+    right_eigenvectors: Array
+    eigenvalues: Array
+    left_eigenvectors: Array
+
+
+@dataclass(frozen=True)
+class DynamicalSystem:
+    """Immutable functional analogue of MATLAB ``DynamicalSystem``.
+
+    The MATLAB class is mutable and property-driven. This Python wrapper keeps
+    the same mathematical data in an immutable container and delegates all
+    differentiable numerical work to module-level JAX functions.
+
+    Differentiability
+    -----------------
+    Not differentiable as a container. Evaluation methods inherit the
+    differentiability of their functional kernels.
+    """
+
+    order: int
+    m_matrix: Array | None = None
+    c_matrix: Array | None = None
+    k_matrix: Array | None = None
+    a_matrix_value: Array | None = None
+    b_matrix_value: Array | None = None
+    fnl_terms: tuple[MultiIndexPolynomial | Array, ...] = ()
+    first_order_terms: tuple[MultiIndexPolynomial | Array, ...] = ()
+    forcing: PeriodicForcing | None = None
+    omega: Array | None = None
+    options: DSOptions = field(default_factory=DSOptions)
+
+    @property
+    def n(self) -> int:
+        if self.m_matrix is not None:
+            return int(jnp.asarray(self.m_matrix).shape[0])
+        if self.a_matrix_value is not None:
+            return int(jnp.asarray(self.a_matrix_value).shape[0] // 2)
+        raise ValueError("Cannot infer n without M or A")
+
+    @property
+    def N(self) -> int:
+        return int(self.a_matrix.shape[0])
+
+    @property
+    def a_matrix(self) -> Array:
+        if self.a_matrix_value is not None:
+            return jnp.asarray(self.a_matrix_value)
+        if self.order == 2 and self.m_matrix is not None and self.k_matrix is not None:
+            return mechanical_a_matrix(self.m_matrix, self.k_matrix)
+        raise ValueError("A is unavailable; provide A directly or M and K for a second-order system")
+
+    @property
+    def b_matrix(self) -> Array:
+        if self.b_matrix_value is not None:
+            return jnp.asarray(self.b_matrix_value)
+        if self.order == 2 and self.m_matrix is not None and self.c_matrix is not None:
+            return mechanical_b_matrix(self.m_matrix, self.c_matrix)
+        return jnp.eye(self.a_matrix.shape[0], dtype=self.a_matrix.dtype)
+
+    @property
+    def binv_a(self) -> Array:
+        if self.order == 2 and self.m_matrix is not None and self.c_matrix is not None and self.k_matrix is not None:
+            return mechanical_binv_a(self.m_matrix, self.c_matrix, self.k_matrix)
+        return jnp.linalg.solve(self.b_matrix, self.a_matrix)
+
+    @property
+    def degree(self) -> int:
+        terms = self.first_order_terms if self.first_order_terms else self.fnl_terms
+        return polynomial_degree(terms)
+
+    @property
+    def kappas(self) -> Array:
+        if self.forcing is None:
+            return jnp.zeros((0, 0), dtype=jnp.int32)
+        return forcing_kappas(self.forcing)
+
+    def with_forcing(self, force: Array | PeriodicForcing, kappas: Array | None = None, epsilon: Array = 1.0) -> "DynamicalSystem":
+        return replace(self, forcing=add_forcing(self.order, force, kappas=kappas, epsilon=epsilon, total_dim=self.N))
+
+    def compute_fnl(self, x: Array, xd: Array | None = None) -> Array:
+        return second_order_internal_force(x, xd, self.fnl_terms, n=self.n)
+
+    def compute_dfnldx(self, x: Array) -> Array:
+        return second_order_internal_force_jacobian_x(x, self.fnl_terms, n=self.n)
+
+    def compute_dfnldxd(self) -> Array:
+        return second_order_internal_force_jacobian_xd(self.n)
+
+    def evaluate_Fnl(self, z: Array) -> Array:
+        terms = self.first_order_terms
+        if not terms and self.order == 2 and self.fnl_terms:
+            terms = first_order_terms_from_second_order(self.fnl_terms, n=self.n, total_dim=self.N, system_order=2)
+        return first_order_nonlinearity(z, terms)
+
+    def evaluate_Fext(self, t: Array, z: Array) -> Array:
+        return evaluate_periodic_forcing(t, z, self.forcing)
+
+    def odefun(self, t: Array, z: Array) -> Array:
+        terms = self.first_order_terms
+        if not terms and self.order == 2 and self.fnl_terms:
+            terms = first_order_terms_from_second_order(self.fnl_terms, n=self.n, total_dim=self.N, system_order=2)
+        return evaluate_first_order_vector_field(self.a_matrix, self.b_matrix, z, terms, self.forcing, t)
+
+    def residual(self, q: Array, qd: Array, qdd: Array, t: Array = 0.0) -> ResidualResult:
+        if self.m_matrix is None or self.c_matrix is None or self.k_matrix is None:
+            raise ValueError("Second-order residual requires M, C, and K")
+        external = None
+        if self.forcing is not None:
+            external = lambda time, x, xd: evaluate_periodic_forcing(time, x, self.forcing)[: self.n, 0]
+        return second_order_residual(self.m_matrix, self.c_matrix, self.k_matrix, q, qd, qdd, self.fnl_terms, external, t)
+
+    def linear_spectral_analysis(self) -> LinearSpectrum:
+        return linear_spectral_analysis(self.a_matrix, self.b_matrix, self.options)
 
 
 def _as_matrix(values: Array) -> Array:
@@ -316,6 +445,50 @@ def first_order_forcing_terms_from_second_order(
     return tuple(converted)
 
 
+def add_forcing(
+    system_order: int,
+    force: Array | PeriodicForcing,
+    *,
+    kappas: Array | None = None,
+    epsilon: Array = 1.0,
+    total_dim: int | None = None,
+) -> PeriodicForcing:
+    """Build a :class:`PeriodicForcing` object from MATLAB-style force columns.
+
+    This ports the array-input branch of ``@DynamicalSystem/add_forcing.m``.
+    Existing :class:`PeriodicForcing` values are returned with updated
+    ``epsilon``. For array input, each column is paired with one row/entry of
+    ``kappas`` and stored as a zeroth-order multi-index coefficient.
+
+    Differentiability
+    -----------------
+    Not differentiable as a constructor because harmonic metadata and shapes
+    are discrete. Evaluation of the returned forcing is differentiable.
+    """
+
+    if isinstance(force, PeriodicForcing):
+        return PeriodicForcing(force.terms, epsilon=jnp.asarray(epsilon), omega=force.omega, base_excitation=force.base_excitation)
+    if kappas is None:
+        raise ValueError("kappas are required when constructing forcing from an array")
+    force = jnp.asarray(force)
+    if force.ndim == 1:
+        force = force[:, None]
+    kappas = jnp.ravel(jnp.asarray(kappas))
+    if force.shape[1] != kappas.shape[0]:
+        raise ValueError("number of forcing columns must match number of kappas")
+    output_dim = int(total_dim if total_dim is not None else force.shape[0])
+    if system_order == 1 and force.shape[0] not in (output_dim, output_dim // 2):
+        raise ValueError("forcing vector has wrong dimension")
+    terms = []
+    for col in range(force.shape[1]):
+        coeffs = force[:, col : col + 1]
+        if coeffs.shape[0] < output_dim:
+            coeffs = jnp.concatenate([coeffs, jnp.zeros((output_dim - coeffs.shape[0], 1), dtype=coeffs.dtype)], axis=0)
+        ind = jnp.zeros((1, output_dim), dtype=jnp.int32)
+        terms.append(FourierForcingTerm(kappa=int(kappas[col]), terms=(MultiIndexPolynomial(coeffs, ind),)))
+    return PeriodicForcing(terms=tuple(terms), epsilon=jnp.asarray(epsilon), omega=jnp.asarray(1.0))
+
+
 def infer_callable_input_dim(function: Callable[[Array], Array], primary_dim: int, total_dim: int) -> int:
     """Infer whether a callable accepts ``primary_dim`` or ``total_dim`` inputs.
 
@@ -558,7 +731,9 @@ def first_order_polynomial_terms_from_second_order(
             )
             continue
         coeffs = jnp.concatenate([sign * term.coeffs, jnp.zeros((total_dim - n, term.coeffs.shape[1]), dtype=term.coeffs.dtype)], axis=0)
-        converted.append(MultiIndexPolynomial(coeffs=coeffs, ind=term.ind))
+        ind = jnp.asarray(term.ind, dtype=jnp.int32)
+        padded_ind = ind if ind.shape[1] == total_dim else jnp.pad(ind, ((0, 0), (0, total_dim - ind.shape[1])))
+        converted.append(MultiIndexPolynomial(coeffs=coeffs, ind=padded_ind))
     return tuple(converted)
 
 
@@ -614,3 +789,87 @@ def first_order_terms_from_second_order(
     if all(term is None or isinstance(term, MultiIndexPolynomial) for term in fnl_terms):
         return first_order_polynomial_terms_from_second_order(fnl_terms, n=n, total_dim=total_dim, system_order=system_order)
     return first_order_tensor_terms_from_second_order(fnl_terms, n=n, total_dim=total_dim, system_order=system_order)
+
+
+def sort_modes(right: Array, eigenvalues: Array, left: Array) -> LinearSpectrum:
+    """Sort modes using the MATLAB ``linear_spectral_analysis`` convention.
+
+    Modes are ordered by descending real part, then ascending imaginary
+    magnitude, with positive-imaginary members first within conjugate pairs.
+
+    Differentiability
+    -----------------
+    Not differentiable. Sorting and conjugate-pair decisions are discrete.
+    """
+
+    values = np.asarray(eigenvalues)
+    right_np = np.asarray(right)
+    left_np = np.asarray(left)
+    order = sorted(range(values.shape[0]), key=lambda idx: (-np.real(values[idx]), abs(np.imag(values[idx])), -np.sign(np.imag(values[idx]))))
+    values = values[order]
+    right_np = right_np[:, order]
+    left_np = left_np[:, order]
+    idx = 0
+    while idx + 1 < values.shape[0]:
+        if np.iscomplexobj(values) and abs(values[idx] - np.conj(values[idx + 1])) < 1e-8 * max(abs(values[idx]), 1.0):
+            pair = [idx, idx + 1]
+            pair_order = sorted(pair, key=lambda item: np.imag(values[item]), reverse=True)
+            values[pair] = values[pair_order]
+            right_np[:, pair] = right_np[:, pair_order]
+            left_np[:, pair] = left_np[:, pair_order]
+            idx += 2
+        else:
+            idx += 1
+    return LinearSpectrum(jnp.asarray(right_np), jnp.asarray(values), jnp.asarray(left_np))
+
+
+def normalize_modes(right: Array, left: Array, b_matrix: Array) -> tuple[Array, Array]:
+    """Normalize left modes so ``W.conj().T @ B @ V`` has unit diagonal.
+
+    Differentiability
+    -----------------
+    Differentiable for fixed modes and nonzero modal products, but normally
+    used after non-differentiable eigensolver/sorting steps.
+    """
+
+    right = jnp.asarray(right)
+    left = jnp.asarray(left)
+    products = jnp.diag(jnp.conj(left).T @ jnp.asarray(b_matrix) @ right)
+    left = left @ jnp.diag(1.0 / jnp.conj(products))
+    return right, left
+
+
+def linear_spectral_analysis(a_matrix: Array, b_matrix: Array | None = None, options: DSOptions | None = None) -> LinearSpectrum:
+    """Compute sorted and biorthonormalized linear spectral data.
+
+    This ports the dense, low/medium-dimensional branch of
+    ``@DynamicalSystem/linear_spectral_analysis.m``. Large sparse/Rayleigh
+    damping branches are intentionally not hidden behind this helper because
+    they depend on iterative eigensolver choices and mutable MATLAB options.
+
+    Differentiability
+    -----------------
+    Not differentiable. Eigenvectors, mode sorting, stiff/zero-mode removal,
+    and normalization conventions are branch-sensitive.
+    """
+
+    options = DSOptions() if options is None else options
+    a_np = np.asarray(a_matrix)
+    if b_matrix is None:
+        b_np = np.eye(a_np.shape[0], dtype=a_np.dtype)
+    else:
+        b_np = np.asarray(b_matrix)
+    if np.linalg.norm(b_np - np.eye(b_np.shape[0])) < 1e-8:
+        values, left, right = scipy.linalg.eig(a_np, left=True, right=True)
+    else:
+        values, left, right = scipy.linalg.eig(a_np, b_np, left=True, right=True)
+    finite = np.isfinite(values) & (np.abs(values) <= options.lambda_threshold)
+    if options.remove_zeros and np.any(finite):
+        scale = np.max(np.abs(values[finite]))
+        finite = finite & (np.abs(values) >= 1e-6 * scale)
+    values = values[finite]
+    right = right[:, finite]
+    left = left[:, finite]
+    spectrum = sort_modes(right, values, left)
+    right_jax, left_jax = normalize_modes(spectrum.right_eigenvectors, spectrum.left_eigenvectors, jnp.asarray(b_np))
+    return LinearSpectrum(right_jax, spectrum.eigenvalues, left_jax)

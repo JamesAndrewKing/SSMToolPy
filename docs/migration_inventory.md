@@ -4,51 +4,51 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 
 | MATLAB file | Category | Planned Python destination | Migration status | Differentiability classification |
 | --- | --- | --- | --- | --- |
-| `@DynamicalSystem/DynamicalSystem.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/add_forcing.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/DynamicalSystem.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem` | immutable functional wrapper ported for matrix access, forcing, nonlinear evaluation, ODE, residual, and dense spectral analysis | not differentiable as a container |
+| `@DynamicalSystem/add_forcing.m` | class/model API | `ssmtoolpy.dynamical_system.add_forcing` and `DynamicalSystem.with_forcing` | MATLAB array-input branch ported | not differentiable constructor; forcing evaluation differentiable |
 | `@DynamicalSystem/compute_dfnldx.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_x` | functional core ported | differentiable for intrusive terms |
 | `@DynamicalSystem/compute_dfnldxd.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force_jacobian_xd` | functional displacement-only behavior ported | differentiable |
 | `@DynamicalSystem/compute_fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/compute_fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_internal_force` | functional core ported | differentiable for intrusive terms |
 | `@DynamicalSystem/evaluate_Fext.m` | forcing evaluation | `ssmtoolpy.dynamical_system.evaluate_periodic_forcing` | functional periodic forcing core ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/evaluate_Fnl.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.first_order_nonlinearity` and `first_order_from_second_order_nonlinearity` | functional core ported | differentiable for intrusive terms |
-| `@DynamicalSystem/linear_spectral_analysis.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/linear_spectral_analysis.m` | class/model API | `ssmtoolpy.dynamical_system.linear_spectral_analysis` | dense generalized/standard eigensolver branch ported; large sparse/Rayleigh branches not ported | not differentiable |
 | `@DynamicalSystem/odefun.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.evaluate_first_order_vector_field` | functional core ported | differentiable under nonsingular `B` |
 | `@DynamicalSystem/private/get_A.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_a_matrix` | mechanical matrix branch ported | differentiable |
 | `@DynamicalSystem/private/get_B.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_b_matrix` | mechanical matrix branch ported | differentiable |
 | `@DynamicalSystem/private/get_BinvA.m` | mechanical first-order conversion | `ssmtoolpy.dynamical_system.mechanical_binv_a` | ported | differentiable under nonsingular mass matrix |
-| `@DynamicalSystem/private/get_F.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem.evaluate_Fnl` and `first_order_terms_from_second_order` | functional property behavior ported | differentiable for fixed term structure |
 | `@DynamicalSystem/private/get_F_from_fnl.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` | functional equivalent ported | differentiable |
 | `@DynamicalSystem/private/get_F_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
-| `@DynamicalSystem/private/get_F_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F_non.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_nonlinearity` | callable evaluation behavior ported | depends on supplied callable |
 | `@DynamicalSystem/private/get_F_non_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_callable_input_dim` | ported | not differentiable |
-| `@DynamicalSystem/private/get_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` and semi-intrusive callable paths | functional support ported | depends on supplied callable |
 | `@DynamicalSystem/private/get_F_semi_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` | ported | not differentiable |
 | `@DynamicalSystem/private/get_Fext.m` | forcing representation conversion | `ssmtoolpy.dynamical_system.first_order_forcing_terms_from_second_order` | functional second-to-first-order padding ported | differentiable for fixed forcing structure |
-| `@DynamicalSystem/private/get_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/get_dF_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_dF.m` | class/model API | `ssmtoolpy.dynamical_system.evaluate_polynomial_jacobian` | functional Jacobian behavior ported | differentiable for fixed term structure |
+| `@DynamicalSystem/private/get_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_nonlinearity` with caller Jacobian | functional callable path documented | depends on supplied callable |
+| `@DynamicalSystem/private/get_dF_semi.m` | class/model API | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` and caller Jacobian | functional callable path documented | depends on supplied callable |
 | `@DynamicalSystem/private/get_degree.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_degree` | functional term-sequence behavior ported | not differentiable |
-| `@DynamicalSystem/private/get_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/get_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem.compute_dfnldx` | functional property behavior ported | differentiable for fixed term structure |
 | `@DynamicalSystem/private/get_fnl_input_dim.m` | nonlinear metadata utility | `ssmtoolpy.dynamical_system.polynomial_input_dim` | intrusive polynomial/tensor behavior ported | not differentiable |
 | `@DynamicalSystem/private/get_fnl_non_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_callable_input_dim` | ported | not differentiable |
 | `@DynamicalSystem/private/get_fnl_semi_input_dim.m` | callable metadata utility | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` | ported | not differentiable |
 | `@DynamicalSystem/private/get_kappas.m` | forcing metadata utility | `ssmtoolpy.dynamical_system.forcing_kappas` | ported | not differentiable |
 | `@DynamicalSystem/private/get_nl_input_dim.m` | nonlinear metadata dispatch | `ssmtoolpy.dynamical_system.polynomial_input_dim`, `infer_callable_input_dim`, `infer_semi_intrusive_input_dim` | functional cases ported; mutable property dispatch not ported | not differentiable |
-| `@DynamicalSystem/private/set_F.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_F_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_F_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/set_F.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem(first_order_terms=...)` | immutable constructor equivalent documented | not differentiable metadata operation |
+| `@DynamicalSystem/private/set_F_non.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_nonlinearity(..., nonintrusive=...)` | functional callable equivalent ported | depends on supplied callable |
+| `@DynamicalSystem/private/set_F_semi.m` | class/model API | `ssmtoolpy.dynamical_system.infer_semi_intrusive_input_dim` and callable tuple support | functional callable equivalent ported | depends on supplied callable |
+| `@DynamicalSystem/private/set_F_tensor.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable for fixed tensor shapes |
 | `@DynamicalSystem/private/set_Fext.m` | forcing representation conversion | `ssmtoolpy.dynamical_system.first_order_forcing_terms_from_second_order` | functional second-to-first-order padding ported | differentiable for fixed forcing structure |
 | `@DynamicalSystem/private/set_Ftens_from_fnlmulti.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_polynomial_terms_from_second_order` | dense/multi-index equivalent ported | differentiable |
 | `@DynamicalSystem/private/set_Ftens_from_fnltens.m` | nonlinear representation conversion | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable |
-| `@DynamicalSystem/private/set_dF.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_dF_from_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_dF_non.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_dF_semi.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_fnl.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
-| `@DynamicalSystem/private/set_fnl_tensor.m` | class/model API | `ssmtoolpy.dynamical_system` | not yet ported | not yet verified |
+| `@DynamicalSystem/private/set_dF.m` | class/model API | `ssmtoolpy.dynamical_system.evaluate_polynomial_jacobian` | immutable functional equivalent ported | differentiable for fixed term structure |
+| `@DynamicalSystem/private/set_dF_from_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_terms_from_second_order` plus Jacobian evaluation | functional equivalent ported | differentiable for fixed term structure |
+| `@DynamicalSystem/private/set_dF_non.m` | class/model API | caller-supplied non-intrusive Jacobian path | functional callable equivalent documented | depends on supplied callable |
+| `@DynamicalSystem/private/set_dF_semi.m` | class/model API | caller-supplied semi-intrusive Jacobian path | functional callable equivalent documented | depends on supplied callable |
+| `@DynamicalSystem/private/set_dfnl.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem(fnl_terms=...)` and Jacobian kernels | immutable constructor equivalent ported | not differentiable metadata operation |
+| `@DynamicalSystem/private/set_fnl.m` | class/model API | `ssmtoolpy.dynamical_system.DynamicalSystem(fnl_terms=...)` | immutable constructor equivalent ported | not differentiable metadata operation |
+| `@DynamicalSystem/private/set_fnl_tensor.m` | class/model API | `ssmtoolpy.dynamical_system.first_order_tensor_terms_from_second_order` | dense tensor equivalent ported | differentiable for fixed tensor shapes |
 | `@DynamicalSystem/residual.m` | dynamical-system evaluation | `ssmtoolpy.dynamical_system.second_order_residual` | functional core ported | piecewise differentiable |
 | `@Manifold/Manifold.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
 | `@Manifold/choose_E.m` | modal subspace selection | `ssmtoolpy.manifold.choose_master_subspace` and `resonance_analysis` | functional spectral-data branch ported | not differentiable |
@@ -87,12 +87,12 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@Manifold/private/nonAut_1stOrder_highTerms.m` | non-autonomous first-order coefficient orchestration | `ssmtoolpy.manifold.nonautonomous_first_order_solve_invariance` plus existing force/mixed helpers | core per-harmonic/order solve ported; full object loop not ported | differentiable under fixed structures |
 | `@Manifold/private/nonAut_1stOrder_leadTerms.m` | non-autonomous first-order leading solve | `ssmtoolpy.manifold.nonautonomous_zeroth_order_forcing`, `nonautonomous_first_order_lead_terms` | functional leading-order branch ported | differentiable under fixed active/resonance structure |
 | `@Manifold/private/nonAut_1stOrder_whisker.m` | non-autonomous first-order whisker orchestration | `ssmtoolpy.manifold` functional building blocks | partially ported: setup, leading terms, mixed terms, per-order solve | not yet verified as full workflow |
-| `@Manifold/private/nonAut_2ndOrder_RedDyn.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_2ndOrder_SolveInvEq.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_2ndOrder_highTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_2ndOrder_leadTerms.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_2ndOrder_whisker.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
-| `@Manifold/private/nonAut_Fext_plus_Fnl.m` | manifold coefficient API | `ssmtoolpy.manifold` | not yet ported | not yet verified |
+| `@Manifold/private/nonAut_2ndOrder_RedDyn.m` | non-autonomous second-order reduced solve | `ssmtoolpy.manifold.nonautonomous_second_order_reduced_dynamics` | functional core ported | differentiable under fixed resonance pattern |
+| `@Manifold/private/nonAut_2ndOrder_SolveInvEq.m` | non-autonomous second-order coefficient solve | `ssmtoolpy.manifold.nonautonomous_second_order_solve_invariance` | functional one-harmonic/order solve ported | differentiable under fixed resonance/nondegeneracy assumptions |
+| `@Manifold/private/nonAut_2ndOrder_highTerms.m` | non-autonomous second-order coefficient orchestration | `ssmtoolpy.manifold.nonautonomous_second_order_solve_invariance` plus existing force/mixed helpers | core per-harmonic/order solve ported; full object loop not ported | differentiable under fixed structures |
+| `@Manifold/private/nonAut_2ndOrder_leadTerms.m` | non-autonomous second-order leading solve | `ssmtoolpy.manifold.nonautonomous_second_order_reduced_dynamics`, `nonautonomous_second_order_solve_invariance` | functional solve ingredients ported; conjugacy/orchestration loop not ported | differentiable under fixed active/resonance structure |
+| `@Manifold/private/nonAut_2ndOrder_whisker.m` | non-autonomous second-order whisker orchestration | `ssmtoolpy.manifold` functional building blocks | partially ported: setup, leading/high solve ingredients, mixed terms | not yet verified as full workflow |
+| `@Manifold/private/nonAut_Fext_plus_Fnl.m` | non-autonomous force composition | `ssmtoolpy.manifold.nonautonomous_forcing_plus_nonlinearity` | summation core ported after forcing/Jacobian composition evaluation | differentiable for fixed harmonic structure |
 | `@Manifold/private/nonAut_W1R0_plus_W0R1.m` | non-autonomous coefficient algebra | `ssmtoolpy.manifold.nonautonomous_w1r0_plus_w0r1` | ported for Python polynomial containers | differentiable for fixed index structure |
 | `@Manifold/private/nonAut_assembleCoefficients.m` | non-autonomous coefficient setup | `ssmtoolpy.manifold.nonautonomous_assemble_coefficients` | ported as immutable one-harmonic update | differentiable for fixed index structure |
 | `@Manifold/private/nonAut_conj_red.m` | non-autonomous forcing bookkeeping | `ssmtoolpy.manifold.nonautonomous_conjugate_reduction` | ported with zero-based Python index maps | not differentiable |
@@ -132,13 +132,13 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/extract_backbone.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/extract_ridges_trenches.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/FRC_reduced_to_full.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/auto_ode_2mDSSM_cartesian.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/auto_ode_2mDSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.ssm.auto_ode_2md_ssm_cartesian` | ported | differentiable for fixed polynomial structure |
 | `@SSM/private/cal_FRS_via_ana.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/cal_FRS_via_cont_ep.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/cal_ab_dab.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.cal_ab_dab` | ported | differentiable |
-| `@SSM/private/cal_rhos.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/check_auto_reduced_dynamics.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/check_spectrum_and_internal_resonance.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/cal_rhos.m` | SSM reduced-dynamics utility | `ssmtoolpy.ssm.cal_rhos` | ported | differentiable except at zero radius |
+| `@SSM/private/check_auto_reduced_dynamics.m` | SSM reduced-dynamics validation | `ssmtoolpy.ssm.check_auto_reduced_dynamics` | ported | not differentiable |
+| `@SSM/private/check_spectrum_and_internal_resonance.m` | SSM spectral validation | `ssmtoolpy.ssm.check_spectrum_and_internal_resonance` | ported | not differentiable |
 | `@SSM/private/check_stability.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/cocoSet.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/compute_fixed_points_2D.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
@@ -147,22 +147,22 @@ Generated from `SSMTool/src` after inspecting the MATLAB source tree. `SSMTool/e
 | `@SSM/private/compute_gamma.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/compute_output_polar2D.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/compute_reduced_dynamics_2D_polar.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.compute_reduced_dynamics_2d_polar` | functional coefficient-evaluation core ported | differentiable for fixed harmonic structure |
-| `@SSM/private/create_data_for_po_amp.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/create_reduced_dynamics_data.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/create_data_for_po_amp.m` | SSM reduced-dynamics data utility | `ssmtoolpy.ssm.create_po_amplitude_data` | pure data-assembly core ported; object/COCO side effects explicit inputs | not differentiable |
+| `@SSM/private/create_reduced_dynamics_data.m` | SSM reduced-dynamics data utility | `ssmtoolpy.ssm.create_reduced_dynamics_data` | pure data-assembly core ported; MATLAB disk save omitted | not differentiable |
 | `@SSM/private/damped_backbone_l2.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/damped_backbone_linf.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/detect_resonant_modes.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/detect_resonant_modes.m` | SSM spectral utility | `ssmtoolpy.ssm.detect_resonant_modes` | ported with zero-based indices | not differentiable |
 | `@SSM/private/ep_reduced_results.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/frc_Jacobian.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/frc_ab.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/frc_psi.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/frc_Jacobian.m` | SSM/FRC kernel | `ssmtoolpy.frc.frc_jacobian` | ported | differentiable for `rho != 0` |
+| `@SSM/private/frc_ab.m` | SSM/FRC kernel | `ssmtoolpy.frc.frc_ab` | ported | differentiable |
+| `@SSM/private/frc_psi.m` | SSM/FRC kernel | `ssmtoolpy.frc.frc_psi` | ported | piecewise differentiable |
 | `@SSM/private/frs_level_set.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
 | `@SSM/private/frs_output.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/get_contour_xy.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/initial_fixed_point.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/get_contour_xy.m` | SSM/FRC utility | `ssmtoolpy.frc.get_contour_xy` | ported | not differentiable |
+| `@SSM/private/initial_fixed_point.m` | SSM reduced-dynamics initialization | `ssmtoolpy.ssm.initial_fixed_point_guess` | deterministic initial guess and polar regularization ported; `fsolve`/`ode45` refinement not ported | piecewise differentiable |
 | `@SSM/private/leading_order_nonauto_SSM.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/monitor_scaled_states.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
-| `@SSM/private/monitor_states.m` | SSM workflow/continuation API | `ssmtoolpy.ssm` | not yet ported | not yet verified |
+| `@SSM/private/monitor_scaled_states.m` | SSM continuation metadata utility | `ssmtoolpy.ssm.monitor_state_names` and `scale_parameters` | names and scaling core ported; COCO problem mutation not ported | mixed |
+| `@SSM/private/monitor_states.m` | SSM continuation metadata utility | `ssmtoolpy.ssm.monitor_state_names` | naming core ported; COCO problem mutation not ported | not differentiable |
 | `@SSM/private/ode_2DSSM_cartesian.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian` | functional coefficient-evaluation core ported; mutable Omega recomputation branch not ported | differentiable for fixed polynomial/harmonic structure |
 | `@SSM/private/ode_2DSSM_cartesian_DFDP.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_params` | functional coefficient-evaluation core ported; sensitivity-coefficient blocks remain outside scope as in commented MATLAB code | differentiable for fixed polynomial/harmonic structure |
 | `@SSM/private/ode_2DSSM_cartesian_DFDX.m` | SSM reduced-dynamics kernel | `ssmtoolpy.frc.ode_2d_ssm_cartesian_jac_x` | functional coefficient-evaluation core ported via JAX AD | differentiable for fixed polynomial/harmonic structure |
