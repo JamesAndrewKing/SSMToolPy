@@ -33,7 +33,7 @@ def main() -> None:
     residual = lorenz_ssm_invariance_residual(
         reduced, eigenvalue, coefficients, sigma, rho, beta
     )
-    times = jnp.linspace(0.0, 1.0, 501)
+    times = jnp.linspace(0.0, 1.0, 100)
     reduced_positive = linear_reduced_trajectory(1e-4, times, eigenvalue)
     lifted_positive = evaluate_univariate_graph(reduced_positive, coefficients)
     ssm_curve = two_sided_graph_curve(times, 1e-4, eigenvalue, coefficients)

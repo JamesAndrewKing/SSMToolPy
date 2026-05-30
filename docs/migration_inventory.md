@@ -33,6 +33,14 @@
 | DAE examples | `DAEs/**` | high | constrained dynamics workflows | later | later notebooks | deferred |
 | ComplexDyn | `build_model.m`, `compute_rho_grid.m`, `demo.mlx` | medium-high | complex dynamics visualization | later | later notebook | deferred |
 
+## Migrated Example Fidelity Audit
+
+| Workflow | MATLAB source | Python example path | Notebook path | Numerical fidelity status | Plot fidelity status | Missing MATLAB workflow steps | Missing plots | Tests covering numerical core |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| PlanarSystem | `SSMTool/examples/PlanarSystem/build_model.m`, `SSMTool/examples/PlanarSystem/demo.mlx` | `examples/planar_system/example.py` | `examples/planar_system/planar_system.ipynb` | `partial` | not applicable; MATLAB source has no plot | full `DynamicalSystem`, `SSM`, `choose_E`, `compute_whisker`, exact `W0/R0` MATLAB object workflow | none | `tests/test_planar_system.py`, `tests/test_core_graph_solver.py`, `tests/test_parameter_to_loss.py` |
+| BenchamrkSSM1stOrder | `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`, `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx` | `examples/benchmark_ssm_1st_order/example.py` | `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` | `partial` | not applicable; MATLAB source has no plot | full `DynamicalSystem`, `SSM`, `choose_E`, `compute_whisker`, exact `W0/R0` MATLAB object workflow | none | `tests/test_benchmark_ssm_1st_order.py`, `tests/test_core_graph_solver.py`, `tests/test_core_graph.py` |
+| Lorenz1stOrder | `SSMTool/examples/Lorenz1stOrder/build_model.m`, `SSMTool/examples/Lorenz1stOrder/lorenz.m`, `SSMTool/examples/Lorenz1stOrder/demo.mlx` | `examples/lorenz_1st_order/example.py` | `examples/lorenz_1st_order/lorenz_1st_order.ipynb` | `plot-incomplete` | mostly matched; 3D SSM/full plot exists with matching variables, branches, labels, legend, view, and time range; exact `ode45` sampling and MATLAB styling not exact | full adaptive `DynamicalSystem`/`SSM`/`compute_whisker` object workflow, exact `W0/R0` layout, adaptive `ode45` trajectory sampling | none missing; existing plot still has styling/sampling discrepancies | `tests/test_lorenz_1st_order.py`, `tests/test_core_graph.py`, `tests/test_core_integrators.py`, `tests/test_core_graph_solver.py` |
+
 ## Active Target Details
 
 | MATLAB file | Role | Public behavior used | Python destination | Status | Test status | Differentiability |

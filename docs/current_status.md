@@ -7,6 +7,9 @@
 
 ## Passing
 
+- Fidelity audit baseline passed:
+  - `python -m compileall src tests examples`
+  - `python -m pytest` with 48 tests
 - Baseline for the previous solver batch passed:
   - `python -m compileall src tests examples`
   - `python -m pytest` with 6 tests
@@ -79,45 +82,73 @@
   SSM graph coefficients, invariance residual, and direct trajectory output.
 - All current examples are classified against the same substantive workflow
   standard:
-  - `PlanarSystem`: substantive scalar SSM graph coefficient subproblem
-    implemented and tested; full MATLAB class workflow still incomplete.
-  - `BenchamrkSSM1stOrder`: substantive duplicate coefficient comparison
-    implemented and tested; full MATLAB class workflow still incomplete.
-  - `Lorenz1stOrder`: fixed-choice live-script workflow reproduced and tested,
-    including reduced-to-full trajectory comparison and visualization.
+  - `PlanarSystem`: `partial`; substantive scalar SSM graph coefficient
+    subproblem implemented and tested; full MATLAB class workflow still
+    incomplete; no MATLAB plot exists.
+  - `BenchamrkSSM1stOrder`: `partial`; substantive duplicate coefficient
+    comparison implemented and tested; full MATLAB class workflow still
+    incomplete; no MATLAB plot exists.
+  - `Lorenz1stOrder`: `plot-incomplete`; fixed-choice live-script workflow
+    reproduced and tested, including reduced-to-full trajectory comparison and
+    visualization, but full MATLAB object workflow and adaptive `ode45`
+    sampling are not exactly reproduced.
+- Fidelity checklists now exist in every migrated example README.
+- Lorenz notebook visualization now uses the MATLAB live-script grid
+  `t = linspace(0,1,100)`, includes the `x`, `y`, `z` labels, grid, view
+  equivalent to `[15,35]`, and legend entries `SSM` and `Full`.
+- Final audit checks passed:
+  - `python -m compileall src tests examples`
+  - `python -m pytest` with 48 tests
+  - `python examples/planar_system/example.py`
+  - `python examples/benchmark_ssm_1st_order/example.py`
+  - `python examples/lorenz_1st_order/example.py`
+  - all three migrated notebooks executed with `nbconvert` and only non-fatal
+    missing-cell-id warnings.
+
+## Migrated example fidelity
+
+| Example | MATLAB source | Python example | Notebook | Numerical fidelity | Plot fidelity | Missing workflow steps | Tests |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PlanarSystem | `SSMTool/examples/PlanarSystem/build_model.m`, `demo.mlx` | `examples/planar_system/example.py` | `examples/planar_system/planar_system.ipynb` | `partial` | not applicable: MATLAB source has no plot | full `DynamicalSystem`/`SSM`/`compute_whisker` object workflow | `tests/test_planar_system.py`, `tests/test_core_graph_solver.py`, `tests/test_parameter_to_loss.py` |
+| BenchamrkSSM1stOrder | `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`, `demo.mlx` | `examples/benchmark_ssm_1st_order/example.py` | `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` | `partial` | not applicable: MATLAB source has no plot | full `DynamicalSystem`/`SSM`/`compute_whisker` object workflow and exact `W0/R0` layout | `tests/test_benchmark_ssm_1st_order.py`, shared core tests |
+| Lorenz1stOrder | `SSMTool/examples/Lorenz1stOrder/build_model.m`, `lorenz.m`, `demo.mlx` | `examples/lorenz_1st_order/example.py` | `examples/lorenz_1st_order/lorenz_1st_order.ipynb` | `plot-incomplete` | mostly matched: 3D SSM/full plot reproduced, exact `ode45` sampling and MATLAB styling not exact | full adaptive `compute_whisker` object workflow and adaptive `ode45` trajectory sampling | `tests/test_lorenz_1st_order.py`, core graph/integrator/invariance tests |
 
 ## Failing
 
 - None.
 - No current test differentiates through a full MATLAB-faithful pipeline with adaptive mode selection, full SSM construction, reduced dynamics prediction, and loss. The existing parameter-to-loss test freezes those discrete choices.
-- Current notebooks are not complete `.mlx` reproductions unless explicitly
-  stated. `examples/lorenz_1st_order/lorenz_1st_order.ipynb` is now complete
-  for the tested fixed-choice Python/JAX reproduction of the Lorenz live-script
-  workflow.
+- No migrated notebook is currently marked `complete` after the fidelity audit.
+  Lorenz is `plot-incomplete` because the visual workflow is close but does not
+  exactly reproduce MATLAB `ode45` sampling or the full MATLAB object workflow.
 
 ## Active target
 
-- MATLAB example or `.mlx` workflow: `SSMTool/examples/TwoOscillators/demo.mlx`
-- Python example: `examples/two_oscillators/example.py`
-- Jupyter notebook: `examples/two_oscillators/two_oscillators.ipynb` only if
-  a meaningful tested workflow section is implemented.
+- MATLAB example or `.mlx` workflow: migrated-example fidelity audit
+- Python example: existing `examples/<example_name>/example.py` scripts
+- Jupyter notebook: existing migrated notebooks under `examples/<example_name>/`
 - Required MATLAB files:
-  - `SSMTool/examples/TwoOscillators/build_model.m`
-  - `SSMTool/examples/TwoOscillators/demo.mlx`
+  - `SSMTool/examples/PlanarSystem/build_model.m`
+  - `SSMTool/examples/PlanarSystem/demo.mlx`
+  - `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
+  - `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
+  - `SSMTool/examples/Lorenz1stOrder/build_model.m`
+  - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
+  - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
 - Required Python modules:
-  - `examples/two_oscillators/two_oscillators.py`
   - reusable kernels under `src/ssmtoolpy/core/`
 - Acceptance criteria:
-  - Model matrices from `build_model.m` match source-derived references.
-  - At least one substantive TwoOscillators numerical workflow step beyond
-    setup/eigenvalues is implemented and tested.
-  - A Python example prints deterministic outputs from the tested core.
-  - JAX transform tests cover any differentiable public helpers introduced.
+  - Every migrated example README has a fidelity checklist.
+  - Every migrated example is classified as `smoke`, `partial`,
+    `plot-incomplete`, or `complete`.
+  - At least one already migrated example is corrected toward MATLAB numerical
+    or plot fidelity.
+  - Existing tests and example scripts pass.
 
 ## Notes for next run
 
 - Continue from the `Next recommended batch` section in
-  `docs/migration_report.md`, which now targets `TwoOscillators/demo.mlx`.
+  `docs/migration_report.md`, which now targets the largest remaining fidelity
+  gap among already migrated examples.
 - JAX x64 is enabled at package import to preserve tight source-derived coefficient tolerances.
 - The Benchmark source directory intentionally uses the spelling `BenchamrkSSM1stOrder`.
 - Parameter-to-loss differentiability is now an explicit migration objective. Current coverage is only the minimal PlanarSystem fixed-structure smoke test.
@@ -141,9 +172,9 @@
 - All colocated notebooks execute with `python -m jupyter nbconvert --execute`
   after adding project `src/` bootstrap paths to PlanarSystem and Benchmark;
   nbformat emits non-fatal missing-cell-id warnings.
-- `Lorenz1stOrder` is complete for the tested fixed-choice Python/JAX
-  live-script reproduction; remaining Lorenz limitations are generic/adaptive
-  MATLAB class-stack limitations rather than missing live-script cells.
+- `Lorenz1stOrder` is now classified as `plot-incomplete`: the tested
+  fixed-choice Python/JAX live-script reproduction is close, but exact MATLAB
+  `ode45` sampling/styling and the adaptive MATLAB class stack remain missing.
 - Example layout has been normalized for all currently reproduced examples:
   - `examples/planar_system/`
   - `examples/benchmark_ssm_1st_order/`

@@ -80,9 +80,58 @@ This standard applies to every MATLAB example, demo, and `.mlx` workflow in
 the inventory. PlanarSystem and BenchamrkSSM1stOrder currently count as
 substantive partial reproductions because they implement and test SSM graph
 coefficient computations from the live scripts. Lorenz1stOrder now counts as a
-tested fixed-choice workflow reproduction because it implements and tests the
-unstable SSM graph, linear reduced dynamics, reduced-to-full lifting,
-reduced/full trajectory comparison, and notebook visualization.
+tested fixed-choice workflow reproduction, but is classified as
+`plot-incomplete` after the fidelity audit because adaptive MATLAB `ode45`
+sampling, exact MATLAB figure styling, and the full MATLAB object workflow are
+not reproduced exactly.
+
+## Fidelity Checklist Requirement
+
+Every migrated example must maintain a fidelity checklist in
+`examples/<example_name>/README.md` before it can be marked complete. The
+checklist must compare the Python implementation to the MATLAB source using
+these columns:
+
+- MATLAB section/cell
+- MATLAB operation
+- expected numerical output
+- expected plot or visual output
+- Python implementation status
+- Python test coverage
+- plot/visualization status
+- discrepancies
+- next fix
+
+Each migrated example must be classified as one of:
+
+- `smoke`: only setup/preliminary functionality exists.
+- `partial`: meaningful numerical workflow exists but some MATLAB steps or
+  plots are missing.
+- `plot-incomplete`: numerical workflow mostly exists but figures or visual
+  structure do not fully match the MATLAB source.
+- `complete`: numerical workflow and plotting workflow closely match the
+  MATLAB source, with pytest coverage for the numerical core and runnable
+  examples/notebooks.
+
+Do not mark an example `complete` unless the Python example or notebook follows
+the MATLAB workflow order, implements or explicitly justifies all substantive
+numerical steps, reproduces all MATLAB visual outputs as closely as reasonably
+possible, and has tested numerical outputs. Plot fidelity is judged by
+mathematical content and presentation intent: plotted variables, coordinate
+axes, time ranges, parameters, initial conditions, trajectory branches, SSM
+curves/surfaces, reduced/full comparisons, legends, labels, and meaningful
+subplot grouping.
+
+Current audited statuses:
+
+- `PlanarSystem`: `partial`; coefficient workflow reproduced, full
+  `DynamicalSystem`/`SSM` object workflow missing, no MATLAB plot.
+- `BenchamrkSSM1stOrder`: `partial`; duplicate coefficient comparison
+  reproduced, full MATLAB object workflow and `W0/R0` layout missing, no
+  MATLAB plot.
+- `Lorenz1stOrder`: `plot-incomplete`; fixed-choice numerical workflow and 3D
+  SSM/full plot reproduced closely, but exact MATLAB adaptive `ode45` sampling
+  and full adaptive object workflow are missing.
 
 ## Completed PlanarSystem Dependency Closure
 
