@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from planar import evaluate_planar_ssm_graph, planar_ssm_graph_coefficients
+from ssmtoolpy.core.graph import evaluate_univariate_graph
+
+from planar import planar_ssm_graph_coefficients
 
 
 def main() -> None:
@@ -15,7 +17,7 @@ def main() -> None:
     )
     active = coefficients[2:6]
     sample_x = jnp.array([-0.2, 0.0, 0.2])
-    sample_y = evaluate_planar_ssm_graph(sample_x, coefficients)
+    sample_y = evaluate_univariate_graph(sample_x, coefficients)
 
     print("PlanarSystem active graph coefficients a2..a5:")
     print(jnp.asarray(active))

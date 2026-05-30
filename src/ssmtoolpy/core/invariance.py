@@ -5,6 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import jax.numpy as jnp
+from jax import vmap
+
+from ssmtoolpy.core.graph import evaluate_univariate_graph
 
 
 Array = jnp.ndarray
@@ -83,3 +86,38 @@ def solve_autonomous_quadratic_graph_coefficients(
         coefficients.append(jnp.linalg.solve(matrix, rhs))
 
     return jnp.stack(coefficients)
+
+
+def univariate_graph_invariance_residual(
+    reduced_coordinate: Array,
+    eigenvalue: Array | float,
+    coefficients: Array,
+    vector_field: Callable[[Array], Array],
+) -> Array:
+    """Evaluate ``DW(p) * eigenvalue * p - f(W(p))`` for a 1D graph.
+
+    ``coefficients[k]`` stores the full-space coefficient multiplying
+    ``p**k`` in ``W(p)``. The supplied ``vector_field`` must be a pure function
+    from full states to full vector-field values.
+
+    Differentiability: differentiable with respect to reduced coordinates,
+    eigenvalue, coefficients, and continuous closed-over vector-field
+    parameters for fixed coefficient shape and fixed vector-field structure.
+    """
+
+    reduced_coordinate = jnp.asarray(reduced_coordinate)
+    coefficients = jnp.asarray(coefficients)
+    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
+    derivative_coefficients = degrees[:, None] * coefficients
+    derivative = jnp.sum(
+        derivative_coefficients[1:]
+        * reduced_coordinate[..., None, None] ** (degrees[1:, None] - 1.0),
+        axis=-2,
+    )
+    state = evaluate_univariate_graph(reduced_coordinate, coefficients)
+    if state.ndim == 1:
+        field_value = vector_field(state)
+    else:
+        flat_state = state.reshape((-1, state.shape[-1]))
+        field_value = vmap(vector_field)(flat_state).reshape(state.shape)
+    return derivative * (eigenvalue * reduced_coordinate)[..., None] - field_value

@@ -42,19 +42,6 @@ def linear_reduced_trajectory(
     return jnp.asarray(initial_reduced_coordinate) * jnp.exp(eigenvalue * times)
 
 
-def evaluate_graph_trajectory(reduced_coordinates: Array, coefficients: Array) -> Array:
-    """Lift a reduced trajectory through a univariate graph parameterization.
-
-    This is the autonomous one-dimensional slice of MATLAB
-    ``reduced_to_full_traj.m``.
-
-    Differentiability: differentiable with respect to reduced coordinates and
-    coefficients for fixed coefficient shape.
-    """
-
-    return evaluate_univariate_graph(reduced_coordinates, coefficients)
-
-
 def two_sided_graph_curve(
     times: Array,
     amplitude: Array | float,
@@ -72,6 +59,6 @@ def two_sided_graph_curve(
 
     positive_reduced = linear_reduced_trajectory(amplitude, times, eigenvalue)
     negative_reduced = linear_reduced_trajectory(-amplitude, times, eigenvalue)
-    positive = evaluate_graph_trajectory(positive_reduced, coefficients)
-    negative = evaluate_graph_trajectory(negative_reduced, coefficients)
+    positive = evaluate_univariate_graph(positive_reduced, coefficients)
+    negative = evaluate_univariate_graph(negative_reduced, coefficients)
     return jnp.concatenate([negative[::-1], positive], axis=0)

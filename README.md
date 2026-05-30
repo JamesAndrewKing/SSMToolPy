@@ -61,13 +61,14 @@ python -m pytest
 - `planar_vector_field`: differentiable polynomial JAX function.
 - `planar_ssm_graph_coefficients`: differentiable under nonresonance
   assumptions, excluding active denominators `sqrt(24) - k = 0`.
-- `evaluate_planar_ssm_graph`: differentiable polynomial evaluation.
+- `evaluate_univariate_graph`: differentiable polynomial graph evaluation and
+  reduced-to-full lifting for the current one-dimensional graph workflows.
 - `evaluate_monomial_polynomial`: differentiable for fixed exponents.
 - `solve_scalar_graph_coefficients`: differentiable under nonresonance
   assumptions.
 - `fixed_step_rk4`: differentiable for fixed time grids and pure vector fields.
-- `linear_reduced_trajectory`, `evaluate_univariate_graph`, and
-  `evaluate_graph_trajectory`: differentiable for fixed graph structure.
+- `linear_reduced_trajectory` and `evaluate_univariate_graph`: differentiable
+  for fixed graph structure.
 - `solve_autonomous_quadratic_graph_coefficients`: differentiable under fixed
   eigenpair, fixed truncation, supplied quadratic term, and nonsingular
   homological systems.
@@ -75,10 +76,9 @@ python -m pytest
 - `lorenz_rk4_trajectory`: differentiable fixed-time direct trajectory helper.
 - `solve_lorenz_unstable_graph_coefficients`: differentiable under fixed
   eigenpair, fixed truncation, and nonresonance assumptions.
-- `evaluate_lorenz_ssm_graph`: differentiable polynomial graph evaluation.
-- `lorenz_reduced_trajectory` and `lorenz_reduced_to_full_trajectory`:
-  differentiable for fixed times, fixed graph coefficients, and fixed reduced
-  dynamics.
+- Lorenz graph evaluation and reduced-to-full lifting now use
+  `evaluate_univariate_graph` directly; Lorenz reduced dynamics uses
+  `linear_reduced_trajectory` directly.
 - `lorenz_linear_eigenvalues`: differentiable under eigenvalue nondegeneracy
   assumptions; currently used only for regression checks.
 

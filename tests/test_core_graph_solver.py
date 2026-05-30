@@ -8,6 +8,7 @@ import pytest
 from ssmtoolpy.core.invariance import (
     solve_autonomous_quadratic_graph_coefficients,
     solve_scalar_graph_coefficients,
+    univariate_graph_invariance_residual,
 )
 from ssmtoolpy.core.multiindex import multiindices_of_total_degree
 from ssmtoolpy.core.polynomial import (
@@ -163,6 +164,58 @@ def test_quadratic_vector_graph_solver_supports_jax_grad() -> None:
         return jnp.sum(coefficients**2)
 
     gradient = jax.grad(loss_fn)(jnp.array(-3.0))
+
+    assert gradient.shape == ()
+    assert np.isfinite(np.asarray(gradient))
+
+
+def test_univariate_graph_invariance_residual_matches_invariant_graph() -> None:
+    coefficients = jnp.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 0.5],
+        ]
+    )
+    reduced = jnp.array([-0.2, 0.0, 0.2])
+
+    def vector_field(state: jnp.ndarray) -> jnp.ndarray:
+        return jnp.array([-state[0], -4.0 * state[1] + state[0] ** 2])
+
+    residual = univariate_graph_invariance_residual(
+        reduced,
+        eigenvalue=-1.0,
+        coefficients=coefficients,
+        vector_field=vector_field,
+    )
+
+    np.testing.assert_allclose(np.asarray(residual), np.zeros((3, 2)), atol=1e-14)
+
+
+def test_univariate_graph_invariance_residual_supports_jax_grad() -> None:
+    reduced = jnp.array([-0.1, 0.1])
+
+    def loss_fn(transverse: jnp.ndarray) -> jnp.ndarray:
+        coefficients = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [0.0, 1.0 / (transverse - 2.0)],
+            ]
+        )
+
+        def vector_field(state: jnp.ndarray) -> jnp.ndarray:
+            return jnp.array([-state[0], -transverse * state[1] + state[0] ** 2])
+
+        residual = univariate_graph_invariance_residual(
+            reduced,
+            eigenvalue=-1.0,
+            coefficients=coefficients,
+            vector_field=vector_field,
+        )
+        return jnp.sum(residual**2)
+
+    gradient = jax.grad(loss_fn)(jnp.array(4.0))
 
     assert gradient.shape == ()
     assert np.isfinite(np.asarray(gradient))

@@ -5,7 +5,6 @@ import jax.numpy as jnp
 import numpy as np
 
 from ssmtoolpy.core.graph import (
-    evaluate_graph_trajectory,
     evaluate_univariate_graph,
     linear_reduced_trajectory,
     two_sided_graph_curve,
@@ -42,7 +41,7 @@ def test_graph_trajectory_and_two_sided_curve_shape() -> None:
     coefficients = jnp.array([[0.0, 0.0], [1.0, 2.0]])
     times = jnp.linspace(0.0, 0.2, 4)
     reduced = linear_reduced_trajectory(0.1, times, 1.0)
-    lifted = evaluate_graph_trajectory(reduced, coefficients)
+    lifted = evaluate_univariate_graph(reduced, coefficients)
     curve = two_sided_graph_curve(times, 0.1, 1.0, coefficients)
 
     assert lifted.shape == (4, 2)
@@ -50,7 +49,7 @@ def test_graph_trajectory_and_two_sided_curve_shape() -> None:
     np.testing.assert_allclose(
         np.asarray(curve[:4]),
         np.asarray(
-            evaluate_graph_trajectory(
+            evaluate_univariate_graph(
                 linear_reduced_trajectory(-0.1, times, 1.0),
                 coefficients,
             )[::-1]

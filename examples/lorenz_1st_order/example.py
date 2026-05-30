@@ -5,17 +5,18 @@ from __future__ import annotations
 import jax.numpy as jnp
 
 from lorenz import (
-    evaluate_lorenz_ssm_graph,
     lorenz_full_unstable_trajectories,
     lorenz_linear_eigenvalues,
-    lorenz_reduced_to_full_trajectory,
-    lorenz_reduced_trajectory,
     lorenz_rk4_trajectory,
     lorenz_ssm_invariance_residual,
-    lorenz_unstable_ssm_curve,
     lorenz_unstable_ssm_graph_coefficients,
     lorenz_vector_field,
     standard_lorenz_parameters,
+)
+from ssmtoolpy.core.graph import (
+    evaluate_univariate_graph,
+    linear_reduced_trajectory,
+    two_sided_graph_curve,
 )
 
 
@@ -28,24 +29,20 @@ def main() -> None:
         sigma, rho, beta, order=5
     )
     reduced = jnp.linspace(-1e-4, 1e-4, 5)
-    ssm_states = evaluate_lorenz_ssm_graph(reduced, coefficients)
+    ssm_states = evaluate_univariate_graph(reduced, coefficients)
     residual = lorenz_ssm_invariance_residual(
         reduced, eigenvalue, coefficients, sigma, rho, beta
     )
     times = jnp.linspace(0.0, 1.0, 501)
-    reduced_positive = lorenz_reduced_trajectory(1e-4, times, eigenvalue)
-    lifted_positive = lorenz_reduced_to_full_trajectory(
-        reduced_positive, coefficients
-    )
-    ssm_curve = lorenz_unstable_ssm_curve(times, 1e-4, eigenvalue, coefficients)
+    reduced_positive = linear_reduced_trajectory(1e-4, times, eigenvalue)
+    lifted_positive = evaluate_univariate_graph(reduced_positive, coefficients)
+    ssm_curve = two_sided_graph_curve(times, 1e-4, eigenvalue, coefficients)
     full_trajectories = lorenz_full_unstable_trajectories(
         times, 1e-4, eigenvector, sigma, rho, beta
     )
     comparison_times = jnp.linspace(0.0, 0.05, 101)
-    comparison_reduced = lorenz_reduced_trajectory(1e-5, comparison_times, eigenvalue)
-    comparison_lifted = lorenz_reduced_to_full_trajectory(
-        comparison_reduced, coefficients
-    )
+    comparison_reduced = linear_reduced_trajectory(1e-5, comparison_times, eigenvalue)
+    comparison_lifted = evaluate_univariate_graph(comparison_reduced, coefficients)
     comparison_full = lorenz_rk4_trajectory(
         comparison_lifted[0], comparison_times, sigma, rho, beta
     )

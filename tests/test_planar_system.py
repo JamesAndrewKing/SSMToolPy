@@ -8,12 +8,13 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+from ssmtoolpy.core.graph import evaluate_univariate_graph
+
 EXAMPLE_DIR = Path(__file__).resolve().parents[1] / "examples" / "planar_system"
 sys.path.insert(0, str(EXAMPLE_DIR))
 
 from planar import (  # noqa: E402
     build_planar_system,
-    evaluate_planar_ssm_graph,
     planar_nonlinear_coefficients,
     planar_nonlinear_exponents,
     planar_ssm_graph_coefficients,
@@ -88,7 +89,7 @@ def test_planar_graph_satisfies_invariance_equation_through_order_five() -> None
     degrees = jnp.arange(coefficients.shape[0])
 
     x = jnp.linspace(-0.15, 0.15, 7)
-    h = evaluate_planar_ssm_graph(x, coefficients)
+    h = evaluate_univariate_graph(x, coefficients)
     dh = jnp.sum(degrees[1:] * coefficients[1:] * x[..., None] ** (degrees[1:] - 1), axis=-1)
     residual = -x * dh + jnp.sqrt(24.0) * h - (x**2 + x**3 + x**4 + x**5)
 
@@ -117,8 +118,8 @@ def test_planar_public_functions_support_jax_transforms() -> None:
     expected_grad = -sum(1.0 / (np.sqrt(24.0) - degree) ** 2 for degree in range(2, 6))
     np.testing.assert_allclose(np.asarray(grad_value), expected_grad, rtol=1e-12)
 
-    jitted = jax.jit(lambda xs: evaluate_planar_ssm_graph(xs, planar_ssm_graph_coefficients(5)))
+    jitted = jax.jit(lambda xs: evaluate_univariate_graph(xs, planar_ssm_graph_coefficients(5)))
     np.testing.assert_allclose(
         np.asarray(jitted(jnp.array([0.0, 0.1]))),
-        np.asarray(evaluate_planar_ssm_graph(jnp.array([0.0, 0.1]), planar_ssm_graph_coefficients(5))),
+        np.asarray(evaluate_univariate_graph(jnp.array([0.0, 0.1]), planar_ssm_graph_coefficients(5))),
     )

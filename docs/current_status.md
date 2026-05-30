@@ -49,9 +49,14 @@
   - `src/ssmtoolpy/core/graph.py`
   - `src/ssmtoolpy/core/trajectories.py`
   - `src/ssmtoolpy/core/invariance.py::solve_autonomous_quadratic_graph_coefficients`
+  - `src/ssmtoolpy/core/invariance.py::univariate_graph_invariance_residual`
 - Lorenz-specific code now stays in `examples/lorenz_1st_order/lorenz.py` as
-  model definitions, the Lorenz quadratic term, eigenpair setup, and thin
-  workflow wrappers over reusable core kernels.
+  model definitions, the Lorenz quadratic term, eigenpair setup, and
+  Lorenz-specific trajectory wrappers over reusable core kernels.
+- Removed redundant renamed graph wrappers. Current examples now call
+  `evaluate_univariate_graph`, `linear_reduced_trajectory`, and
+  `two_sided_graph_curve` directly for generic graph/lifting/reduced-dynamics
+  work.
 - Revalidated after the layout correction:
   - Searching under `src/ssmtoolpy` for systems paths returns no files or
     directories.
@@ -66,7 +71,7 @@
   executed notebook to `/tmp/lorenz_1st_order.executed.ipynb`; nbformat emits a
   non-fatal missing-cell-id warning.
 - `python -m compileall src tests examples` passes.
-- `python -m pytest` passes with 46 tests.
+- `python -m pytest` passes with 48 tests.
 - `python examples/planar_system/example.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 - `python examples/benchmark_ssm_1st_order/example.py` runs and reports zero
   difference from the analytical coefficients.
@@ -128,6 +133,14 @@
 - Reusable Lorenz kernels are now covered by dedicated core tests:
   `tests/test_core_graph.py`, `tests/test_core_integrators.py`, and the
   quadratic graph-solver tests in `tests/test_core_graph_solver.py`.
+- Search confirmed no remaining active source/example/test/README references
+  to removed wrappers; only documentation history mentions the removed names:
+  `evaluate_graph_trajectory`, `evaluate_planar_ssm_graph`,
+  `evaluate_lorenz_ssm_graph`, `lorenz_reduced_trajectory`,
+  `lorenz_reduced_to_full_trajectory`, or `lorenz_unstable_ssm_curve`.
+- All colocated notebooks execute with `python -m jupyter nbconvert --execute`
+  after adding project `src/` bootstrap paths to PlanarSystem and Benchmark;
+  nbformat emits non-fatal missing-cell-id warnings.
 - `Lorenz1stOrder` is complete for the tested fixed-choice Python/JAX
   live-script reproduction; remaining Lorenz limitations are generic/adaptive
   MATLAB class-stack limitations rather than missing live-script cells.

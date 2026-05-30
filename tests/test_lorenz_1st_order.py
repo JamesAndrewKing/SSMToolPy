@@ -7,21 +7,23 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from ssmtoolpy.core.graph import (
+    evaluate_univariate_graph,
+    linear_reduced_trajectory,
+    two_sided_graph_curve,
+)
+
 EXAMPLE_DIR = Path(__file__).resolve().parents[1] / "examples" / "lorenz_1st_order"
 sys.path.insert(0, str(EXAMPLE_DIR))
 
 from lorenz import (  # noqa: E402
     build_lorenz_system,
-    evaluate_lorenz_ssm_graph,
     lorenz_full_unstable_trajectories,
     lorenz_linear_eigenvalues,
     lorenz_nonlinear_coefficients,
     lorenz_nonlinear_exponents,
-    lorenz_reduced_to_full_trajectory,
-    lorenz_reduced_trajectory,
     lorenz_rk4_trajectory,
     lorenz_ssm_invariance_residual,
-    lorenz_unstable_ssm_curve,
     lorenz_unstable_eigenpair,
     lorenz_unstable_ssm_graph_coefficients,
     lorenz_vector_field,
@@ -202,7 +204,7 @@ def test_lorenz_graph_evaluation_shape_and_linear_term() -> None:
         sigma, rho, beta, order=3
     )
     reduced = jnp.array([0.0, 1e-6])
-    states = evaluate_lorenz_ssm_graph(reduced, coefficients)
+    states = evaluate_univariate_graph(reduced, coefficients)
 
     assert states.shape == (2, 3)
     np.testing.assert_allclose(np.asarray(states[0]), np.zeros(3), atol=0.0)
@@ -225,7 +227,7 @@ def test_lorenz_fixed_choice_graph_solve_supports_jax_grad() -> None:
         coefficients = solve_lorenz_unstable_graph_coefficients(
             a_value, eigenvalue, eigenvector, order=3
         )
-        states = evaluate_lorenz_ssm_graph(reduced, coefficients)
+        states = evaluate_univariate_graph(reduced, coefficients)
         return jnp.sum(states**2)
 
     gradient = jax.grad(loss_fn)(jnp.array(rho))
@@ -238,11 +240,11 @@ def test_lorenz_fixed_choice_graph_solve_supports_jax_grad() -> None:
     assert np.isfinite(np.asarray(gradient))
 
 
-def test_lorenz_reduced_trajectory_matches_linear_reduced_dynamics() -> None:
+def test_linear_reduced_trajectory_matches_linear_reduced_dynamics() -> None:
     times = jnp.array([0.0, 0.25, 0.5])
     eigenvalue = jnp.array(2.0)
     initial = jnp.array(1e-4)
-    reduced = lorenz_reduced_trajectory(initial, times, eigenvalue)
+    reduced = linear_reduced_trajectory(initial, times, eigenvalue)
 
     np.testing.assert_allclose(
         np.asarray(reduced),
@@ -252,37 +254,37 @@ def test_lorenz_reduced_trajectory_matches_linear_reduced_dynamics() -> None:
     assert reduced.shape == (3,)
 
 
-def test_lorenz_reduced_to_full_trajectory_lifts_graph_values() -> None:
+def test_evaluate_univariate_graph_lifts_graph_values() -> None:
     sigma, rho, beta = standard_lorenz_parameters()
     eigenvalue, _, coefficients = lorenz_unstable_ssm_graph_coefficients(
         sigma, rho, beta, order=5
     )
     times = jnp.linspace(0.0, 0.1, 4)
-    reduced = lorenz_reduced_trajectory(1e-4, times, eigenvalue)
-    lifted = lorenz_reduced_to_full_trajectory(reduced, coefficients)
+    reduced = linear_reduced_trajectory(1e-4, times, eigenvalue)
+    lifted = evaluate_univariate_graph(reduced, coefficients)
 
     assert lifted.shape == (4, 3)
     np.testing.assert_allclose(
         np.asarray(lifted),
-        np.asarray(evaluate_lorenz_ssm_graph(reduced, coefficients)),
+        np.asarray(evaluate_univariate_graph(reduced, coefficients)),
         rtol=1e-12,
         atol=1e-15,
     )
 
 
-def test_lorenz_unstable_ssm_curve_matches_demo_concatenation_shape() -> None:
+def test_two_sided_graph_curve_matches_demo_concatenation_shape() -> None:
     sigma, rho, beta = standard_lorenz_parameters()
     eigenvalue, _, coefficients = lorenz_unstable_ssm_graph_coefficients(
         sigma, rho, beta, order=5
     )
     times = jnp.linspace(0.0, 0.2, 6)
-    curve = lorenz_unstable_ssm_curve(times, 1e-4, eigenvalue, coefficients)
+    curve = two_sided_graph_curve(times, 1e-4, eigenvalue, coefficients)
 
     assert curve.shape == (12, 3)
     np.testing.assert_allclose(
         np.asarray(curve[:6]),
-        np.asarray(lorenz_reduced_to_full_trajectory(
-            lorenz_reduced_trajectory(-1e-4, times, eigenvalue),
+        np.asarray(evaluate_univariate_graph(
+            linear_reduced_trajectory(-1e-4, times, eigenvalue),
             coefficients,
         )[::-1]),
         rtol=1e-12,
@@ -296,8 +298,8 @@ def test_lorenz_lifted_ssm_trajectory_matches_full_short_trajectory() -> None:
         sigma, rho, beta, order=5
     )
     times = jnp.linspace(0.0, 0.05, 101)
-    reduced = lorenz_reduced_trajectory(1e-5, times, eigenvalue)
-    lifted = lorenz_reduced_to_full_trajectory(reduced, coefficients)
+    reduced = linear_reduced_trajectory(1e-5, times, eigenvalue)
+    lifted = evaluate_univariate_graph(reduced, coefficients)
     full = lorenz_rk4_trajectory(lifted[0], times, sigma, rho, beta)
 
     np.testing.assert_allclose(np.asarray(full), np.asarray(lifted), atol=2e-10, rtol=2e-7)
@@ -340,8 +342,8 @@ def test_lorenz_lifted_trajectory_loss_supports_jax_grad() -> None:
         coefficients = solve_lorenz_unstable_graph_coefficients(
             a_value, eigenvalue, eigenvector, order=5
         )
-        reduced = lorenz_reduced_trajectory(1e-5, times, eigenvalue)
-        lifted = lorenz_reduced_to_full_trajectory(reduced, coefficients)
+        reduced = linear_reduced_trajectory(1e-5, times, eigenvalue)
+        lifted = evaluate_univariate_graph(reduced, coefficients)
         return jnp.mean((lifted - target) ** 2)
 
     loss = loss_fn(rho)

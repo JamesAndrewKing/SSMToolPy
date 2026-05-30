@@ -8,7 +8,6 @@ MATLAB reference files:
 from __future__ import annotations
 
 import jax.numpy as jnp
-
 from ssmtoolpy.core.invariance import solve_scalar_graph_coefficients
 from ssmtoolpy.core.polynomial import (
     collect_univariate_coefficients,
@@ -102,16 +101,3 @@ def planar_ssm_graph_coefficients(
         exponents, planar_nonlinear_coefficients()[1], order
     )
     return solve_scalar_graph_coefficients(a[0, 0], -decay, forcing)
-
-
-def evaluate_planar_ssm_graph(x: Array, coefficients: Array) -> Array:
-    """Evaluate ``y = sum_k coefficients[k] * x**k``.
-
-    Differentiability: differentiable. This is a finite polynomial evaluation
-    with fixed coefficient length.
-    """
-
-    x = jnp.asarray(x)
-    coefficients = jnp.asarray(coefficients)
-    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
-    return jnp.sum(coefficients * x[..., None] ** degrees, axis=-1)

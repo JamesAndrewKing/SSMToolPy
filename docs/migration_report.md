@@ -10,12 +10,12 @@
 - `src/ssmtoolpy/core/invariance.py`
   - `solve_scalar_graph_coefficients`
   - `solve_autonomous_quadratic_graph_coefficients`
+  - `univariate_graph_invariance_residual`
 - `src/ssmtoolpy/core/integrators.py`
   - `fixed_step_rk4`
 - `src/ssmtoolpy/core/graph.py`
   - `evaluate_univariate_graph`
   - `linear_reduced_trajectory`
-  - `evaluate_graph_trajectory`
   - `two_sided_graph_curve`
 - `src/ssmtoolpy/core/trajectories.py`
   - `integrate_two_sided_branches`
@@ -25,7 +25,6 @@
   - `planar_nonlinear_exponents`
   - `planar_nonlinear_coefficients`
   - `planar_ssm_graph_coefficients`
-  - `evaluate_planar_ssm_graph`
 - `examples/benchmark_ssm_1st_order/benchmark.py`
   - `benchmark_ssm_graph_coefficients`
 - `examples/lorenz_1st_order/lorenz.py`
@@ -38,12 +37,8 @@
   - `lorenz_unstable_eigenpair`
   - `solve_lorenz_unstable_graph_coefficients`
   - `lorenz_unstable_ssm_graph_coefficients`
-  - `evaluate_lorenz_ssm_graph`
   - `lorenz_ssm_invariance_residual`
   - `lorenz_rk4_trajectory`
-  - `lorenz_reduced_trajectory`
-  - `lorenz_reduced_to_full_trajectory`
-  - `lorenz_unstable_ssm_curve`
   - `lorenz_full_unstable_trajectories`
 
 ## Reproduced examples
@@ -110,10 +105,17 @@
   - `SSMTool/src/@DynamicalSystem/odefun.m`
   - `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
 - Lorenz-specific model data, the Lorenz quadratic term, eigenpair setup, and
-  thin wrappers remain in `examples/lorenz_1st_order/lorenz.py`; reusable
-  fixed-step integration, graph evaluation/lifting, reduced trajectory,
+  Lorenz-specific trajectory wrappers remain in
+  `examples/lorenz_1st_order/lorenz.py`; reusable fixed-step integration,
+  graph evaluation/lifting, reduced trajectory, graph-invariance residual,
   two-sided branch assembly, and autonomous quadratic graph solve kernels now
   live under `src/ssmtoolpy/core/`.
+- Removed redundant graph wrappers:
+  `evaluate_graph_trajectory`, `evaluate_planar_ssm_graph`,
+  `evaluate_lorenz_ssm_graph`, `lorenz_reduced_trajectory`,
+  `lorenz_reduced_to_full_trajectory`, and `lorenz_unstable_ssm_curve`.
+  Examples, tests, and notebooks now call the shared core graph helpers
+  directly when no example-specific behavior is needed.
 
 ## Skipped or deferred items
 
@@ -174,8 +176,18 @@
 - `python -m pytest`
 - `python -m pytest tests/test_core_graph.py tests/test_core_integrators.py tests/test_core_graph_solver.py tests/test_lorenz_1st_order.py`
 - `python examples/lorenz_1st_order/example.py`
+- `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
+- `python -m jupyter nbconvert --to notebook --execute examples/planar_system/planar_system.ipynb --output /tmp/planar_system.executed.ipynb`
+- `python -m jupyter nbconvert --to notebook --execute examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb --output /tmp/benchmark_ssm_1st_order.executed.ipynb`
+- `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
+- `python -m compileall src tests examples`
+- `python -m pytest`
 - `python -m pytest`
 - `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
+- `rg "evaluate_graph_trajectory|evaluate_planar_ssm_graph|evaluate_lorenz_ssm_graph|lorenz_reduced_to_full_trajectory|lorenz_reduced_trajectory|lorenz_unstable_ssm_curve" -n src examples tests docs README.md`
+- `python -m pytest tests/test_core_graph.py tests/test_core_graph_solver.py tests/test_lorenz_1st_order.py tests/test_planar_system.py tests/test_parameter_to_loss.py`
+- `python examples/planar_system/example.py`
+- `python examples/lorenz_1st_order/example.py`
 - `sed -n '1,260p' SSMTool/src/misc/reduced_to_full_traj.m`
 - `unzip -p SSMTool/examples/Lorenz1stOrder/demo.mlx matlab/document.xml`
 - `sed -n '1,380p' examples/lorenz_1st_order/lorenz.py`
@@ -433,6 +445,35 @@
 - `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
   passed and wrote `/tmp/lorenz_1st_order.executed.ipynb`; nbformat emitted a
   non-fatal warning about missing cell IDs.
+- Redundancy cleanup baseline passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 46
+  tests.
+- Removed the redundant `evaluate_graph_trajectory` core API and updated all
+  call sites to use `evaluate_univariate_graph` directly.
+- Removed redundant example-local graph/reduced-dynamics wrappers that added no
+  example-specific behavior. Planar and Lorenz examples/tests/notebooks now use
+  `evaluate_univariate_graph`, `linear_reduced_trajectory`, and
+  `two_sided_graph_curve` from `src/ssmtoolpy/core/graph.py` directly.
+- Moved the reusable graph invariance residual into
+  `src/ssmtoolpy/core/invariance.py::univariate_graph_invariance_residual`;
+  Lorenz keeps only a small vector-field closure wrapper for readability.
+- Targeted redundancy-cleanup tests passed:
+  `python -m pytest tests/test_core_graph.py tests/test_core_graph_solver.py tests/test_lorenz_1st_order.py tests/test_planar_system.py tests/test_parameter_to_loss.py`
+  with 41 tests.
+- `python examples/planar_system/example.py`,
+  `python examples/benchmark_ssm_1st_order/example.py`, and
+  `python examples/lorenz_1st_order/example.py` passed after the wrapper
+  removal.
+- First PlanarSystem and Benchmark notebook execution attempts failed because
+  those notebooks added the example directory but not project `src/` to
+  `sys.path`. The notebook bootstraps were updated to match Lorenz.
+- `python -m jupyter nbconvert --to notebook --execute` passed for
+  `examples/planar_system/planar_system.ipynb`,
+  `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`, and
+  `examples/lorenz_1st_order/lorenz_1st_order.ipynb`; each emitted the same
+  non-fatal nbformat missing-cell-id warning.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 48 tests.
 - `python -m pytest tests/test_lorenz_1st_order.py` passed: 13 tests.
 - `python examples/planar_system/example.py` passed and reported zero maximum
   difference from the `demo.mlx` coefficient formula.

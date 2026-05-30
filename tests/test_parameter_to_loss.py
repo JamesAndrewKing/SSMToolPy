@@ -7,11 +7,12 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from ssmtoolpy.core.graph import evaluate_univariate_graph
+
 EXAMPLE_DIR = Path(__file__).resolve().parents[1] / "examples" / "planar_system"
 sys.path.insert(0, str(EXAMPLE_DIR))
 
 from planar import (  # noqa: E402
-    evaluate_planar_ssm_graph,
     planar_ssm_graph_coefficients,
 )
 
@@ -19,7 +20,7 @@ from planar import (  # noqa: E402
 def _planar_graph_loss(decay: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
     coefficients = planar_ssm_graph_coefficients(order=5, decay=decay)
     x = jnp.array([-0.12, -0.04, 0.05, 0.11])
-    prediction = evaluate_planar_ssm_graph(x, coefficients)
+    prediction = evaluate_univariate_graph(x, coefficients)
     return jnp.mean((prediction - target) ** 2)
 
 

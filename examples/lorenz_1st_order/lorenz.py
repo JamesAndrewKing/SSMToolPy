@@ -10,14 +10,12 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from ssmtoolpy.core.graph import (
-    evaluate_graph_trajectory,
-    evaluate_univariate_graph,
-    linear_reduced_trajectory,
-    two_sided_graph_curve,
-)
+from ssmtoolpy.core.graph import evaluate_univariate_graph
 from ssmtoolpy.core.integrators import fixed_step_rk4
-from ssmtoolpy.core.invariance import solve_autonomous_quadratic_graph_coefficients
+from ssmtoolpy.core.invariance import (
+    solve_autonomous_quadratic_graph_coefficients,
+    univariate_graph_invariance_residual,
+)
 from ssmtoolpy.core.polynomial import evaluate_monomial_polynomial
 from ssmtoolpy.core.trajectories import integrate_two_sided_branches
 
@@ -199,72 +197,6 @@ def lorenz_unstable_ssm_graph_coefficients(
     return eigenvalue, eigenvector, coefficients
 
 
-def evaluate_lorenz_ssm_graph(reduced_coordinate: Array, coefficients: Array) -> Array:
-    """Evaluate a one-dimensional Lorenz SSM graph parameterization.
-
-    ``coefficients[k]`` stores the full-space coefficient multiplying ``p**k``.
-    The result has shape ``(..., 3)`` for reduced coordinates with shape
-    ``(...)``.
-
-    Differentiability: differentiable with respect to reduced coordinates and
-    coefficients for fixed coefficient length.
-    """
-
-    return evaluate_univariate_graph(reduced_coordinate, coefficients)
-
-
-def lorenz_reduced_trajectory(
-    initial_reduced_coordinate: Array | float,
-    times: Array,
-    eigenvalue: Array | float,
-) -> Array:
-    """Evaluate the linear Lorenz reduced dynamics used in ``demo.mlx``.
-
-    No inner resonances are detected in the MATLAB live script, so the reduced
-    coordinate obeys ``p_dot = eigenvalue * p`` and therefore
-    ``p(t) = p(0) * exp(eigenvalue * t)``.
-
-    Differentiability: differentiable with respect to the initial reduced
-    coordinate and eigenvalue for fixed ``times``.
-    """
-
-    return linear_reduced_trajectory(initial_reduced_coordinate, times, eigenvalue)
-
-
-def lorenz_reduced_to_full_trajectory(
-    reduced_coordinates: Array,
-    coefficients: Array,
-) -> Array:
-    """Map a reduced Lorenz trajectory to full coordinates.
-
-    This is the one-dimensional autonomous graph-parameterization slice of
-    MATLAB ``reduced_to_full_traj.m`` used by ``Lorenz1stOrder/demo.mlx``.
-
-    Differentiability: differentiable with respect to reduced coordinates and
-    coefficients for fixed coefficient length.
-    """
-
-    return evaluate_graph_trajectory(reduced_coordinates, coefficients)
-
-
-def lorenz_unstable_ssm_curve(
-    times: Array,
-    amplitude: Array | float,
-    eigenvalue: Array | float,
-    coefficients: Array,
-) -> Array:
-    """Return the two-sided unstable SSM curve plotted in the MATLAB live script.
-
-    The negative branch is reversed and concatenated with the positive branch,
-    matching ``z = [z2(:,end:-1:1) z1]`` in ``demo.mlx``.
-
-    Differentiability: differentiable for fixed ``times`` and fixed coefficient
-    length.
-    """
-
-    return two_sided_graph_curve(times, amplitude, eigenvalue, coefficients)
-
-
 def lorenz_full_unstable_trajectories(
     times: Array,
     amplitude: Array | float,
@@ -307,27 +239,12 @@ def lorenz_ssm_invariance_residual(
     coefficient length.
     """
 
-    reduced_coordinate = jnp.asarray(reduced_coordinate)
-    coefficients = jnp.asarray(coefficients)
-    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
-    derivative_coefficients = degrees[:, None] * coefficients
-    derivative = jnp.sum(
-        derivative_coefficients[1:] * reduced_coordinate[..., None, None] ** (degrees[1:, None] - 1.0),
-        axis=-2,
+    return univariate_graph_invariance_residual(
+        reduced_coordinate,
+        eigenvalue,
+        coefficients,
+        lambda state: lorenz_vector_field(state, sigma, rho, beta),
     )
-    state = evaluate_lorenz_ssm_graph(reduced_coordinate, coefficients)
-    x = state[..., 0]
-    y = state[..., 1]
-    z = state[..., 2]
-    vector_field = jnp.stack(
-        [
-            sigma * (y - x),
-            rho * x - y - x * z,
-            -beta * z + x * y,
-        ],
-        axis=-1,
-    )
-    return derivative * (eigenvalue * reduced_coordinate)[..., None] - vector_field
 
 
 def lorenz_rk4_trajectory(

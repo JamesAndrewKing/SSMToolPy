@@ -185,8 +185,9 @@ Current classification:
 - `examples/lorenz_1st_order/lorenz.py`: Lorenz1stOrder-specific model,
   quadratic term, eigenpair setup, and thin workflow wrappers.
 - `src/ssmtoolpy/core/`: reusable polynomial, multi-index, graph-solve,
-  graph-evaluation, reduced-trajectory, trajectory-assembly, and fixed-step
-  integration kernels used by example-local helpers and tests.
+  graph-evaluation, reduced-trajectory, trajectory-assembly, graph-invariance
+  residual, and fixed-step integration kernels used by example-local helpers
+  and tests.
 
 Lorenz boundary cleanup compared the Python implementation against reusable
 patterns in `SSMTool/src/misc/reduced_to_full.m`,
@@ -195,9 +196,11 @@ patterns in `SSMTool/src/misc/reduced_to_full.m`,
 `SSMTool/src/@DynamicalSystem/odefun.m`, and
 `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`. The Lorenz model and
 quadratic term remain example-local; the fixed-time RK4 integrator,
-univariate graph evaluation, linear reduced trajectory, reduced-to-full graph
-lifting, two-sided curve/trajectory assembly, and fixed-choice quadratic graph
-coefficient solve now live in `src/ssmtoolpy/core/`.
+univariate graph evaluation/lifting, linear reduced trajectory, graph
+invariance residuals, two-sided curve/trajectory assembly, and fixed-choice
+quadratic graph coefficient solve now live in `src/ssmtoolpy/core/`. Redundant
+renamed wrappers were removed from core and examples; current examples call the
+shared graph helpers directly where no example-specific behavior is added.
 
 ## Testing Strategy
 
@@ -214,8 +217,8 @@ coefficient solve now live in `src/ssmtoolpy/core/`.
   fixed-choice SSM graph coefficient, invariance residual, reduced trajectory,
   lifting, reduced/full comparison, and differentiability tests.
 - Core tests now cover the reusable RK4, graph evaluation/reduced trajectory,
-  two-sided trajectory assembly, and autonomous quadratic graph solver kernels
-  independently of Lorenz.
+  graph-invariance residual, two-sided trajectory assembly, and autonomous
+  quadratic graph solver kernels independently of Lorenz.
 
 ## Differentiability Strategy
 

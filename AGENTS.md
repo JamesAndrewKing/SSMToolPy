@@ -155,12 +155,30 @@ Prefer reusable library implementation under:
 src/ssmtoolpy/
 ```
 
-Do not put example-specific model definitions, workflow helpers, plotting,
-fixtures, or notebook support code under `src/ssmtoolpy/`. If code is only used
-by one reproduced MATLAB example or `.mlx` workflow, keep it in that example's
-directory under `examples/<example_name>/`. The `ssmtoolpy` package must not
-import from `examples/`; examples and tests may import example-local helpers
-with explicit path handling.
+All reusable numerical algorithms, differentiable kernels, generic ODE/trajectory utilities, SSM graph utilities, reduced-dynamics utilities, polynomial utilities, linear-algebra utilities, and parameter-to-loss utilities belong under `src/ssmtoolpy/`.
+
+Example directories under `examples/<example_name>/` should contain only:
+
+* model-specific definitions,
+* model-specific parameters,
+* model-specific vector fields or forcing definitions,
+* notebook narrative,
+* example scripts,
+* local fixtures or reference data,
+* plotting choices specific to that example,
+* thin wrappers that assemble inputs and call `ssmtoolpy`.
+
+Do not duplicate reusable numerical kernels across examples. If an operation is likely to be needed by more than one example, implement it once in `src/ssmtoolpy/` and call it from the examples.
+
+Before adding or modifying example-local helper code, check whether the helper is actually a reusable numerical kernel. If it is reusable, implement or extend the corresponding `src/ssmtoolpy/` function first, then call it from the example. Do not implement reusable algorithms inside examples as a temporary shortcut unless there is a documented blocker.
+
+The dependency direction is:
+
+```text
+examples/<example_name>/ -> src/ssmtoolpy/
+```
+
+Never the reverse. The `ssmtoolpy` package must not import from `examples/`.
 
 Tests should live under:
 
@@ -168,8 +186,7 @@ Tests should live under:
 tests/
 ```
 
-Examples should live under one directory per reproduced MATLAB example or
-workflow:
+Examples should live under one directory per reproduced MATLAB example or workflow:
 
 ```text
 examples/<example_name>/
@@ -180,15 +197,13 @@ examples/<example_name>/
   helpers.py             # optional, only for one-off example-local helpers
 ```
 
-Jupyter notebooks translated from `.mlx` workflows should be colocated with
-their corresponding example:
+Jupyter notebooks translated from `.mlx` workflows should be colocated with their corresponding example:
 
 ```text
 examples/<example_name>/<example_name>.ipynb
 ```
 
-Use a top-level `notebooks/` directory only with a documented reason. Do not
-put one-off scripts directly under `examples/`.
+Use a top-level `notebooks/` directory only with a documented reason. Do not put one-off scripts directly under `examples/`.
 
 Documentation should live under:
 
@@ -246,6 +261,110 @@ Prefer simple data structures:
 * pure functions for numerical maps.
 
 Avoid large class hierarchies unless a reproduced example proves they are necessary.
+
+## Core functionality versus example-specific code
+
+The repository must avoid duplicated numerical implementations across examples.
+
+Reusable numerical functionality belongs in `src/ssmtoolpy/`.
+
+Examples should define only example-specific data and call reusable library functionality.
+
+### Code that belongs in `src/ssmtoolpy/`
+
+Put code under `src/ssmtoolpy/` when it is a reusable numerical operation, algorithm, data structure, or differentiable kernel, including:
+
+* ODE integration methods,
+* trajectory generation utilities,
+* graph parameterization evaluation,
+* SSM coefficient solvers,
+* invariance equation solvers,
+* reduced dynamics evaluation,
+* lifting/reconstruction maps,
+* polynomial and multi-index utilities,
+* tensor utilities,
+* linear algebra helpers,
+* continuation or parameter-sweep utilities,
+* generic plotting helpers that are useful across examples,
+* parameter-to-loss workflow utilities,
+* any function likely to be reused by two or more examples.
+
+These functions should be model-agnostic. They should accept explicit arrays, callables, coefficients, modes, graph maps, time grids, and configuration objects rather than hard-coding a specific example such as Lorenz, planar systems, beams, oscillators, or forced systems.
+
+### Code that belongs in `examples/<example_name>/`
+
+Put code under `examples/<example_name>/` only when it is specific to that MATLAB example or `.mlx` workflow, including:
+
+* model-specific parameters,
+* model-specific vector fields,
+* model-specific forcing definitions,
+* model-specific initial conditions,
+* model-specific plotting choices,
+* notebook narrative,
+* example-local fixture data,
+* thin wrappers that make the example readable.
+
+Example-local code should be small. It should mostly assemble inputs and call `ssmtoolpy`.
+
+### Required import direction
+
+The dependency direction is:
+
+```text
+examples/<example_name>/ -> src/ssmtoolpy/
+```
+
+Never the reverse.
+
+`src/ssmtoolpy/` must not import from `examples/`.
+
+### No duplicated kernels
+
+Do not reimplement the same numerical pattern separately for each example.
+
+Before adding a new function under `examples/<example_name>/`, check whether it is actually a reusable operation. If it is reusable, implement it once in `src/ssmtoolpy/` and call it from the example.
+
+Examples of functions that should usually be generic:
+
+* fixed-step RK4 trajectory integration,
+* linear reduced trajectory `p(t) = p0 exp(lambda t)`,
+* evaluation of a graph parameterization along reduced coordinates,
+* assembling two-sided SSM graph curves,
+* integrating positive and negative branches of a trajectory,
+* lifting reduced trajectories to full coordinates,
+* comparing full and reduced trajectories,
+* computing scalar losses from predictions,
+* differentiating a parameter-to-loss workflow.
+
+Examples of functions that should usually remain example-local:
+
+* `standard_lorenz_parameters`,
+* `lorenz_vector_field`,
+* `build_lorenz_system`,
+* `planar_system_parameters`,
+* any model-specific polynomial coefficients,
+* any model-specific notebook plotting style.
+
+### Refactoring rule
+
+If a function starts in an example and later becomes useful for another example, move it into `src/ssmtoolpy/` before duplicating it.
+
+When moving a function into `src/ssmtoolpy/`:
+
+1. Rename it to a model-agnostic name.
+2. Remove example-specific assumptions.
+3. Add a docstring.
+4. Add a differentiability classification.
+5. Add or move tests to `tests/`.
+6. Keep the example code as a thin caller.
+7. Update documentation and migration inventory.
+
+### Batch requirement
+
+At the beginning of each implementation batch, inspect any newly added example-local functions. If a function is a reusable numerical kernel, move it into `src/ssmtoolpy/` before continuing to implement new example-specific functionality.
+
+A batch should not leave reusable numerical algorithms hidden inside example directories unless there is a documented reason.
+
 
 ---
 
