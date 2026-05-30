@@ -55,6 +55,27 @@ Estimated complexity from smallest to largest useful regression targets:
 5. Remaining low-dimensional oscillator workflows
 6. FE, COMSOL, FRS, DAE, and parametric resonance workflows
 
+## Notebook Reproduction Standard
+
+Notebook migration is not a summary of preliminary setup cells. A notebook may
+be marked complete only when it reproduces the meaningful numerical and visual
+workflow of the corresponding MATLAB `.mlx` file as closely as reasonably
+possible in Python/JAX.
+
+For SSMTool workflows this generally includes:
+
+- source model definition,
+- parameter setup,
+- SSM reduction or SSM graph computation,
+- reduced dynamics or reduced prediction,
+- trajectory computation or simulation,
+- visualization corresponding to the MATLAB output,
+- numerical tests for the computational core outside the notebook.
+
+SSM graph computation, reduced dynamics, trajectory computation, and
+visualization must not be skipped unless there is a documented hard blocker
+with a precise next fix. Setup-only notebooks are incomplete.
+
 ## Completed PlanarSystem Dependency Closure
 
 - `SSMTool/examples/PlanarSystem/build_model.m`
@@ -95,9 +116,11 @@ for `coeffs(2,2:5)`.
 
 The implemented Lorenz closure covers the source model
 `B z_dot = A z + F(z)`, the MATLAB vector-field formula, the standard
-parameters `sigma=10`, `rho=28`, `beta=8/3`, and the linear eigenvalues stated
-in the live script. Full unstable SSM graph computation, `reduced_to_full_traj`,
-and ODE trajectory comparisons remain deferred.
+parameters `sigma=10`, `rho=28`, `beta=8/3`, the linear eigenvalues stated in
+the live script, and direct fixed-step Lorenz trajectory computation. Full
+unstable SSM graph computation, reduced dynamics prediction,
+`reduced_to_full_traj`, and corresponding SSM/full trajectory visualization
+remain incomplete.
 
 ## Current Python Skeleton
 
@@ -148,7 +171,7 @@ Example-local helpers or fixtures may live inside the example directory, but
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
 - Source-derived duplicate workflow tests for `BenchamrkSSM1stOrder`.
 - Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, and
-  parameter-to-output differentiability tests.
+  trajectory/parameter-to-output differentiability tests.
 
 ## Differentiability Strategy
 

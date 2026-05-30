@@ -33,14 +33,16 @@ print(coefficients[2:6])
 - `Lorenz1stOrder`: first bounded numerical core from `demo.mlx`, covered by
   `examples/lorenz_1st_order/example.py` and `tests/test_lorenz_1st_order.py`.
 
-## Reproduced Notebooks
+## Notebook Status
 
-- `examples/planar_system/planar_system.ipynb` mirrors the tested PlanarSystem numerical
-  core.
-- `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
-  comparison from the MATLAB live script.
-- `examples/lorenz_1st_order/lorenz_1st_order.ipynb` mirrors the tested Lorenz vector-field and
-  eigenvalue checks.
+- `examples/planar_system/planar_system.ipynb`: partial workflow migration,
+  backed by tests for the coefficient core.
+- `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`: partial
+  workflow migration, backed by tests for the coefficient comparison.
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: incomplete workflow
+  migration. It currently covers setup, eigenvalues, and direct trajectory
+  computation, but not the SSM graph, reduced prediction, or corresponding
+  visualization from the MATLAB live script.
 
 ## Testing
 
@@ -59,6 +61,7 @@ python -m pytest
 - `solve_scalar_graph_coefficients`: differentiable under nonresonance
   assumptions.
 - `lorenz_vector_field`: differentiable polynomial JAX function.
+- `lorenz_rk4_trajectory`: differentiable fixed-time direct trajectory helper.
 - `lorenz_linear_eigenvalues`: differentiable under eigenvalue nondegeneracy
   assumptions; currently used only for regression checks.
 

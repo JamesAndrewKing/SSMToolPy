@@ -9,6 +9,7 @@ from ssmtoolpy.systems.lorenz import (
     lorenz_linear_eigenvalues,
     lorenz_nonlinear_coefficients,
     lorenz_nonlinear_exponents,
+    lorenz_rk4_trajectory,
     lorenz_vector_field,
     standard_lorenz_parameters,
 )
@@ -110,3 +111,41 @@ def test_lorenz_parameter_to_output_loss_gradient_smoke() -> None:
     eps = 1e-6
     finite_difference = (loss_fn(rho + eps) - loss_fn(rho - eps)) / (2.0 * eps)
     np.testing.assert_allclose(np.asarray(gradient), np.asarray(finite_difference), rtol=1e-6)
+
+
+def test_lorenz_rk4_trajectory_shape_and_initial_state() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    initial = jnp.array([1.0, 2.0, 3.0])
+    times = jnp.linspace(0.0, 0.02, 5)
+    trajectory = lorenz_rk4_trajectory(initial, times, sigma, rho, beta)
+
+    assert trajectory.shape == (5, 3)
+    np.testing.assert_allclose(np.asarray(trajectory[0]), np.asarray(initial), rtol=0.0, atol=0.0)
+    assert np.all(np.isfinite(np.asarray(trajectory)))
+
+
+def test_lorenz_rk4_one_small_step_matches_taylor_reference() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    initial = jnp.array([1.0, 2.0, 3.0])
+    h = 1e-5
+    trajectory = lorenz_rk4_trajectory(initial, jnp.array([0.0, h]), sigma, rho, beta)
+    expected = initial + h * lorenz_vector_field(initial, sigma, rho, beta)
+
+    np.testing.assert_allclose(np.asarray(trajectory[-1]), np.asarray(expected), rtol=0.0, atol=2e-8)
+
+
+def test_lorenz_rk4_trajectory_supports_jax_grad_for_fixed_times() -> None:
+    sigma = jnp.array(10.0)
+    rho = jnp.array(28.0)
+    beta = jnp.array(8.0 / 3.0)
+    initial = jnp.array([0.1, 0.2, 0.3])
+    times = jnp.linspace(0.0, 0.01, 4)
+
+    def loss_fn(rho_value: jnp.ndarray) -> jnp.ndarray:
+        trajectory = lorenz_rk4_trajectory(initial, times, sigma, rho_value, beta)
+        return jnp.sum(trajectory[-1] ** 2)
+
+    gradient = jax.grad(loss_fn)(rho)
+
+    assert gradient.shape == ()
+    assert np.isfinite(np.asarray(gradient))

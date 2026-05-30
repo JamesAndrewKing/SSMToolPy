@@ -9,6 +9,7 @@ MATLAB reference files:
 from __future__ import annotations
 
 import jax.numpy as jnp
+from jax import lax
 
 from ssmtoolpy.core.polynomial import evaluate_monomial_polynomial
 
@@ -108,3 +109,44 @@ def lorenz_linear_eigenvalues(
 
     a, _ = build_lorenz_system(sigma, rho, beta)
     return jnp.linalg.eigvals(a)
+
+
+def lorenz_rk4_trajectory(
+    initial_state: Array,
+    times: Array,
+    sigma: Array | float,
+    rho: Array | float,
+    beta: Array | float,
+) -> Array:
+    """Integrate the Lorenz vector field on prescribed times with RK4 steps.
+
+    This is a deterministic fixed-step trajectory helper for reproducing the
+    simulation portion of ``Lorenz1stOrder/demo.mlx``. The first row of the
+    returned array is ``initial_state`` and row ``i`` corresponds to
+    ``times[i]``.
+
+    Differentiability: differentiable with respect to the initial state and
+    continuous parameters for fixed ``times``.
+    """
+
+    initial_state = jnp.asarray(initial_state)
+    times = jnp.asarray(times)
+
+    if times.ndim != 1:
+        raise ValueError("times must be a one-dimensional array")
+    if initial_state.shape != (3,):
+        raise ValueError("initial_state must have shape (3,)")
+
+    def step(state: Array, time_pair: Array) -> tuple[Array, Array]:
+        t0, t1 = time_pair
+        h = t1 - t0
+        k1 = lorenz_vector_field(state, sigma, rho, beta)
+        k2 = lorenz_vector_field(state + 0.5 * h * k1, sigma, rho, beta)
+        k3 = lorenz_vector_field(state + 0.5 * h * k2, sigma, rho, beta)
+        k4 = lorenz_vector_field(state + h * k3, sigma, rho, beta)
+        next_state = state + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        return next_state, next_state
+
+    pairs = jnp.stack([times[:-1], times[1:]], axis=1)
+    _, tail = lax.scan(step, initial_state, pairs)
+    return jnp.concatenate([initial_state[None, :], tail], axis=0)

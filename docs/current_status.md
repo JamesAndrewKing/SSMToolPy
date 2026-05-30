@@ -27,16 +27,22 @@
   - source model matrices and nonlinear tensor terms
   - MATLAB `lorenz.m` vector field
   - standard-parameter linear eigenvalue regression
+  - direct fixed-step trajectory computation
   - parameter-to-output loss gradient smoke test
 - `python examples/lorenz_1st_order/example.py` runs and prints the expected vector field and sorted eigenvalues.
 - `python -m compileall src tests examples` passes.
-- `python -m pytest` passes with 25 tests.
+- `python -m pytest` passes with 28 tests.
 - `python examples/planar_system/example.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 
 ## Failing
 
 - None.
 - No current test differentiates through a full MATLAB-faithful pipeline with adaptive mode selection, full SSM construction, reduced dynamics prediction, and loss. The existing parameter-to-loss test freezes those discrete choices.
+- Current notebooks are not complete `.mlx` reproductions unless explicitly
+  stated. In particular, `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+  is incomplete because SSM graph computation, reduced prediction,
+  SSM/full-trajectory visualization, and `reduced_to_full_traj` are not yet
+  implemented.
 
 ## Active target
 
@@ -62,8 +68,12 @@
 - The Benchmark source directory intentionally uses the spelling `BenchamrkSSM1stOrder`.
 - Parameter-to-loss differentiability is now an explicit migration objective. Current coverage is only the minimal PlanarSystem fixed-structure smoke test.
 - Lorenz currently covers parameter-to-output differentiability, not an SSM-reduction loss.
+- Lorenz direct trajectory computation is implemented with fixed-step RK4, but
+  SSM-reduced trajectory mapping and SSM/full visualization are still missing.
 - Example layout has been normalized for all currently reproduced examples:
   - `examples/planar_system/`
   - `examples/benchmark_ssm_1st_order/`
   - `examples/lorenz_1st_order/`
 - Each reproduced example directory contains `README.md`, `example.py`, and its colocated notebook.
+- Notebook completion now requires reproducing the meaningful MATLAB `.mlx`
+  workflow, not only source setup or eigenvalue checks.

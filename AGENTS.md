@@ -296,12 +296,31 @@ For each `.mlx` file:
 7. Keep notebooks readable and concise.
 8. Avoid hiding core numerical logic inside notebooks.
 
+Notebook migration means reproducing the MATLAB live-script workflow as closely
+as reasonably possible in Python/JAX. A setup-only notebook is incomplete. For
+SSMTool `.mlx` workflows, the notebook should include the meaningful sequence
+present in the MATLAB source whenever applicable:
+
+1. source model definition,
+2. parameter setup,
+3. SSM reduction or SSM graph computation,
+4. reduced dynamics or reduced prediction,
+5. trajectory computation or simulation,
+6. visualization corresponding to the MATLAB output,
+7. numerical checks backed by pytest tests for the computational core.
+
+Do not skip SSM graph computation, reduced dynamics, trajectory computation, or
+visualization unless there is a documented hard blocker. If a workflow is only
+partially migrated, label the notebook and docs as incomplete, list the missing
+MATLAB steps, and make the next batch move one missing step forward.
+
 Notebook acceptance requires:
 
 1. The notebook imports the package normally.
 2. The notebook runs from top to bottom.
-3. The important numerical outputs are covered by pytest tests outside the notebook.
-4. Any plots are generated from tested numerical outputs.
+3. The meaningful numerical and visual workflow of the MATLAB `.mlx` is reproduced, or specific blockers are documented.
+4. The important numerical outputs are covered by pytest tests outside the notebook.
+5. Any plots are generated from tested numerical outputs.
 
 If a notebook cannot be executed in the current environment, document the reason and ensure its numerical core is still tested.
 
@@ -767,6 +786,48 @@ The port is complete only when:
 Until examples are reproduced and tested, the project is not complete, even if many MATLAB files have been translated.
 
 Until `.mlx` workflows have notebook equivalents or documented exclusions, the example migration is not complete.
+
+### `.mlx` to Jupyter notebook migration standard
+
+A translated notebook is not a summary of the MATLAB `.mlx` file. It is an executable Python/JAX reproduction of the MATLAB live-script workflow.
+
+For each relevant `.mlx` file, the corresponding notebook should reproduce, as closely as reasonably possible:
+
+1. model definition,
+2. parameter setup,
+3. linear analysis or modal setup,
+4. SSM reduction / SSM graph computation,
+5. reduced dynamics or prediction,
+6. trajectory computation or simulation,
+7. visualization corresponding to the MATLAB output,
+8. explanatory text sufficient for a reader to follow the workflow.
+
+The notebook must not stop at preliminary setup such as vector field definition, eigenvalues, or parameter declarations unless there is a documented hard blocker.
+
+SSM graph computation, reduced dynamics, trajectory computation, and visualization are required parts of the notebook migration when they appear in the MATLAB `.mlx` workflow.
+
+A notebook may be marked `complete` only when:
+
+1. it runs from top to bottom,
+2. it reproduces the meaningful numerical workflow of the MATLAB `.mlx`,
+3. its core numerical computations are implemented in `src/ssmtoolpy/` or clearly isolated helper code,
+4. important numerical outputs are covered by pytest tests,
+5. plots are generated from tested numerical outputs.
+
+A notebook that only reproduces setup, model definition, eigenvalues, or preliminary diagnostics must be marked `incomplete`.
+
+If full reproduction is not yet possible, document the exact blocker, such as:
+
+* missing SSM coefficient solver,
+* missing graph parameterization,
+* missing reduced dynamics integration,
+* missing trajectory lifting,
+* missing plotting utility,
+* missing MATLAB fixture or reference data,
+* unresolved numerical discrepancy.
+
+Do not use vague language such as “deferred” without naming the missing dependency and adding it to the next-batch plan.
+
 
 ---
 

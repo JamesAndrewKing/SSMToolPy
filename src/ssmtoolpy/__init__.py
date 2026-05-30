@@ -9,6 +9,7 @@ from ssmtoolpy.systems.lorenz import (
     lorenz_linear_eigenvalues,
     lorenz_nonlinear_coefficients,
     lorenz_nonlinear_exponents,
+    lorenz_rk4_trajectory,
     lorenz_vector_field,
     standard_lorenz_parameters,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "lorenz_linear_eigenvalues",
     "lorenz_nonlinear_coefficients",
     "lorenz_nonlinear_exponents",
+    "lorenz_rk4_trajectory",
     "lorenz_vector_field",
     "planar_ssm_graph_coefficients",
     "planar_vector_field",
