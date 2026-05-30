@@ -23,8 +23,14 @@
 - `python examples/benchmark_ssm_1st_order.py` runs and reports zero difference from the analytical coefficients.
 - A minimal fixed-structure parameter-to-loss gradient smoke test exists in `tests/test_parameter_to_loss.py`.
   It differentiates `decay -> PlanarSystem graph coefficients -> graph prediction -> scalar loss`.
+- `Lorenz1stOrder` first bounded numerical core is implemented:
+  - source model matrices and nonlinear tensor terms
+  - MATLAB `lorenz.m` vector field
+  - standard-parameter linear eigenvalue regression
+  - parameter-to-output loss gradient smoke test
+- `python examples/lorenz_1st_order.py` runs and prints the expected vector field and sorted eigenvalues.
 - `python -m compileall src tests examples` passes.
-- `python -m pytest` passes with 19 tests.
+- `python -m pytest` passes with 25 tests.
 - `python examples/planar_system.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 
 ## Failing
@@ -34,20 +40,20 @@
 
 ## Active target
 
-- MATLAB example or `.mlx` workflow: `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
-- Python example: `examples/benchmark_ssm_1st_order.py`
-- Jupyter notebook: `notebooks/benchmark_ssm_1st_order.ipynb`
+- MATLAB example or `.mlx` workflow: `SSMTool/examples/Lorenz1stOrder/demo.mlx`
+- Python example: `examples/lorenz_1st_order.py`
+- Jupyter notebook: `notebooks/lorenz_1st_order.ipynb`
 - Required MATLAB files:
-  - `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
-  - `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
-  - `SSMTool/examples/PlanarSystem/build_model.m`
-  - `SSMTool/examples/PlanarSystem/demo.mlx`
+  - `SSMTool/examples/Lorenz1stOrder/build_model.m`
+  - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
+  - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
 - Required Python modules:
-  - `src/ssmtoolpy/systems/planar.py`
+  - `src/ssmtoolpy/systems/lorenz.py`
 - Acceptance criteria:
-  - Record `BenchamrkSSM1stOrder` as reproduced or explicitly documented as a duplicate.
-  - Cover the Benchmark workflow name/path with at least one regression test.
-  - Avoid new broad APIs or duplicated numerical implementation.
+  - Lorenz source model and vector field are implemented with docstrings and differentiability classifications.
+  - Standard-parameter eigenvalues match `demo.mlx`.
+  - MATLAB `lorenz.m` vector field formula is covered by regression tests.
+  - A parameter-to-output loss gradient smoke test covers a Lorenz system parameter.
 
 ## Notes for next run
 
@@ -55,3 +61,4 @@
 - JAX x64 is enabled at package import to preserve tight source-derived coefficient tolerances.
 - The Benchmark source directory intentionally uses the spelling `BenchamrkSSM1stOrder`.
 - Parameter-to-loss differentiability is now an explicit migration objective. Current coverage is only the minimal PlanarSystem fixed-structure smoke test.
+- Lorenz currently covers parameter-to-output differentiability, not an SSM-reduction loss.

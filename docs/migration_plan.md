@@ -30,7 +30,8 @@ Estimated complexity from smallest to largest useful regression targets:
 2. `BenchamrkSSM1stOrder/demo.mlx`: source-confirmed duplicate of
    PlanarSystem; reproduced as a named regression target.
 3. `Lorenz1stOrder/demo.mlx`: 3D first-order polynomial vector field with a
-   1D unstable SSM and trajectory comparison.
+   1D unstable SSM and trajectory comparison; first vector-field/eigenvalue
+   subproblem is reproduced.
 4. `TwoOscillators/demo.mlx`: small 2DOF second-order oscillator with forcing.
 5. `ThreeOscillators/ThreeOscillatorsBook.mlx`: small but broader nonlinear
    oscillator workflow.
@@ -49,7 +50,7 @@ Estimated complexity from smallest to largest useful regression targets:
 
 1. `PlanarSystem/demo.mlx` -> `notebooks/planar_system.ipynb`
 2. `BenchamrkSSM1stOrder/demo.mlx` -> `notebooks/benchmark_ssm_1st_order.ipynb`
-3. `Lorenz1stOrder/demo.mlx`
+3. `Lorenz1stOrder/demo.mlx` -> `notebooks/lorenz_1st_order.ipynb`
 4. `TwoOscillators/demo.mlx`
 5. Remaining low-dimensional oscillator workflows
 6. FE, COMSOL, FRS, DAE, and parametric resonance workflows
@@ -86,6 +87,18 @@ in the script are zero.
 the same analytical coefficients, and an explicit coefficient-difference check
 for `coeffs(2,2:5)`.
 
+## Completed Lorenz First Subproblem Closure
+
+- `SSMTool/examples/Lorenz1stOrder/build_model.m`
+- `SSMTool/examples/Lorenz1stOrder/lorenz.m`
+- `SSMTool/examples/Lorenz1stOrder/demo.mlx`
+
+The implemented Lorenz closure covers the source model
+`B z_dot = A z + F(z)`, the MATLAB vector-field formula, the standard
+parameters `sigma=10`, `rho=28`, `beta=8/3`, and the linear eigenvalues stated
+in the live script. Full unstable SSM graph computation, `reduced_to_full_traj`,
+and ODE trajectory comparisons remain deferred.
+
 ## Current Python Skeleton
 
 - `src/ssmtoolpy/__init__.py`
@@ -93,13 +106,18 @@ for `coeffs(2,2:5)`.
 - `src/ssmtoolpy/core/polynomial.py`
 - `src/ssmtoolpy/core/invariance.py`
 - `src/ssmtoolpy/systems/planar.py`
+- `src/ssmtoolpy/systems/lorenz.py`
 - `examples/planar_system.py`
 - `examples/benchmark_ssm_1st_order.py`
+- `examples/lorenz_1st_order.py`
 - `tests/test_planar_system.py`
 - `tests/test_core_graph_solver.py`
 - `tests/test_benchmark_ssm_1st_order.py`
+- `tests/test_lorenz_1st_order.py`
+- `tests/test_parameter_to_loss.py`
 - `notebooks/planar_system.ipynb`
 - `notebooks/benchmark_ssm_1st_order.ipynb`
+- `notebooks/lorenz_1st_order.ipynb`
 
 ## Testing Strategy
 
@@ -112,6 +130,8 @@ for `coeffs(2,2:5)`.
 - Invariance residual test for the graph polynomial.
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
 - Source-derived duplicate workflow tests for `BenchamrkSSM1stOrder`.
+- Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, and
+  parameter-to-output differentiability tests.
 
 ## Differentiability Strategy
 
@@ -140,9 +160,9 @@ for `coeffs(2,2:5)`.
 
 1. Keep the PlanarSystem fixed-structure graph loss as the smallest
    differentiability sentinel.
-2. For `Lorenz1stOrder`, first implement a parameterized source model and vector
-   field so system parameters flow into deterministic numerical outputs.
-3. When a minimal Lorenz or PlanarSystem SSM coefficient solve is available with
+2. `Lorenz1stOrder` now has a parameterized source model and vector field so
+   system parameters flow into deterministic numerical outputs.
+3. When a minimal Lorenz SSM coefficient solve is available with
    fixed mode/truncation choices, add a parameter-to-loss test that differentiates
    through that solve.
 4. Only after fixed choices are tested, document which adaptive choices remain

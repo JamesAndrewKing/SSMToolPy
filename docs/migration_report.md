@@ -16,6 +16,13 @@
   - `planar_nonlinear_coefficients`
   - `planar_ssm_graph_coefficients`
   - `evaluate_planar_ssm_graph`
+- `src/ssmtoolpy/systems/lorenz.py`
+  - `standard_lorenz_parameters`
+  - `build_lorenz_system`
+  - `lorenz_nonlinear_exponents`
+  - `lorenz_nonlinear_coefficients`
+  - `lorenz_vector_field`
+  - `lorenz_linear_eigenvalues`
 
 ## Reproduced examples
 
@@ -27,18 +34,25 @@
   `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`: reproduced as a
   source-confirmed duplicate of PlanarSystem, with a named Python example and
   tests covering the misspelled source path.
+- `Lorenz1stOrder` first bounded numerical core from
+  `SSMTool/examples/Lorenz1stOrder/demo.mlx`: source model, vector field,
+  standard-parameter linear eigenvalues, and parameter-to-output gradient smoke
+  test.
 
 ## Reproduced notebooks
 
 - `notebooks/planar_system.ipynb` calls the tested PlanarSystem numerical API.
 - `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
   comparison and calls the same tested numerical API.
+- `notebooks/lorenz_1st_order.ipynb` mirrors the tested Lorenz numerical core.
 
 ## Skipped or deferred items
 
 - Full MATLAB `DynamicalSystem`, `SSM`, and `Manifold` class behavior.
 - General multi-dimensional autonomous coefficient solving.
 - Resonant reduced-dynamics extraction from `Aut_1stOrder_RedDyn.m`.
+- Lorenz unstable SSM graph computation, `reduced_to_full_traj`, and ODE
+  trajectory comparison from the second half of `demo.mlx`.
 - Continuation, FRC/FRS, plotting, and external finite-element workflows.
 - Notebook execution checks; no notebook execution tooling was configured before
   this batch.
@@ -56,6 +70,8 @@
   fixed-structure PlanarSystem smoke test. It does not yet include adaptive
   mode selection, a full MATLAB-faithful SSM construction, or nonlinear reduced
   dynamics prediction.
+- Lorenz currently covers parameter-to-output differentiability only, not an
+  SSM-reduction loss.
 
 ## Exact commands run
 
@@ -69,6 +85,23 @@
 - `sed -n '1,300p' docs/migration_inventory.md`
 - `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
 - `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,380p' AGENTS.md`
+- `sed -n '1,280p' docs/current_status.md`
+- `sed -n '1,360p' docs/migration_plan.md`
+- `sed -n '1,380p' docs/migration_inventory.md`
+- `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
+- `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,220p' SSMTool/examples/Lorenz1stOrder/build_model.m`
+- `sed -n '1,220p' SSMTool/examples/Lorenz1stOrder/lorenz.m`
+- `unzip -p SSMTool/examples/Lorenz1stOrder/demo.mlx matlab/document.xml`
+- `sed -n '1,160p' src/ssmtoolpy/systems/__init__.py`
+- `python examples/lorenz_1st_order.py`
+- `python -m compileall src tests examples`
+- `python -m pytest tests/test_lorenz_1st_order.py`
 - `python -m compileall src tests examples`
 - `python -m pytest`
 - `sed -n '1,220p' SSMTool/examples/BenchamrkSSM1stOrder/build_model.m`
@@ -175,22 +208,32 @@
 - `python -m pytest tests/test_parameter_to_loss.py` passed: 1 test.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 19 tests.
+- Baseline for the Lorenz batch passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 19 tests.
+- `python examples/lorenz_1st_order.py` passed and printed vector field
+  `[10, 23, -6]` at `[1, 2, 3]` with sorted eigenvalues
+  `[-22.82772345, -2.66666667, 11.82772345]`.
+- `python -m pytest tests/test_lorenz_1st_order.py` passed: 6 tests.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 25 tests.
 
 ## Next recommended batch
 
 ### Target
 
-- Start the `Lorenz1stOrder/demo.mlx` migration by reproducing its first
-  bounded numerical subproblem: build the JAX Lorenz vector field and source
-  model matrices/tensor terms, verify the standard-parameter linear spectrum at
-  the origin, and add the first Lorenz parameter-to-output loss smoke test as a
-  stepping stone toward parameter-to-loss SSM optimization.
+- Extend `Lorenz1stOrder/demo.mlx` with the smallest fixed-choice unstable SSM
+  graph coefficient subproblem: select the positive real eigenvalue/eigenvector
+  externally, solve nonresonant scalar graph coefficients through order 2 or 3,
+  and verify the invariance residual on deterministic small amplitudes.
 
 ### MATLAB files involved
 
 - `SSMTool/examples/Lorenz1stOrder/build_model.m`
 - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
 - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
+- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m`
+- `SSMTool/src/@Manifold/private/coeffs_setup.m`
 
 ### MATLAB examples or `.mlx` workflows involved
 
@@ -199,54 +242,51 @@
 ### Planned Python modules
 
 - `src/ssmtoolpy/systems/lorenz.py`
-- Reuse existing polynomial helpers if useful; do not add a general SSM solver
-  yet unless required by the bounded subproblem.
+- Possibly `src/ssmtoolpy/core/invariance.py` for a small fixed-choice vector
+  homological solve if the current scalar graph helper is insufficient.
+- Do not implement adaptive mode selection, resonance classification, or full
+  `compute_whisker`.
 
 ### Planned examples or notebooks
 
-- `examples/lorenz_1st_order.py` for the vector field, matrix/tensor model,
-  and eigenvalue check.
-- `notebooks/lorenz_1st_order.ipynb` only for the same tested numerical core;
-  trajectory plotting and SSM visualization can remain deferred.
+- Update `examples/lorenz_1st_order.py` to print the fixed-choice graph
+  coefficient residual or coefficient summary.
+- Update `notebooks/lorenz_1st_order.ipynb` only if the tested numerical core
+  remains concise.
 
 ### Expected tests
 
-- Lorenz matrix and nonlinear tensor terms match `build_model.m` for
-  `sigma=10`, `rho=28`, `beta=8/3`.
-- JAX vector field matches `lorenz.m` on deterministic states.
-- Linear eigenvalues match the live-script values approximately
-  `-22.828`, `-2.667`, and `11.828`.
-- JAX transform test for the differentiable Lorenz vector field.
-- A small parameter-to-output scalar loss test differentiates through at least
-  one Lorenz system parameter into vector-field predictions. This is not yet an
-  SSM-reduction loss, but it establishes the parameterized system-definition
-  stage of the eventual benchmark.
-- Existing PlanarSystem, Benchmark, and core tests remain passing.
+- Fixed eigenpair selection picks the positive eigenvalue near `11.8277`.
+- Computed graph coefficients satisfy the autonomous invariance equation
+  through the chosen order on small deterministic amplitudes.
+- A finite scalar fixed-choice Lorenz graph loss has a finite gradient with
+  respect to one continuous parameter if the solve is kept differentiable.
+- Existing Lorenz vector-field/eigenvalue, PlanarSystem, Benchmark, and core
+  tests remain passing.
 
 ### Known risks
 
 - The full Lorenz `.mlx` workflow computes a 1D unstable SSM and compares
   trajectories; that is larger than the first bounded target.
-- Eigenvalue ordering can differ between libraries; tests should compare sorted
-  real values for the standard parameters.
+- Eigenvector normalization/sign conventions can change discontinuously; freeze
+  deterministic normalization outside any differentiable loss.
+- Inner-resonance logic is deferred; this batch should document that the chosen
+  standard-parameter case is nonresonant for the tested orders.
 
 ### Differentiability concerns
 
-- Lorenz vector field is polynomial and differentiable.
-- Eigenvalue computations are differentiable only under nondegeneracy
-  assumptions and should not be marked simply differentiable in this batch.
-- The Lorenz parameter-to-output smoke test should freeze evaluation states and
-  avoid differentiating through eigenvalue sorting or mode selection.
+- Differentiability should be through fixed choices: selected eigenpair,
+  truncation order, normalization convention, and nonresonant solve structure.
+- Do not claim differentiability through eigenvalue sorting or adaptive mode
+  selection.
+- Homological linear systems are differentiable only while nonsingular and
+  reasonably conditioned.
 
 ### Acceptance criteria
 
-- Lorenz source model and vector field are implemented in a small
-  example-specific module with docstrings and differentiability classifications.
-- A regression test covers the standard-parameter eigenvalues stated in
-  `demo.mlx`.
-- A regression test covers the MATLAB `lorenz.m` vector field formula.
-- A JAX transform test covers the differentiable Lorenz vector field.
-- A parameter-to-output loss smoke test for the Lorenz model returns a finite
-  scalar and has a finite gradient with respect to a system parameter.
-- `python -m compileall src tests examples` and `python -m pytest` pass.
+- A minimal fixed-choice Lorenz graph coefficient computation is implemented
+  and tested without adding broad MATLAB compatibility wrappers.
+- Invariance residual tests pass for the chosen order.
+- Any differentiable public function added has a JAX transform or
+  parameter-to-loss-style test.
 - `python -m compileall src tests examples` and `python -m pytest` pass.

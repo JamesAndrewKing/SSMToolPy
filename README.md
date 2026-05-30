@@ -30,6 +30,8 @@ print(coefficients[2:6])
 - `BenchamrkSSM1stOrder`: source-confirmed duplicate of `PlanarSystem`, covered
   by `examples/benchmark_ssm_1st_order.py` and
   `tests/test_benchmark_ssm_1st_order.py`.
+- `Lorenz1stOrder`: first bounded numerical core from `demo.mlx`, covered by
+  `examples/lorenz_1st_order.py` and `tests/test_lorenz_1st_order.py`.
 
 ## Reproduced Notebooks
 
@@ -37,6 +39,8 @@ print(coefficients[2:6])
   core.
 - `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
   comparison from the MATLAB live script.
+- `notebooks/lorenz_1st_order.ipynb` mirrors the tested Lorenz vector-field and
+  eigenvalue checks.
 
 ## Testing
 
@@ -54,6 +58,9 @@ python -m pytest
 - `evaluate_monomial_polynomial`: differentiable for fixed exponents.
 - `solve_scalar_graph_coefficients`: differentiable under nonresonance
   assumptions.
+- `lorenz_vector_field`: differentiable polynomial JAX function.
+- `lorenz_linear_eigenvalues`: differentiable under eigenvalue nondegeneracy
+  assumptions; currently used only for regression checks.
 
 ## Known Limitations
 
