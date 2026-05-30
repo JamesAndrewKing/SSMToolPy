@@ -45,3 +45,17 @@
 | `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m` | core | resonance detection before coefficient solve | no public API yet | nonresonant PlanarSystem case documented only | not directly tested | not yet verified |
 | `SSMTool/src/@Manifold/private/coeffs_setup.m` | core | master eigenvalue and multi-index setup | `multiindices_of_total_degree` | tiny index slice implemented | tested | not differentiable |
 | `SSMTool/src/@Manifold/private/multi_nsumk.m` | core utility | small nonnegative multi-index combinations | `multiindices_of_total_degree` | tiny total-degree slice implemented | tested | not differentiable |
+
+## Parameter-to-Loss Path Classification
+
+| Python module/function | Path role | Classification | Current test coverage |
+| --- | --- | --- | --- |
+| `src/ssmtoolpy/systems/planar.py::planar_ssm_graph_coefficients` | fixed SSM reduction phase for PlanarSystem scalar graph | differentiable under nonresonance assumptions | coefficient tests, JAX grad tests, parameter-to-loss smoke |
+| `src/ssmtoolpy/systems/planar.py::evaluate_planar_ssm_graph` | reduced prediction phase for PlanarSystem scalar graph | differentiable | graph evaluation tests, JAX jit tests, parameter-to-loss smoke |
+| `src/ssmtoolpy/core/invariance.py::solve_scalar_graph_coefficients` | differentiable homological-equation solve for fixed one-master/one-transverse structure | differentiable under nonresonance assumptions | solver tests, JAX grad tests |
+| `src/ssmtoolpy/core/polynomial.py::evaluate_monomial_polynomial` | differentiable vector-field/polynomial evaluation | differentiable for fixed exponents | polynomial tests, JAX grad tests |
+| `src/ssmtoolpy/core/polynomial.py::collect_univariate_coefficients` | coefficient assembly for fixed sparse terms/order | differentiable with respect to coefficients; setup choices fixed | coefficient collection tests, JAX jacobian tests |
+| `src/ssmtoolpy/core/multiindex.py::multiindices_of_total_degree` | setup/classification only | not differentiable | index-generation tests |
+| `examples/*.py` | presentation and smoke execution | not part of differentiable core | example execution checks |
+| `notebooks/*.ipynb` | presentation | not part of differentiable core | numerical core covered by pytest |
+| `SSMTool/src/@SSM/*`, `SSMTool/src/@Manifold/*` not yet ported | future full SSM construction | mixed; expected split between setup-only and differentiable fixed-choice solves | not yet verified |

@@ -120,6 +120,33 @@ for `coeffs(2,2:5)`.
 - Mark coefficient formulas with possible resonant denominators as
   differentiable under nondegeneracy assumptions.
 - Avoid SciPy and plotting in differentiable core code.
+- Prioritize differentiability of fixed-structure parameter-to-loss workflows:
+  `system parameter -> system definition -> fixed SSM coefficient computation ->
+  reduced prediction -> scalar loss -> gradient`.
+- Separate non-differentiable setup/classification from differentiable numerical
+  phases. Mode selection, truncation order, multi-index sets, resonance
+  classification, and normalization conventions should be chosen outside the
+  differentiated path until a representative example proves a safe
+  piecewise-differentiable treatment.
+- For each differentiable workflow target, add a pytest case that returns a
+  finite scalar loss, runs `jax.grad`, checks gradient shape and finiteness, and
+  compares with a finite-difference gradient where the problem is small and
+  deterministic.
+- The current minimal smoke test is the PlanarSystem fixed-structure path:
+  transverse decay parameter -> scalar graph coefficients -> graph prediction
+  -> mean-square loss. It does not yet cover the full adaptive SSM workflow.
+
+## Parameter-to-Loss Roadmap
+
+1. Keep the PlanarSystem fixed-structure graph loss as the smallest
+   differentiability sentinel.
+2. For `Lorenz1stOrder`, first implement a parameterized source model and vector
+   field so system parameters flow into deterministic numerical outputs.
+3. When a minimal Lorenz or PlanarSystem SSM coefficient solve is available with
+   fixed mode/truncation choices, add a parameter-to-loss test that differentiates
+   through that solve.
+4. Only after fixed choices are tested, document which adaptive choices remain
+   setup-only or piecewise differentiable.
 
 ## Known Risks
 
@@ -127,3 +154,6 @@ for `coeffs(2,2:5)`.
 - `.mlx` files may contain output-only context not present in source `.m` files.
 - Tensor coefficient normalization conventions must be checked carefully for
   future examples with symmetric tensors or repeated indices.
+- Full parameter-to-loss gradients can be invalid or discontinuous when
+  eigenvalues collide, selected modes change, resonances appear/disappear, or
+  homological-equation denominators become singular.

@@ -52,6 +52,10 @@
   homological solve in `Aut_1stOrder_SSM.m`.
 - `BenchamrkSSM1stOrder` intentionally reuses the PlanarSystem implementation
   because the MATLAB model source is equivalent.
+- The current parameter-to-loss differentiability coverage is a minimal
+  fixed-structure PlanarSystem smoke test. It does not yet include adaptive
+  mode selection, a full MATLAB-faithful SSM construction, or nonlinear reduced
+  dynamics prediction.
 
 ## Exact commands run
 
@@ -72,6 +76,17 @@
 - `unzip -p SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx matlab/document.xml`
 - `unzip -p SSMTool/examples/PlanarSystem/demo.mlx matlab/document.xml`
 - `python examples/benchmark_ssm_1st_order.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,360p' AGENTS.md`
+- `sed -n '1,260p' docs/current_status.md`
+- `sed -n '1,320p' docs/migration_plan.md`
+- `sed -n '1,340p' docs/migration_inventory.md`
+- `sed -n '1,360p' docs/migration_report.md`
+- `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `python -m pytest tests/test_parameter_to_loss.py`
 - `python -m compileall src tests examples`
 - `python -m pytest`
 - `find SSMTool -maxdepth 3 -type d`
@@ -152,6 +167,14 @@
   difference from the analytical coefficients.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 18 tests.
+- Retrospective adaptation baseline passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 18 tests.
+- Added `tests/test_parameter_to_loss.py`, a minimal fixed-structure
+  PlanarSystem gradient smoke test for
+  `decay -> graph coefficients -> graph prediction -> scalar loss`.
+- `python -m pytest tests/test_parameter_to_loss.py` passed: 1 test.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 19 tests.
 
 ## Next recommended batch
 
@@ -160,8 +183,8 @@
 - Start the `Lorenz1stOrder/demo.mlx` migration by reproducing its first
   bounded numerical subproblem: build the JAX Lorenz vector field and source
   model matrices/tensor terms, verify the standard-parameter linear spectrum at
-  the origin, and document the dependency closure for the later unstable SSM
-  graph computation.
+  the origin, and add the first Lorenz parameter-to-output loss smoke test as a
+  stepping stone toward parameter-to-loss SSM optimization.
 
 ### MATLAB files involved
 
@@ -194,6 +217,10 @@
 - Linear eigenvalues match the live-script values approximately
   `-22.828`, `-2.667`, and `11.828`.
 - JAX transform test for the differentiable Lorenz vector field.
+- A small parameter-to-output scalar loss test differentiates through at least
+  one Lorenz system parameter into vector-field predictions. This is not yet an
+  SSM-reduction loss, but it establishes the parameterized system-definition
+  stage of the eventual benchmark.
 - Existing PlanarSystem, Benchmark, and core tests remain passing.
 
 ### Known risks
@@ -208,6 +235,8 @@
 - Lorenz vector field is polynomial and differentiable.
 - Eigenvalue computations are differentiable only under nondegeneracy
   assumptions and should not be marked simply differentiable in this batch.
+- The Lorenz parameter-to-output smoke test should freeze evaluation states and
+  avoid differentiating through eigenvalue sorting or mode selection.
 
 ### Acceptance criteria
 
@@ -217,5 +246,7 @@
   `demo.mlx`.
 - A regression test covers the MATLAB `lorenz.m` vector field formula.
 - A JAX transform test covers the differentiable Lorenz vector field.
+- A parameter-to-output loss smoke test for the Lorenz model returns a finite
+  scalar and has a finite gradient with respect to a system parameter.
 - `python -m compileall src tests examples` and `python -m pytest` pass.
 - `python -m compileall src tests examples` and `python -m pytest` pass.

@@ -399,6 +399,70 @@ Use qualified statuses such as `piecewise differentiable` or `differentiable und
 
 When exact differentiability is impossible or mathematically ill-defined, document the limitation and add tests verifying the expected behavior.
 
+### Differentiable parameter-to-loss objective
+
+The main differentiability use case is parameter optimization through the SSM reduction.
+
+The target workflow is:
+
+```text
+system parameter p
+    -> full system definition at p
+    -> SSM reduction at p
+    -> reduced-order prediction at p
+    -> scalar loss
+    -> gradient d(loss)/d p
+```
+
+The implementation should therefore prioritize differentiability of the full parameter-to-loss pipeline, not merely isolated helper functions.
+
+A representative public workflow should eventually support:
+
+```python
+loss = loss_fn(parameter, data_or_target)
+grad = jax.grad(loss_fn)(parameter, data_or_target)
+```
+
+where `loss_fn` internally constructs or updates the system at `parameter`, computes the SSM reduction, evaluates the reduced dynamics or prediction, and returns a scalar loss.
+
+Differentiability must be tested at the workflow level whenever possible. For each representative differentiable example, add a test that verifies:
+
+1. `loss_fn(parameter, target)` returns a finite scalar.
+2. `jax.grad(loss_fn)(parameter, target)` runs without tracer errors.
+3. the gradient has the expected shape.
+4. the gradient is finite.
+5. where feasible, the gradient agrees with a finite-difference check on a small deterministic problem.
+
+The parameter-to-loss pipeline may be classified as `differentiable under nondegeneracy assumptions` when it depends on operations such as eigendecompositions, mode selection, linear solves, normalization conventions, truncation choices, or iterative convergence.
+
+For such workflows, document the assumptions explicitly, for example:
+
+* selected eigenvalues remain simple and separated,
+* the chosen modal subspace does not change dimension,
+* resonance or near-resonance classifications remain fixed,
+* linear systems remain nonsingular or well-conditioned,
+* solver convergence behavior is stable,
+* normalization conventions do not switch discontinuously,
+* truncation order and index sets are fixed.
+
+Do not claim that the SSM reduction pipeline is fully differentiable unless at least one representative test differentiates through the entire parameter-to-loss workflow using `jax.grad`, `jax.jacfwd`, or `jax.jacrev`.
+
+Where a full MATLAB-faithful algorithm contains non-differentiable choices, separate the implementation into:
+
+1. a non-differentiable setup or classification phase, and
+2. a differentiable numerical phase with fixed choices.
+
+For optimization workflows, prefer APIs that allow the user to freeze discrete choices such as selected modes, truncation order, multi-index sets, resonance structure, normalization convention, and solver configuration, then differentiate through the continuous numerical computation.
+
+The documentation should clearly distinguish:
+
+* differentiating through the continuous SSM coefficient computation for fixed algorithmic choices,
+* differentiating through reduced prediction for fixed reduction structure,
+* differentiating through the entire adaptive SSM construction including mode selection or branch decisions.
+
+The first two are the priority. The last one may be only piecewise differentiable or not supported.
+
+
 ---
 
 ## 11. Testing requirements
