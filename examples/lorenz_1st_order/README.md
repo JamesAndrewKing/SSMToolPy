@@ -6,10 +6,12 @@ Source workflow:
 - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
 - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
 
-This example reproduces the first bounded numerical core from the MATLAB live
-script: the source model, Lorenz vector field, and standard-parameter linear
-eigenvalues. The full unstable SSM graph and trajectory comparison remain
-deferred.
+This example reproduces the tested fixed-choice Python/JAX workflow
+corresponding to the MATLAB live script: source model, Lorenz vector field,
+standard-parameter eigenvalues, unstable SSM graph coefficients through order
+5, linear reduced dynamics, reduced-to-full lifting, direct full trajectory
+simulation, reduced/full comparison, and the notebook SSM/full trajectory
+visualization.
 
 Run:
 

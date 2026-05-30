@@ -225,6 +225,89 @@ def evaluate_lorenz_ssm_graph(reduced_coordinate: Array, coefficients: Array) ->
     return powers @ coefficients
 
 
+def lorenz_reduced_trajectory(
+    initial_reduced_coordinate: Array | float,
+    times: Array,
+    eigenvalue: Array | float,
+) -> Array:
+    """Evaluate the linear Lorenz reduced dynamics used in ``demo.mlx``.
+
+    No inner resonances are detected in the MATLAB live script, so the reduced
+    coordinate obeys ``p_dot = eigenvalue * p`` and therefore
+    ``p(t) = p(0) * exp(eigenvalue * t)``.
+
+    Differentiability: differentiable with respect to the initial reduced
+    coordinate and eigenvalue for fixed ``times``.
+    """
+
+    times = jnp.asarray(times)
+    if times.ndim != 1:
+        raise ValueError("times must be a one-dimensional array")
+    return jnp.asarray(initial_reduced_coordinate) * jnp.exp(eigenvalue * times)
+
+
+def lorenz_reduced_to_full_trajectory(
+    reduced_coordinates: Array,
+    coefficients: Array,
+) -> Array:
+    """Map a reduced Lorenz trajectory to full coordinates.
+
+    This is the one-dimensional autonomous graph-parameterization slice of
+    MATLAB ``reduced_to_full_traj.m`` used by ``Lorenz1stOrder/demo.mlx``.
+
+    Differentiability: differentiable with respect to reduced coordinates and
+    coefficients for fixed coefficient length.
+    """
+
+    return evaluate_lorenz_ssm_graph(reduced_coordinates, coefficients)
+
+
+def lorenz_unstable_ssm_curve(
+    times: Array,
+    amplitude: Array | float,
+    eigenvalue: Array | float,
+    coefficients: Array,
+) -> Array:
+    """Return the two-sided unstable SSM curve plotted in the MATLAB live script.
+
+    The negative branch is reversed and concatenated with the positive branch,
+    matching ``z = [z2(:,end:-1:1) z1]`` in ``demo.mlx``.
+
+    Differentiability: differentiable for fixed ``times`` and fixed coefficient
+    length.
+    """
+
+    positive_reduced = lorenz_reduced_trajectory(amplitude, times, eigenvalue)
+    negative_reduced = lorenz_reduced_trajectory(-amplitude, times, eigenvalue)
+    positive = lorenz_reduced_to_full_trajectory(positive_reduced, coefficients)
+    negative = lorenz_reduced_to_full_trajectory(negative_reduced, coefficients)
+    return jnp.concatenate([negative[::-1], positive], axis=0)
+
+
+def lorenz_full_unstable_trajectories(
+    times: Array,
+    amplitude: Array | float,
+    eigenvector: Array,
+    sigma: Array | float,
+    rho: Array | float,
+    beta: Array | float,
+) -> Array:
+    """Return the two-sided full Lorenz trajectories used for validation.
+
+    This mirrors the MATLAB live script's forward integrations from
+    ``V(:,1) * amplitude`` and its negative, then reverses the negative branch
+    before concatenation.
+
+    Differentiability: differentiable with respect to amplitude, eigenvector,
+    and continuous parameters for fixed ``times``.
+    """
+
+    initial = jnp.asarray(amplitude) * jnp.asarray(eigenvector)
+    positive = lorenz_rk4_trajectory(initial, times, sigma, rho, beta)
+    negative = lorenz_rk4_trajectory(-initial, times, sigma, rho, beta)
+    return jnp.concatenate([negative[::-1], positive], axis=0)
+
+
 def lorenz_ssm_invariance_residual(
     reduced_coordinate: Array,
     eigenvalue: Array | float,

@@ -30,8 +30,8 @@ Estimated complexity from smallest to largest useful regression targets:
 2. `BenchamrkSSM1stOrder/demo.mlx`: source-confirmed duplicate of
    PlanarSystem; reproduced as a named regression target.
 3. `Lorenz1stOrder/demo.mlx`: 3D first-order polynomial vector field with a
-   1D unstable SSM and trajectory comparison; source model, direct trajectory,
-   and fixed-choice unstable SSM graph coefficient subproblems are reproduced.
+   1D unstable SSM and trajectory comparison; fixed-choice Python/JAX
+   live-script workflow is reproduced and tested.
 4. `TwoOscillators/demo.mlx`: small 2DOF second-order oscillator with forcing.
 5. `ThreeOscillators/ThreeOscillatorsBook.mlx`: small but broader nonlinear
    oscillator workflow.
@@ -79,11 +79,10 @@ with a precise next fix. Setup-only notebooks are incomplete.
 This standard applies to every MATLAB example, demo, and `.mlx` workflow in
 the inventory. PlanarSystem and BenchamrkSSM1stOrder currently count as
 substantive partial reproductions because they implement and test SSM graph
-coefficient computations from the live scripts. Lorenz1stOrder currently counts
-as a substantive partial reproduction because it implements and tests direct
-trajectory computation plus a fixed-choice unstable SSM graph coefficient solve;
-it remains incomplete until reduced-to-full trajectory comparison and
-visualization are implemented.
+coefficient computations from the live scripts. Lorenz1stOrder now counts as a
+tested fixed-choice workflow reproduction because it implements and tests the
+unstable SSM graph, linear reduced dynamics, reduced-to-full lifting,
+reduced/full trajectory comparison, and notebook visualization.
 
 ## Completed PlanarSystem Dependency Closure
 
@@ -127,10 +126,11 @@ The implemented Lorenz closure covers the source model
 `B z_dot = A z + F(z)`, the MATLAB vector-field formula, the standard
 parameters `sigma=10`, `rho=28`, `beta=8/3`, the linear eigenvalues stated in
 the live script, direct fixed-step Lorenz trajectory computation, and a
-fixed-choice unstable SSM graph coefficient solve through order 3 with
-invariance residual checks. Reduced dynamics trajectory generation,
-`reduced_to_full_traj`, reduced/full trajectory comparison, and corresponding
-SSM/full trajectory visualization remain incomplete.
+fixed-choice unstable SSM graph coefficient solve through order 5 with
+invariance residual checks. It also covers the linear reduced dynamics
+`p(t)=p0 exp(lambda t)`, the one-dimensional autonomous slice of
+`reduced_to_full_traj`, a short reduced/full trajectory comparison, and the
+SSM/full 3D visualization in the colocated notebook.
 
 ## Current Python Skeleton
 
@@ -194,8 +194,8 @@ Current classification:
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
 - Source-derived duplicate workflow tests for `BenchamrkSSM1stOrder`.
 - Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, trajectory,
-  fixed-choice SSM graph coefficient, invariance residual, and differentiability
-  tests.
+  fixed-choice SSM graph coefficient, invariance residual, reduced trajectory,
+  lifting, reduced/full comparison, and differentiability tests.
 
 ## Differentiability Strategy
 
@@ -227,8 +227,7 @@ Current classification:
 2. `Lorenz1stOrder` now has a parameterized source model, vector field, direct
    trajectory helper, and fixed-choice SSM graph coefficient solve so system
    parameters flow into deterministic numerical outputs and a fixed SSM graph.
-3. Next, add reduced-coordinate trajectory lifting so a small Lorenz
-   parameter-to-loss test can differentiate through
+3. Lorenz now includes a fixed-choice lifted-trajectory loss smoke test:
    `parameter -> fixed graph coefficients -> lifted reduced prediction -> loss`.
 4. Only after fixed choices are tested, document which adaptive choices remain
    setup-only or piecewise differentiable.

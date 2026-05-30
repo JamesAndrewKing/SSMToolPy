@@ -28,8 +28,12 @@
   - MATLAB `lorenz.m` vector field
   - standard-parameter linear eigenvalue regression
   - direct fixed-step trajectory computation
-  - fixed-choice unstable SSM graph coefficients through order 3
+  - fixed-choice unstable SSM graph coefficients through order 5
   - SSM graph invariance residual checks
+  - linear reduced trajectory computation
+  - reduced-to-full SSM lifting
+  - two-sided SSM curve and full trajectory arrays for visualization
+  - short reduced/full trajectory comparison
   - parameter-to-output loss gradient smoke test
 - Example-specific system/model helpers have been moved out of
   `src/ssmtoolpy/`:
@@ -46,9 +50,13 @@
     test, README, or planning-doc hits.
 - `python examples/lorenz_1st_order/example.py` runs and prints the expected
   vector field, sorted eigenvalues, SSM graph coefficient summary, invariance
-  residual, and small-amplitude trajectory final state.
+  residual, reduced-to-full trajectory summary, reduced/full comparison, and
+  small-amplitude trajectory final state.
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb` executes end-to-end with
+  `python -m jupyter nbconvert --to notebook --execute ...` and writes an
+  executed notebook to `/tmp/lorenz_1st_order.executed.ipynb`.
 - `python -m compileall src tests examples` passes.
-- `python -m pytest` passes with 32 tests.
+- `python -m pytest` passes with 38 tests.
 - `python examples/planar_system/example.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 - `python examples/benchmark_ssm_1st_order/example.py` runs and reports zero
   difference from the analytical coefficients.
@@ -60,54 +68,50 @@
     implemented and tested; full MATLAB class workflow still incomplete.
   - `BenchamrkSSM1stOrder`: substantive duplicate coefficient comparison
     implemented and tested; full MATLAB class workflow still incomplete.
-  - `Lorenz1stOrder`: substantive fixed-choice unstable SSM graph coefficient
-    subproblem implemented and tested; reduced-to-full trajectory comparison
-    and visualization still incomplete.
+  - `Lorenz1stOrder`: fixed-choice live-script workflow reproduced and tested,
+    including reduced-to-full trajectory comparison and visualization.
 
 ## Failing
 
 - None.
 - No current test differentiates through a full MATLAB-faithful pipeline with adaptive mode selection, full SSM construction, reduced dynamics prediction, and loss. The existing parameter-to-loss test freezes those discrete choices.
 - Current notebooks are not complete `.mlx` reproductions unless explicitly
-  stated. In particular, `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
-  is incomplete because reduced-to-full trajectory mapping, reduced/full
-  comparison, SSM/full-trajectory visualization, and MATLAB-equivalent
-  `reduced_to_full_traj` behavior are not yet implemented.
+  stated. `examples/lorenz_1st_order/lorenz_1st_order.ipynb` is now complete
+  for the tested fixed-choice Python/JAX reproduction of the Lorenz live-script
+  workflow.
 
 ## Active target
 
-- MATLAB example or `.mlx` workflow: `SSMTool/examples/Lorenz1stOrder/demo.mlx`
-- Python example: `examples/lorenz_1st_order/example.py`
-- Jupyter notebook: `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+- MATLAB example or `.mlx` workflow: `SSMTool/examples/TwoOscillators/demo.mlx`
+- Python example: `examples/two_oscillators/example.py`
+- Jupyter notebook: `examples/two_oscillators/two_oscillators.ipynb` only if
+  a meaningful tested workflow section is implemented.
 - Required MATLAB files:
-  - `SSMTool/examples/Lorenz1stOrder/build_model.m`
-  - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
-  - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
-  - `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+  - `SSMTool/examples/TwoOscillators/build_model.m`
+  - `SSMTool/examples/TwoOscillators/demo.mlx`
 - Required Python modules:
-  - `examples/lorenz_1st_order/lorenz.py`
+  - `examples/two_oscillators/two_oscillators.py`
   - reusable kernels under `src/ssmtoolpy/core/`
 - Acceptance criteria:
-  - Lorenz fixed-choice unstable SSM graph coefficients are implemented with
-    docstrings and differentiability classifications.
-  - Coefficients satisfy the autonomous invariance residual for the chosen
-    order and small deterministic amplitudes.
-  - MATLAB `lorenz.m` vector field formula and direct RK4 trajectory helper are
-    covered by regression tests.
-  - A fixed-choice Lorenz graph loss gradient smoke test covers a continuous
-    system parameter without differentiating through mode selection.
+  - Model matrices from `build_model.m` match source-derived references.
+  - At least one substantive TwoOscillators numerical workflow step beyond
+    setup/eigenvalues is implemented and tested.
+  - A Python example prints deterministic outputs from the tested core.
+  - JAX transform tests cover any differentiable public helpers introduced.
 
 ## Notes for next run
 
-- Continue from the `Next recommended batch` section in `docs/migration_report.md`.
+- Continue from the `Next recommended batch` section in
+  `docs/migration_report.md`, which now targets `TwoOscillators/demo.mlx`.
 - JAX x64 is enabled at package import to preserve tight source-derived coefficient tolerances.
 - The Benchmark source directory intentionally uses the spelling `BenchamrkSSM1stOrder`.
 - Parameter-to-loss differentiability is now an explicit migration objective. Current coverage is only the minimal PlanarSystem fixed-structure smoke test.
-- Lorenz now covers a fixed-choice differentiable SSM graph coefficient solve,
-  but not a full adaptive SSM-reduction loss.
-- Lorenz direct trajectory computation and fixed-choice SSM graph coefficients
-  are implemented, but SSM-reduced trajectory mapping and SSM/full
-  visualization are still missing.
+- Lorenz now covers a fixed-choice differentiable SSM graph coefficient solve
+  and lifted reduced prediction, but not a full adaptive SSM-reduction loss
+  through mode selection or resonance classification.
+- `Lorenz1stOrder` is complete for the tested fixed-choice Python/JAX
+  live-script reproduction; remaining Lorenz limitations are generic/adaptive
+  MATLAB class-stack limitations rather than missing live-script cells.
 - Example layout has been normalized for all currently reproduced examples:
   - `examples/planar_system/`
   - `examples/benchmark_ssm_1st_order/`

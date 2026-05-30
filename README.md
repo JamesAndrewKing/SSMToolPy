@@ -34,10 +34,10 @@ print(coefficients[2:6])
 - `BenchamrkSSM1stOrder`: source-confirmed duplicate of `PlanarSystem`, covered
   by `examples/benchmark_ssm_1st_order/example.py` and
   `tests/test_benchmark_ssm_1st_order.py`.
-- `Lorenz1stOrder`: partial workflow from `demo.mlx`, now including source
-  model, vector field, direct trajectory computation, and a fixed-choice
-  unstable SSM graph coefficient subproblem covered by
-  `examples/lorenz_1st_order/example.py` and `tests/test_lorenz_1st_order.py`.
+- `Lorenz1stOrder`: tested fixed-choice reproduction of the MATLAB live-script
+  workflow, including source model, vector field, linear reduced dynamics,
+  unstable SSM graph coefficients, reduced-to-full lifting, direct trajectory
+  simulation, reduced/full comparison, and notebook visualization.
 
 ## Notebook Status
 
@@ -45,11 +45,9 @@ print(coefficients[2:6])
   backed by tests for the coefficient core.
 - `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`: partial
   workflow migration, backed by tests for the coefficient comparison.
-- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: incomplete workflow
-  migration. It currently covers setup, eigenvalues, fixed-choice SSM graph
-  coefficients, invariance residual checks, and direct trajectory computation,
-  but not reduced-to-full trajectory mapping or the corresponding SSM/full
-  visualization from the MATLAB live script.
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: executable workflow
+  reproduction for the fixed-choice Python/JAX Lorenz path, including the
+  SSM/full trajectory visualization.
 
 ## Testing
 
@@ -72,6 +70,9 @@ python -m pytest
 - `solve_lorenz_unstable_graph_coefficients`: differentiable under fixed
   eigenpair, fixed truncation, and nonresonance assumptions.
 - `evaluate_lorenz_ssm_graph`: differentiable polynomial graph evaluation.
+- `lorenz_reduced_trajectory` and `lorenz_reduced_to_full_trajectory`:
+  differentiable for fixed times, fixed graph coefficients, and fixed reduced
+  dynamics.
 - `lorenz_linear_eigenvalues`: differentiable under eigenvalue nondegeneracy
   assumptions; currently used only for regression checks.
 

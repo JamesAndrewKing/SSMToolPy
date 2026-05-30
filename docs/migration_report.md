@@ -31,6 +31,10 @@
   - `evaluate_lorenz_ssm_graph`
   - `lorenz_ssm_invariance_residual`
   - `lorenz_rk4_trajectory`
+  - `lorenz_reduced_trajectory`
+  - `lorenz_reduced_to_full_trajectory`
+  - `lorenz_unstable_ssm_curve`
+  - `lorenz_full_unstable_trajectories`
 
 ## Reproduced examples
 
@@ -42,12 +46,13 @@
   `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`: reproduced as a
   source-confirmed duplicate of PlanarSystem, with a named Python example and
   tests covering the misspelled source path.
-- `Lorenz1stOrder` first bounded numerical core from
+- `Lorenz1stOrder` fixed-choice Python/JAX workflow from
   `SSMTool/examples/Lorenz1stOrder/demo.mlx`: source model, vector field,
   standard-parameter linear eigenvalues, direct fixed-step trajectory
-  computation, fixed-choice unstable SSM graph coefficients through order 3,
-  invariance residual checks, and parameter-to-output/fixed-graph gradient
-  smoke tests.
+  computation, fixed-choice unstable SSM graph coefficients through order 5,
+  invariance residual checks, linear reduced dynamics, reduced-to-full lifting,
+  reduced/full trajectory comparison, 3D notebook visualization, and
+  parameter-to-output/fixed-lifted-trajectory gradient smoke tests.
 
 ## Notebook migration status
 
@@ -57,12 +62,12 @@
 - `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`: partial
   workflow migration; source-confirmed duplicate coefficient comparison is
   tested.
-- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: incomplete workflow
-  migration. It currently covers setup, eigenvalues, fixed-choice SSM graph
-  coefficient computation, invariance residual checks, and direct trajectory
-  computation; it does not yet reproduce reduced-to-full trajectory mapping,
-  reduced/full prediction comparison, `reduced_to_full_traj`, or the MATLAB
-  SSM/full trajectory visualization.
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: complete for the tested
+  fixed-choice Python/JAX Lorenz workflow. It covers setup, eigenvalues,
+  fixed-choice SSM graph computation, reduced dynamics, reduced-to-full
+  trajectory lifting, direct full trajectories, reduced/full comparison, and
+  the MATLAB-style 3D SSM/full visualization. It executed successfully via
+  `python -m jupyter nbconvert --to notebook --execute`.
 - The same standard applies to all current and future examples: PlanarSystem
   and BenchamrkSSM1stOrder are substantive partial reproductions because they
   implement tested SSM graph coefficient workflows; Lorenz1stOrder is a
@@ -93,9 +98,8 @@
 - Full MATLAB `DynamicalSystem`, `SSM`, and `Manifold` class behavior.
 - General multi-dimensional autonomous coefficient solving.
 - Resonant reduced-dynamics extraction from `Aut_1stOrder_RedDyn.m`.
-- Lorenz reduced-to-full trajectory mapping, reduced/full ODE trajectory
-  comparison, and 3D SSM/full visualization from the second half of
-  `demo.mlx`.
+- Adaptive/general Lorenz `SSM`, `DynamicalSystem`, and `Manifold` object
+  workflow internals beyond the fixed-choice tested live-script path.
 - Continuation, FRC/FRS, plotting, and external finite-element workflows.
 - Notebook execution checks; no notebook execution tooling was configured before
   this batch.
@@ -113,9 +117,9 @@
   fixed-structure PlanarSystem smoke test. It does not yet include adaptive
   mode selection, a full MATLAB-faithful SSM construction, or nonlinear reduced
   dynamics prediction.
-- Lorenz now covers a fixed-choice differentiable graph coefficient solve, but
-  not a full parameter-to-loss SSM-reduction workflow with lifted reduced
-  trajectory prediction.
+- Lorenz now covers a fixed-choice differentiable graph coefficient solve and
+  lifted reduced prediction, but not gradients through adaptive eigenpair
+  selection, resonance classification, or generic MATLAB object workflows.
 - Setup-only notebooks are now explicitly classified as incomplete. A notebook
   is complete only when it reproduces the meaningful numerical and visual
   MATLAB `.mlx` workflow or documents a hard blocker.
@@ -132,6 +136,23 @@
 - `sed -n '1,300p' docs/migration_inventory.md`
 - `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
 - `git status --short`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,260p' SSMTool/src/misc/reduced_to_full_traj.m`
+- `unzip -p SSMTool/examples/Lorenz1stOrder/demo.mlx matlab/document.xml`
+- `sed -n '1,380p' examples/lorenz_1st_order/lorenz.py`
+- `sed -n '1,280p' tests/test_lorenz_1st_order.py`
+- `sed -n '1,220p' examples/lorenz_1st_order/example.py`
+- `python -m pytest tests/test_lorenz_1st_order.py`
+- `python examples/lorenz_1st_order/example.py`
+- `python -m json.tool examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+- `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
+- `sed -n '1,180p' README.md`
+- `sed -n '1,220p' examples/lorenz_1st_order/README.md`
+- `sed -n '1,220p' docs/current_status.md`
+- `sed -n '1,260p' docs/migration_report.md`
+- `sed -n '1,240p' SSMTool/examples/TwoOscillators/build_model.m`
+- `unzip -p SSMTool/examples/TwoOscillators/demo.mlx matlab/document.xml`
 - `python -m compileall src tests examples`
 - `python -m pytest`
 - `sed -n '150,260p' AGENTS.md`
@@ -375,6 +396,21 @@
   files or directories.
 - Revalidation `python -m compileall src tests examples` passed.
 - Revalidation `python -m pytest` passed: 32 tests.
+- Baseline before completing Lorenz passed:
+  `python -m compileall src tests examples` and `python -m pytest` with 32
+  tests.
+- Added reduced dynamics, reduced-to-full lifting, two-sided SSM curve, and
+  full unstable trajectory helpers for `Lorenz1stOrder`.
+- `python -m pytest tests/test_lorenz_1st_order.py` passed: 19 tests.
+- First notebook execution attempt failed because Jupyter could start only after
+  escalated local-kernel permissions and the notebook did not add `src/` to
+  `sys.path`. The notebook bootstrap was fixed to add both the example
+  directory and project `src/`.
+- `python -m jupyter nbconvert --to notebook --execute
+  examples/lorenz_1st_order/lorenz_1st_order.ipynb --output
+  /tmp/lorenz_1st_order.executed.ipynb` passed after the bootstrap fix.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 38 tests.
 - Layout restructuring baseline passed before edits:
   `python -m compileall src tests examples` and `python -m pytest` with 32
   tests.
@@ -428,81 +464,78 @@
 
 ### Target
 
-- Continue full `Lorenz1stOrder/demo.mlx` reproduction by implementing the
-  tested reduced-coordinate trajectory, reduced-to-full SSM lifting, and first
-  reduced/full trajectory comparison needed for the MATLAB visualization.
+- Start the next substantive example workflow: `TwoOscillators/demo.mlx`.
+  Implement the model setup and the smallest tested forced-response numerical
+  subproblem that moves beyond setup, preferably the second-order linear modal
+  analysis plus deterministic forced linear response data needed before the
+  later SSM continuation/FRC workflow.
 
 ### MATLAB files involved
 
-- `SSMTool/examples/Lorenz1stOrder/build_model.m`
-- `SSMTool/examples/Lorenz1stOrder/lorenz.m`
-- `SSMTool/examples/Lorenz1stOrder/demo.mlx`
-- `SSMTool/src/misc/reduced_to_full_traj.m`
-- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- `SSMTool/examples/TwoOscillators/build_model.m`
+- `SSMTool/examples/TwoOscillators/demo.mlx`
+- MATLAB second-order system setup and linear spectral-analysis code needed to
+  derive the first deterministic modal reference.
 
 ### MATLAB examples or `.mlx` workflows involved
 
-- `SSMTool/examples/Lorenz1stOrder/demo.mlx`
+- `SSMTool/examples/TwoOscillators/demo.mlx`
 
 ### Planned Python modules
 
-- `examples/lorenz_1st_order/lorenz.py`
-- Add only small trajectory/lifting helpers required by the Lorenz notebook,
-  either in the example-local Lorenz helper or in a tiny reusable core module
-  if the same helper is immediately exercised by multiple examples/tests.
-- Do not implement adaptive mode selection, resonance classification, or the
-  full MATLAB object workflow.
+- `examples/two_oscillators/two_oscillators.py`
+- Reuse `src/ssmtoolpy/core/` only for genuinely shared numerical kernels.
+- Add a reusable core helper only if the same operation is immediately tested
+  outside the TwoOscillators example.
 
 ### Planned examples or notebooks
 
-- Update `examples/lorenz_1st_order/example.py` to print a reduced/full
-  trajectory comparison summary from tested arrays.
-- Update `examples/lorenz_1st_order/lorenz_1st_order.ipynb` with the tested
-  SSM graph, reduced trajectory lifting, direct trajectory comparison, and a 3D
-  visualization corresponding to the MATLAB live script.
+- Create `examples/two_oscillators/README.md`.
+- Create `examples/two_oscillators/example.py`.
+- Create `examples/two_oscillators/two_oscillators.ipynb` only if the batch
+  implements a meaningful executable workflow section beyond setup.
 
 ### Expected tests
 
-- Reduced coordinate trajectory `p(t) = p0 * exp(lambda * t)` has deterministic
-  values and shape for fixed times.
-- Reduced-to-full Lorenz trajectory lifting through the tested SSM graph has
-  deterministic shape/correctness tests.
-- Small-amplitude lifted SSM trajectory and direct RK4 full-system trajectory
-  agree to a documented tolerance over a short fixed interval.
-- A finite scalar fixed-choice Lorenz lifted-trajectory loss has a finite
-  gradient with respect to one continuous parameter, without differentiating
-  through eigenpair selection.
-- Existing PlanarSystem, BenchamrkSSM1stOrder, Lorenz graph, and core tests
-  remain passing.
+- Model matrices from `build_model.m` match source-derived references for the
+  default parameters in `demo.mlx`.
+- Linearized second-order eigenvalues/frequencies match deterministic
+  source-derived references.
+- The first non-setup forced-response or modal-response numerical subproblem
+  has shape/correctness tests.
+- JAX transform tests cover any public differentiable helper introduced.
+- Existing PlanarSystem, BenchamrkSSM1stOrder, Lorenz, and core tests remain
+  passing.
 
 ### Known risks
 
-- Agreement between lifted SSM and direct full trajectory is local and
-  amplitude/time-step sensitive; use small deterministic amplitudes and document
-  any tolerance.
-- MATLAB `reduced_to_full_traj.m` includes general class/object conventions;
-  port only the Lorenz one-dimensional graph behavior required by the active
-  workflow.
-- Visualization should be generated from tested arrays; plotting equivalence is
-  secondary to numerical reproducibility.
+- The full `TwoOscillators/demo.mlx` workflow is a continuation/FRC example with
+  SSM continuation methods; do not attempt the whole workflow in one jump.
+- Setup-only model/eigenvalue work is not a valid endpoint unless a precise
+  blocker is reached. The batch must include a substantive response,
+  continuation, or SSM-related numerical step.
+- Internal resonance and forcing conventions must be documented before any
+  reduced dynamics claim.
 
 ### Differentiability concerns
 
-- Differentiate only through fixed choices: selected eigenpair, truncation
-  order, normalization convention, and nonresonant solve structure.
-- Do not claim differentiability through eigenvalue sorting, adaptive mode
-  selection, resonance classification, or notebook plotting.
-- Homological linear systems and lifted predictions are differentiable only
-  while the fixed nonresonant systems remain nonsingular and well-conditioned.
+- Differentiate only through fixed continuous parameters and fixed modal/forcing
+  choices.
+- Do not claim differentiability through mode sorting, resonance
+  classification, continuation branch selection, bifurcation detection, or
+  plotting.
+- Linear solves/eigenvalue calculations are differentiable only under
+  nondegeneracy assumptions.
 
 ### Acceptance criteria
 
-- Reduced-coordinate trajectory and reduced-to-full SSM lifting for the Lorenz
-  workflow are implemented and tested.
-- A short reduced/full trajectory comparison is implemented and tested from
-  deterministic arrays.
-- The Lorenz example and notebook consume the tested numerical core and include
-  the corresponding 3D trajectory visualization data/plot.
+- A `TwoOscillators` example-local helper exists only under
+  `examples/two_oscillators/`.
+- At least one substantive `TwoOscillators` numerical workflow step beyond
+  setup/eigenvalues is implemented and tested.
+- A Python example prints deterministic numerical outputs from the tested core.
+- A notebook is added only if it can present tested numerical workflow content,
+  not placeholder setup.
 - All current examples remain classified against the substantive workflow
   standard; no setup-only or smoke-only example is marked complete.
 - Any differentiable public function added has a JAX transform or
