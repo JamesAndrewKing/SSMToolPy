@@ -9,6 +9,16 @@
   - `collect_univariate_coefficients`
 - `src/ssmtoolpy/core/invariance.py`
   - `solve_scalar_graph_coefficients`
+  - `solve_autonomous_quadratic_graph_coefficients`
+- `src/ssmtoolpy/core/integrators.py`
+  - `fixed_step_rk4`
+- `src/ssmtoolpy/core/graph.py`
+  - `evaluate_univariate_graph`
+  - `linear_reduced_trajectory`
+  - `evaluate_graph_trajectory`
+  - `two_sided_graph_curve`
+- `src/ssmtoolpy/core/trajectories.py`
+  - `integrate_two_sided_branches`
 - `examples/planar_system/planar.py`
   - `build_planar_system`
   - `planar_vector_field`
@@ -70,9 +80,9 @@
   `python -m jupyter nbconvert --to notebook --execute`.
 - The same standard applies to all current and future examples: PlanarSystem
   and BenchamrkSSM1stOrder are substantive partial reproductions because they
-  implement tested SSM graph coefficient workflows; Lorenz1stOrder is a
-  substantive partial reproduction after the fixed-choice SSM graph solve, but
-  remains incomplete as a full live-script migration.
+  implement tested SSM graph coefficient workflows; Lorenz1stOrder is complete
+  for the tested fixed-choice Python/JAX live-script reproduction, while the
+  broader adaptive MATLAB class stack remains unported.
 
 ## Example layout
 
@@ -92,6 +102,18 @@
   - `examples/lorenz_1st_order/lorenz.py`
 - `src/ssmtoolpy/` now exposes only reusable core kernels and does not export
   PlanarSystem, Benchmark, or Lorenz example helpers.
+- The Lorenz boundary was cleaned up after comparison with reusable MATLAB
+  source patterns:
+  - `SSMTool/src/misc/reduced_to_full.m`
+  - `SSMTool/src/misc/reduced_to_full_traj.m`
+  - `SSMTool/src/misc/transient_traj_on_auto_ssm.m`
+  - `SSMTool/src/@DynamicalSystem/odefun.m`
+  - `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- Lorenz-specific model data, the Lorenz quadratic term, eigenpair setup, and
+  thin wrappers remain in `examples/lorenz_1st_order/lorenz.py`; reusable
+  fixed-step integration, graph evaluation/lifting, reduced trajectory,
+  two-sided branch assembly, and autonomous quadratic graph solve kernels now
+  live under `src/ssmtoolpy/core/`.
 
 ## Skipped or deferred items
 
@@ -101,8 +123,9 @@
 - Adaptive/general Lorenz `SSM`, `DynamicalSystem`, and `Manifold` object
   workflow internals beyond the fixed-choice tested live-script path.
 - Continuation, FRC/FRS, plotting, and external finite-element workflows.
-- Notebook execution checks; no notebook execution tooling was configured before
-  this batch.
+- Generic notebook execution checks are not wired into pytest. The Lorenz
+  notebook was executed manually with `jupyter nbconvert`, and its numerical
+  core is covered by pytest.
 
 ## Known limitations
 
@@ -138,6 +161,21 @@
 - `git status --short`
 - `python -m compileall src tests examples`
 - `python -m pytest`
+- `sed -n '1,260p' AGENTS.md`
+- `find SSMTool/src -type f -name '*.m'`
+- `sed -n '1,260p' SSMTool/src/misc/reduced_to_full_traj.m`
+- `sed -n '1,220p' SSMTool/src/misc/reduced_to_full.m`
+- `sed -n '1,260p' SSMTool/src/misc/transient_traj_on_auto_ssm.m`
+- `sed -n '1,220p' SSMTool/src/@DynamicalSystem/odefun.m`
+- `sed -n '1,260p' SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
+- `sed -n '1,360p' examples/lorenz_1st_order/lorenz.py`
+- `sed -n '1,260p' tests/test_lorenz_1st_order.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `python -m pytest tests/test_core_graph.py tests/test_core_integrators.py tests/test_core_graph_solver.py tests/test_lorenz_1st_order.py`
+- `python examples/lorenz_1st_order/example.py`
+- `python -m pytest`
+- `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
 - `sed -n '1,260p' SSMTool/src/misc/reduced_to_full_traj.m`
 - `unzip -p SSMTool/examples/Lorenz1stOrder/demo.mlx matlab/document.xml`
 - `sed -n '1,380p' examples/lorenz_1st_order/lorenz.py`
@@ -378,6 +416,23 @@
   comparison and visualization incomplete.
 - Updated AGENTS and migration docs so the substantive-workflow rule applies to
   all examples, demos, and `.mlx` workflows, not only Lorenz.
+- Lorenz boundary cleanup baseline passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 38
+  tests.
+- Added reusable core kernels for fixed-step RK4 integration, univariate graph
+  evaluation/lifting, linear reduced trajectories, two-sided branch assembly,
+  and fixed-choice autonomous quadratic graph coefficients.
+- Added core regression and JAX transform tests for those kernels.
+- Targeted post-refactor tests passed:
+  `python -m pytest tests/test_core_graph.py tests/test_core_integrators.py tests/test_core_graph_solver.py tests/test_lorenz_1st_order.py`
+  with 33 tests.
+- `python examples/lorenz_1st_order/example.py` passed after the reusable-core
+  refactor.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 46 tests.
+- `python -m jupyter nbconvert --to notebook --execute examples/lorenz_1st_order/lorenz_1st_order.ipynb --output /tmp/lorenz_1st_order.executed.ipynb`
+  passed and wrote `/tmp/lorenz_1st_order.executed.ipynb`; nbformat emitted a
+  non-fatal warning about missing cell IDs.
 - `python -m pytest tests/test_lorenz_1st_order.py` passed: 13 tests.
 - `python examples/planar_system/example.py` passed and reported zero maximum
   difference from the `demo.mlx` coefficient formula.

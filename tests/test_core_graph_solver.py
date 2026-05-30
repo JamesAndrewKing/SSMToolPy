@@ -5,7 +5,10 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from ssmtoolpy.core.invariance import solve_scalar_graph_coefficients
+from ssmtoolpy.core.invariance import (
+    solve_autonomous_quadratic_graph_coefficients,
+    solve_scalar_graph_coefficients,
+)
 from ssmtoolpy.core.multiindex import multiindices_of_total_degree
 from ssmtoolpy.core.polynomial import (
     collect_univariate_coefficients,
@@ -112,3 +115,54 @@ def test_differentiable_core_functions_support_jax_transforms() -> None:
         )
     )(-5.0)
     np.testing.assert_allclose(np.asarray(solve_grad), 1.0 / 9.0, rtol=1e-12)
+
+
+def test_quadratic_vector_graph_solver_matches_hand_derived_case() -> None:
+    linear_matrix = jnp.diag(jnp.array([-1.0, -4.0]))
+    eigenvalue = jnp.array(-1.0)
+    eigenvector = jnp.array([1.0, 0.0])
+
+    def quadratic_term(left: jnp.ndarray, right: jnp.ndarray) -> jnp.ndarray:
+        return jnp.array([0.0, left[0] * right[0]])
+
+    coefficients = solve_autonomous_quadratic_graph_coefficients(
+        linear_matrix,
+        eigenvalue,
+        eigenvector,
+        order=3,
+        quadratic_term=quadratic_term,
+    )
+
+    expected = np.array(
+        [
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 0.5],
+            [0.0, 0.0],
+        ]
+    )
+    np.testing.assert_allclose(np.asarray(coefficients), expected, rtol=1e-12)
+
+
+def test_quadratic_vector_graph_solver_supports_jax_grad() -> None:
+    eigenvalue = jnp.array(-1.0)
+    eigenvector = jnp.array([1.0, 0.0])
+
+    def quadratic_term(left: jnp.ndarray, right: jnp.ndarray) -> jnp.ndarray:
+        return jnp.array([0.0, left[0] * right[0]])
+
+    def loss_fn(transverse: jnp.ndarray) -> jnp.ndarray:
+        linear_matrix = jnp.diag(jnp.array([-1.0, transverse]))
+        coefficients = solve_autonomous_quadratic_graph_coefficients(
+            linear_matrix,
+            eigenvalue,
+            eigenvector,
+            order=2,
+            quadratic_term=quadratic_term,
+        )
+        return jnp.sum(coefficients**2)
+
+    gradient = jax.grad(loss_fn)(jnp.array(-3.0))
+
+    assert gradient.shape == ()
+    assert np.isfinite(np.asarray(gradient))

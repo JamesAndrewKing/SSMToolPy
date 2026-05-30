@@ -138,6 +138,9 @@ SSM/full 3D visualization in the colocated notebook.
 - `src/ssmtoolpy/core/multiindex.py`
 - `src/ssmtoolpy/core/polynomial.py`
 - `src/ssmtoolpy/core/invariance.py`
+- `src/ssmtoolpy/core/integrators.py`
+- `src/ssmtoolpy/core/graph.py`
+- `src/ssmtoolpy/core/trajectories.py`
 - `examples/planar_system/planar.py`
 - `examples/benchmark_ssm_1st_order/benchmark.py`
 - `examples/lorenz_1st_order/lorenz.py`
@@ -146,6 +149,8 @@ SSM/full 3D visualization in the colocated notebook.
 - `examples/lorenz_1st_order/example.py`
 - `tests/test_planar_system.py`
 - `tests/test_core_graph_solver.py`
+- `tests/test_core_graph.py`
+- `tests/test_core_integrators.py`
 - `tests/test_benchmark_ssm_1st_order.py`
 - `tests/test_lorenz_1st_order.py`
 - `tests/test_parameter_to_loss.py`
@@ -178,9 +183,21 @@ Current classification:
 - `examples/benchmark_ssm_1st_order/benchmark.py`: BenchamrkSSM1stOrder-specific
   duplicate coefficient helper.
 - `examples/lorenz_1st_order/lorenz.py`: Lorenz1stOrder-specific model,
-  trajectory, and fixed-choice graph helper code.
-- `src/ssmtoolpy/core/`: reusable polynomial, multi-index, and graph-solve
-  kernels used by example-local helpers and tests.
+  quadratic term, eigenpair setup, and thin workflow wrappers.
+- `src/ssmtoolpy/core/`: reusable polynomial, multi-index, graph-solve,
+  graph-evaluation, reduced-trajectory, trajectory-assembly, and fixed-step
+  integration kernels used by example-local helpers and tests.
+
+Lorenz boundary cleanup compared the Python implementation against reusable
+patterns in `SSMTool/src/misc/reduced_to_full.m`,
+`SSMTool/src/misc/reduced_to_full_traj.m`,
+`SSMTool/src/misc/transient_traj_on_auto_ssm.m`,
+`SSMTool/src/@DynamicalSystem/odefun.m`, and
+`SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`. The Lorenz model and
+quadratic term remain example-local; the fixed-time RK4 integrator,
+univariate graph evaluation, linear reduced trajectory, reduced-to-full graph
+lifting, two-sided curve/trajectory assembly, and fixed-choice quadratic graph
+coefficient solve now live in `src/ssmtoolpy/core/`.
 
 ## Testing Strategy
 
@@ -196,6 +213,9 @@ Current classification:
 - Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, trajectory,
   fixed-choice SSM graph coefficient, invariance residual, reduced trajectory,
   lifting, reduced/full comparison, and differentiability tests.
+- Core tests now cover the reusable RK4, graph evaluation/reduced trajectory,
+  two-sided trajectory assembly, and autonomous quadratic graph solver kernels
+  independently of Lorenz.
 
 ## Differentiability Strategy
 

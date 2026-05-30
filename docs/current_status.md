@@ -43,6 +43,15 @@
 - `src/ssmtoolpy/` now contains only reusable core kernels and no package
   imports from `examples/`; the obsolete `src/ssmtoolpy/systems/` directory has
   been removed entirely.
+- Reusable numerical kernels originally introduced for the Lorenz workflow have
+  been moved out of `examples/lorenz_1st_order/lorenz.py` into core modules:
+  - `src/ssmtoolpy/core/integrators.py`
+  - `src/ssmtoolpy/core/graph.py`
+  - `src/ssmtoolpy/core/trajectories.py`
+  - `src/ssmtoolpy/core/invariance.py::solve_autonomous_quadratic_graph_coefficients`
+- Lorenz-specific code now stays in `examples/lorenz_1st_order/lorenz.py` as
+  model definitions, the Lorenz quadratic term, eigenpair setup, and thin
+  workflow wrappers over reusable core kernels.
 - Revalidated after the layout correction:
   - Searching under `src/ssmtoolpy` for systems paths returns no files or
     directories.
@@ -54,9 +63,10 @@
   small-amplitude trajectory final state.
 - `examples/lorenz_1st_order/lorenz_1st_order.ipynb` executes end-to-end with
   `python -m jupyter nbconvert --to notebook --execute ...` and writes an
-  executed notebook to `/tmp/lorenz_1st_order.executed.ipynb`.
+  executed notebook to `/tmp/lorenz_1st_order.executed.ipynb`; nbformat emits a
+  non-fatal missing-cell-id warning.
 - `python -m compileall src tests examples` passes.
-- `python -m pytest` passes with 38 tests.
+- `python -m pytest` passes with 46 tests.
 - `python examples/planar_system/example.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 - `python examples/benchmark_ssm_1st_order/example.py` runs and reports zero
   difference from the analytical coefficients.
@@ -109,6 +119,15 @@
 - Lorenz now covers a fixed-choice differentiable SSM graph coefficient solve
   and lifted reduced prediction, but not a full adaptive SSM-reduction loss
   through mode selection or resonance classification.
+- The Lorenz reusable-kernel cleanup compared the example helper code against
+  `SSMTool/src/misc/reduced_to_full.m`,
+  `SSMTool/src/misc/reduced_to_full_traj.m`,
+  `SSMTool/src/misc/transient_traj_on_auto_ssm.m`,
+  `SSMTool/src/@DynamicalSystem/odefun.m`, and
+  `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`.
+- Reusable Lorenz kernels are now covered by dedicated core tests:
+  `tests/test_core_graph.py`, `tests/test_core_integrators.py`, and the
+  quadratic graph-solver tests in `tests/test_core_graph_solver.py`.
 - `Lorenz1stOrder` is complete for the tested fixed-choice Python/JAX
   live-script reproduction; remaining Lorenz limitations are generic/adaptive
   MATLAB class-stack limitations rather than missing live-script cells.

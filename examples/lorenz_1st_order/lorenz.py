@@ -9,9 +9,17 @@ MATLAB reference files:
 from __future__ import annotations
 
 import jax.numpy as jnp
-from jax import lax
 
+from ssmtoolpy.core.graph import (
+    evaluate_graph_trajectory,
+    evaluate_univariate_graph,
+    linear_reduced_trajectory,
+    two_sided_graph_curve,
+)
+from ssmtoolpy.core.integrators import fixed_step_rk4
+from ssmtoolpy.core.invariance import solve_autonomous_quadratic_graph_coefficients
 from ssmtoolpy.core.polynomial import evaluate_monomial_polynomial
+from ssmtoolpy.core.trajectories import integrate_two_sided_branches
 
 
 Array = jnp.ndarray
@@ -164,25 +172,9 @@ def solve_lorenz_unstable_graph_coefficients(
     eigenvalue, eigenvector, order, and nonresonant solve structure.
     """
 
-    if order < 1:
-        raise ValueError("order must be at least 1")
-
-    linear_matrix = jnp.asarray(linear_matrix)
-    eigenvector = jnp.asarray(eigenvector)
-    coefficients = [jnp.zeros(3, dtype=linear_matrix.dtype), eigenvector]
-    identity = jnp.eye(3, dtype=linear_matrix.dtype)
-
-    for degree in range(2, order + 1):
-        rhs = jnp.zeros(3, dtype=linear_matrix.dtype)
-        for left_degree in range(1, degree):
-            right_degree = degree - left_degree
-            rhs = rhs + _lorenz_quadratic_term(
-                coefficients[left_degree], coefficients[right_degree]
-            )
-        matrix = degree * eigenvalue * identity - linear_matrix
-        coefficients.append(jnp.linalg.solve(matrix, rhs))
-
-    return jnp.stack(coefficients)
+    return solve_autonomous_quadratic_graph_coefficients(
+        linear_matrix, eigenvalue, eigenvector, order, _lorenz_quadratic_term
+    )
 
 
 def lorenz_unstable_ssm_graph_coefficients(
@@ -218,11 +210,7 @@ def evaluate_lorenz_ssm_graph(reduced_coordinate: Array, coefficients: Array) ->
     coefficients for fixed coefficient length.
     """
 
-    reduced_coordinate = jnp.asarray(reduced_coordinate)
-    coefficients = jnp.asarray(coefficients)
-    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
-    powers = reduced_coordinate[..., None] ** degrees
-    return powers @ coefficients
+    return evaluate_univariate_graph(reduced_coordinate, coefficients)
 
 
 def lorenz_reduced_trajectory(
@@ -240,10 +228,7 @@ def lorenz_reduced_trajectory(
     coordinate and eigenvalue for fixed ``times``.
     """
 
-    times = jnp.asarray(times)
-    if times.ndim != 1:
-        raise ValueError("times must be a one-dimensional array")
-    return jnp.asarray(initial_reduced_coordinate) * jnp.exp(eigenvalue * times)
+    return linear_reduced_trajectory(initial_reduced_coordinate, times, eigenvalue)
 
 
 def lorenz_reduced_to_full_trajectory(
@@ -259,7 +244,7 @@ def lorenz_reduced_to_full_trajectory(
     coefficients for fixed coefficient length.
     """
 
-    return evaluate_lorenz_ssm_graph(reduced_coordinates, coefficients)
+    return evaluate_graph_trajectory(reduced_coordinates, coefficients)
 
 
 def lorenz_unstable_ssm_curve(
@@ -277,11 +262,7 @@ def lorenz_unstable_ssm_curve(
     length.
     """
 
-    positive_reduced = lorenz_reduced_trajectory(amplitude, times, eigenvalue)
-    negative_reduced = lorenz_reduced_trajectory(-amplitude, times, eigenvalue)
-    positive = lorenz_reduced_to_full_trajectory(positive_reduced, coefficients)
-    negative = lorenz_reduced_to_full_trajectory(negative_reduced, coefficients)
-    return jnp.concatenate([negative[::-1], positive], axis=0)
+    return two_sided_graph_curve(times, amplitude, eigenvalue, coefficients)
 
 
 def lorenz_full_unstable_trajectories(
@@ -303,9 +284,11 @@ def lorenz_full_unstable_trajectories(
     """
 
     initial = jnp.asarray(amplitude) * jnp.asarray(eigenvector)
-    positive = lorenz_rk4_trajectory(initial, times, sigma, rho, beta)
-    negative = lorenz_rk4_trajectory(-initial, times, sigma, rho, beta)
-    return jnp.concatenate([negative[::-1], positive], axis=0)
+
+    def trajectory(initial_state: Array) -> Array:
+        return lorenz_rk4_trajectory(initial_state, times, sigma, rho, beta)
+
+    return integrate_two_sided_branches(trajectory, initial)
 
 
 def lorenz_ssm_invariance_residual(
@@ -366,23 +349,10 @@ def lorenz_rk4_trajectory(
     """
 
     initial_state = jnp.asarray(initial_state)
-    times = jnp.asarray(times)
-
-    if times.ndim != 1:
-        raise ValueError("times must be a one-dimensional array")
     if initial_state.shape != (3,):
         raise ValueError("initial_state must have shape (3,)")
 
-    def step(state: Array, time_pair: Array) -> tuple[Array, Array]:
-        t0, t1 = time_pair
-        h = t1 - t0
-        k1 = lorenz_vector_field(state, sigma, rho, beta)
-        k2 = lorenz_vector_field(state + 0.5 * h * k1, sigma, rho, beta)
-        k3 = lorenz_vector_field(state + 0.5 * h * k2, sigma, rho, beta)
-        k4 = lorenz_vector_field(state + h * k3, sigma, rho, beta)
-        next_state = state + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
-        return next_state, next_state
+    def vector_field(state: Array) -> Array:
+        return lorenz_vector_field(state, sigma, rho, beta)
 
-    pairs = jnp.stack([times[:-1], times[1:]], axis=1)
-    _, tail = lax.scan(step, initial_state, pairs)
-    return jnp.concatenate([initial_state[None, :], tail], axis=0)
+    return fixed_step_rk4(vector_field, initial_state, times)

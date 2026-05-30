@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import jax.numpy as jnp
 
 
@@ -35,3 +37,49 @@ def solve_scalar_graph_coefficients(
     degrees = jnp.arange(forcing_coefficients.shape[0], dtype=forcing_coefficients.dtype)
     denominators = degrees * master_eigenvalue - transverse_eigenvalue
     return forcing_coefficients / denominators
+
+
+def solve_autonomous_quadratic_graph_coefficients(
+    linear_matrix: Array,
+    eigenvalue: Array | float,
+    eigenvector: Array,
+    order: int,
+    quadratic_term: Callable[[Array, Array], Array],
+) -> Array:
+    """Solve fixed-choice vector graph coefficients with quadratic nonlinearity.
+
+    The parameterization is ``W(p) = sum_k W[k] p**k`` with fixed scalar
+    reduced dynamics ``p_dot = eigenvalue * p``. Coefficients solve
+
+    ``(k * eigenvalue * I - A) W[k] = RHS[k]``
+
+    where ``RHS[k]`` is the degree-``k`` coefficient assembled from the
+    supplied bilinear ``quadratic_term``. This is a small reusable slice of the
+    nonresonant first-order autonomous solve in MATLAB
+    ``Aut_1stOrder_SSM.m``.
+
+    Differentiability: differentiable under nondegeneracy assumptions for fixed
+    eigenvalue, eigenvector, order, quadratic term, and nonsingular homological
+    systems.
+    """
+
+    if order < 1:
+        raise ValueError("order must be at least 1")
+
+    linear_matrix = jnp.asarray(linear_matrix)
+    eigenvector = jnp.asarray(eigenvector)
+    dimension = linear_matrix.shape[0]
+    coefficients = [jnp.zeros(dimension, dtype=linear_matrix.dtype), eigenvector]
+    identity = jnp.eye(dimension, dtype=linear_matrix.dtype)
+
+    for degree in range(2, order + 1):
+        rhs = jnp.zeros(dimension, dtype=linear_matrix.dtype)
+        for left_degree in range(1, degree):
+            right_degree = degree - left_degree
+            rhs = rhs + quadratic_term(
+                coefficients[left_degree], coefficients[right_degree]
+            )
+        matrix = degree * eigenvalue * identity - linear_matrix
+        coefficients.append(jnp.linalg.solve(matrix, rhs))
+
+    return jnp.stack(coefficients)

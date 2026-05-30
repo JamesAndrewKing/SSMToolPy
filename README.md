@@ -65,6 +65,12 @@ python -m pytest
 - `evaluate_monomial_polynomial`: differentiable for fixed exponents.
 - `solve_scalar_graph_coefficients`: differentiable under nonresonance
   assumptions.
+- `fixed_step_rk4`: differentiable for fixed time grids and pure vector fields.
+- `linear_reduced_trajectory`, `evaluate_univariate_graph`, and
+  `evaluate_graph_trajectory`: differentiable for fixed graph structure.
+- `solve_autonomous_quadratic_graph_coefficients`: differentiable under fixed
+  eigenpair, fixed truncation, supplied quadratic term, and nonsingular
+  homological systems.
 - `lorenz_vector_field`: differentiable polynomial JAX function.
 - `lorenz_rk4_trajectory`: differentiable fixed-time direct trajectory helper.
 - `solve_lorenz_unstable_graph_coefficients`: differentiable under fixed
