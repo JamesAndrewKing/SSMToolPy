@@ -111,6 +111,159 @@ def lorenz_linear_eigenvalues(
     return jnp.linalg.eigvals(a)
 
 
+def lorenz_unstable_eigenpair(
+    sigma: Array | float, rho: Array | float, beta: Array | float
+) -> tuple[Array, Array]:
+    """Return a deterministically normalized unstable eigenpair.
+
+    The Lorenz live script selects the one-dimensional unstable modal subspace.
+    This helper chooses the eigenvalue with largest real part and normalizes the
+    right eigenvector to unit Euclidean norm with positive first component.
+
+    Differentiability: not differentiable. Eigenvalue sorting/selection and
+    sign normalization are setup choices.
+    """
+
+    a, _ = build_lorenz_system(sigma, rho, beta)
+    eigenvalues, eigenvectors = jnp.linalg.eig(a)
+    index = jnp.argmax(jnp.real(eigenvalues))
+    eigenvalue = jnp.real(eigenvalues[index])
+    eigenvector = jnp.real(eigenvectors[:, index])
+    eigenvector = eigenvector / jnp.linalg.norm(eigenvector)
+    sign = jnp.where(eigenvector[0] < 0.0, -1.0, 1.0)
+    return eigenvalue, sign * eigenvector
+
+
+def _lorenz_quadratic_term(left: Array, right: Array) -> Array:
+    return jnp.array(
+        [
+            0.0,
+            -left[0] * right[2],
+            left[0] * right[1],
+        ]
+    )
+
+
+def solve_lorenz_unstable_graph_coefficients(
+    linear_matrix: Array,
+    eigenvalue: Array | float,
+    eigenvector: Array,
+    order: int,
+) -> Array:
+    """Solve fixed-choice Lorenz unstable SSM graph coefficients.
+
+    The parameterization is ``W(p) = sum_k W[k] p**k`` with fixed reduced
+    dynamics ``p_dot = eigenvalue * p``. Coefficients solve the nonresonant
+    first-order homological equations
+    ``(k * eigenvalue * I - A) W[k] = RHS[k]``.
+
+    The returned array has shape ``(order + 1, 3)`` with zero constant term and
+    ``W[1]`` equal to the supplied eigenvector.
+
+    Differentiability: differentiable under nondegeneracy assumptions for fixed
+    eigenvalue, eigenvector, order, and nonresonant solve structure.
+    """
+
+    if order < 1:
+        raise ValueError("order must be at least 1")
+
+    linear_matrix = jnp.asarray(linear_matrix)
+    eigenvector = jnp.asarray(eigenvector)
+    coefficients = [jnp.zeros(3, dtype=linear_matrix.dtype), eigenvector]
+    identity = jnp.eye(3, dtype=linear_matrix.dtype)
+
+    for degree in range(2, order + 1):
+        rhs = jnp.zeros(3, dtype=linear_matrix.dtype)
+        for left_degree in range(1, degree):
+            right_degree = degree - left_degree
+            rhs = rhs + _lorenz_quadratic_term(
+                coefficients[left_degree], coefficients[right_degree]
+            )
+        matrix = degree * eigenvalue * identity - linear_matrix
+        coefficients.append(jnp.linalg.solve(matrix, rhs))
+
+    return jnp.stack(coefficients)
+
+
+def lorenz_unstable_ssm_graph_coefficients(
+    sigma: Array | float, rho: Array | float, beta: Array | float, order: int
+) -> tuple[Array, Array, Array]:
+    """Return fixed-choice unstable Lorenz graph coefficients.
+
+    This combines the setup-only unstable eigenpair selection with the
+    nonresonant coefficient solve used for the first Lorenz SSM graph
+    subproblem.
+
+    Differentiability: not differentiable as a whole because eigenpair
+    selection and normalization are setup choices. The underlying fixed-choice
+    solve is differentiable under nondegeneracy assumptions.
+    """
+
+    a, _ = build_lorenz_system(sigma, rho, beta)
+    eigenvalue, eigenvector = lorenz_unstable_eigenpair(sigma, rho, beta)
+    coefficients = solve_lorenz_unstable_graph_coefficients(
+        a, eigenvalue, eigenvector, order
+    )
+    return eigenvalue, eigenvector, coefficients
+
+
+def evaluate_lorenz_ssm_graph(reduced_coordinate: Array, coefficients: Array) -> Array:
+    """Evaluate a one-dimensional Lorenz SSM graph parameterization.
+
+    ``coefficients[k]`` stores the full-space coefficient multiplying ``p**k``.
+    The result has shape ``(..., 3)`` for reduced coordinates with shape
+    ``(...)``.
+
+    Differentiability: differentiable with respect to reduced coordinates and
+    coefficients for fixed coefficient length.
+    """
+
+    reduced_coordinate = jnp.asarray(reduced_coordinate)
+    coefficients = jnp.asarray(coefficients)
+    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
+    powers = reduced_coordinate[..., None] ** degrees
+    return powers @ coefficients
+
+
+def lorenz_ssm_invariance_residual(
+    reduced_coordinate: Array,
+    eigenvalue: Array | float,
+    coefficients: Array,
+    sigma: Array | float,
+    rho: Array | float,
+    beta: Array | float,
+) -> Array:
+    """Evaluate the autonomous invariance residual for the Lorenz graph.
+
+    The residual is ``DW(p) * eigenvalue * p - f(W(p))``.
+
+    Differentiability: differentiable for fixed reduced dynamics and fixed
+    coefficient length.
+    """
+
+    reduced_coordinate = jnp.asarray(reduced_coordinate)
+    coefficients = jnp.asarray(coefficients)
+    degrees = jnp.arange(coefficients.shape[0], dtype=coefficients.dtype)
+    derivative_coefficients = degrees[:, None] * coefficients
+    derivative = jnp.sum(
+        derivative_coefficients[1:] * reduced_coordinate[..., None, None] ** (degrees[1:, None] - 1.0),
+        axis=-2,
+    )
+    state = evaluate_lorenz_ssm_graph(reduced_coordinate, coefficients)
+    x = state[..., 0]
+    y = state[..., 1]
+    z = state[..., 2]
+    vector_field = jnp.stack(
+        [
+            sigma * (y - x),
+            rho * x - y - x * z,
+            -beta * z + x * y,
+        ],
+        axis=-1,
+    )
+    return derivative * (eigenvalue * reduced_coordinate)[..., None] - vector_field
+
+
 def lorenz_rk4_trajectory(
     initial_state: Array,
     times: Array,

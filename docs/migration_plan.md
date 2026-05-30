@@ -30,8 +30,8 @@ Estimated complexity from smallest to largest useful regression targets:
 2. `BenchamrkSSM1stOrder/demo.mlx`: source-confirmed duplicate of
    PlanarSystem; reproduced as a named regression target.
 3. `Lorenz1stOrder/demo.mlx`: 3D first-order polynomial vector field with a
-   1D unstable SSM and trajectory comparison; first vector-field/eigenvalue
-   subproblem is reproduced.
+   1D unstable SSM and trajectory comparison; source model, direct trajectory,
+   and fixed-choice unstable SSM graph coefficient subproblems are reproduced.
 4. `TwoOscillators/demo.mlx`: small 2DOF second-order oscillator with forcing.
 5. `ThreeOscillators/ThreeOscillatorsBook.mlx`: small but broader nonlinear
    oscillator workflow.
@@ -76,6 +76,15 @@ SSM graph computation, reduced dynamics, trajectory computation, and
 visualization must not be skipped unless there is a documented hard blocker
 with a precise next fix. Setup-only notebooks are incomplete.
 
+This standard applies to every MATLAB example, demo, and `.mlx` workflow in
+the inventory. PlanarSystem and BenchamrkSSM1stOrder currently count as
+substantive partial reproductions because they implement and test SSM graph
+coefficient computations from the live scripts. Lorenz1stOrder currently counts
+as a substantive partial reproduction because it implements and tests direct
+trajectory computation plus a fixed-choice unstable SSM graph coefficient solve;
+it remains incomplete until reduced-to-full trajectory comparison and
+visualization are implemented.
+
 ## Completed PlanarSystem Dependency Closure
 
 - `SSMTool/examples/PlanarSystem/build_model.m`
@@ -117,10 +126,11 @@ for `coeffs(2,2:5)`.
 The implemented Lorenz closure covers the source model
 `B z_dot = A z + F(z)`, the MATLAB vector-field formula, the standard
 parameters `sigma=10`, `rho=28`, `beta=8/3`, the linear eigenvalues stated in
-the live script, and direct fixed-step Lorenz trajectory computation. Full
-unstable SSM graph computation, reduced dynamics prediction,
-`reduced_to_full_traj`, and corresponding SSM/full trajectory visualization
-remain incomplete.
+the live script, direct fixed-step Lorenz trajectory computation, and a
+fixed-choice unstable SSM graph coefficient solve through order 3 with
+invariance residual checks. Reduced dynamics trajectory generation,
+`reduced_to_full_traj`, reduced/full trajectory comparison, and corresponding
+SSM/full trajectory visualization remain incomplete.
 
 ## Current Python Skeleton
 
@@ -170,8 +180,9 @@ Example-local helpers or fixtures may live inside the example directory, but
 - Invariance residual test for the graph polynomial.
 - JAX transform tests using `jax.jacfwd`, `jax.grad`, and `jax.jit`.
 - Source-derived duplicate workflow tests for `BenchamrkSSM1stOrder`.
-- Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, and
-  trajectory/parameter-to-output differentiability tests.
+- Lorenz vector-field, model-matrix, nonlinear-term, eigenvalue, trajectory,
+  fixed-choice SSM graph coefficient, invariance residual, and differentiability
+  tests.
 
 ## Differentiability Strategy
 
@@ -200,11 +211,12 @@ Example-local helpers or fixtures may live inside the example directory, but
 
 1. Keep the PlanarSystem fixed-structure graph loss as the smallest
    differentiability sentinel.
-2. `Lorenz1stOrder` now has a parameterized source model and vector field so
-   system parameters flow into deterministic numerical outputs.
-3. When a minimal Lorenz SSM coefficient solve is available with
-   fixed mode/truncation choices, add a parameter-to-loss test that differentiates
-   through that solve.
+2. `Lorenz1stOrder` now has a parameterized source model, vector field, direct
+   trajectory helper, and fixed-choice SSM graph coefficient solve so system
+   parameters flow into deterministic numerical outputs and a fixed SSM graph.
+3. Next, add reduced-coordinate trajectory lifting so a small Lorenz
+   parameter-to-loss test can differentiate through
+   `parameter -> fixed graph coefficients -> lifted reduced prediction -> loss`.
 4. Only after fixed choices are tested, document which adaptive choices remain
    setup-only or piecewise differentiable.
 

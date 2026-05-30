@@ -6,11 +6,16 @@ import numpy as np
 
 from ssmtoolpy.systems.lorenz import (
     build_lorenz_system,
+    evaluate_lorenz_ssm_graph,
     lorenz_linear_eigenvalues,
     lorenz_nonlinear_coefficients,
     lorenz_nonlinear_exponents,
     lorenz_rk4_trajectory,
+    lorenz_ssm_invariance_residual,
+    lorenz_unstable_eigenpair,
+    lorenz_unstable_ssm_graph_coefficients,
     lorenz_vector_field,
+    solve_lorenz_unstable_graph_coefficients,
     standard_lorenz_parameters,
 )
 
@@ -147,5 +152,77 @@ def test_lorenz_rk4_trajectory_supports_jax_grad_for_fixed_times() -> None:
 
     gradient = jax.grad(loss_fn)(rho)
 
+    assert gradient.shape == ()
+    assert np.isfinite(np.asarray(gradient))
+
+
+def test_lorenz_unstable_eigenpair_selects_positive_mode() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    eigenvalue, eigenvector = lorenz_unstable_eigenpair(sigma, rho, beta)
+    a, _ = build_lorenz_system(sigma, rho, beta)
+
+    np.testing.assert_allclose(np.asarray(eigenvalue), 11.82772345, rtol=1e-8)
+    np.testing.assert_allclose(np.asarray(jnp.linalg.norm(eigenvector)), 1.0, rtol=1e-12)
+    assert np.asarray(eigenvector[0]) > 0.0
+    np.testing.assert_allclose(
+        np.asarray(a @ eigenvector),
+        np.asarray(eigenvalue * eigenvector),
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+
+def test_lorenz_fixed_choice_graph_coefficients_satisfy_invariance_residual() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    eigenvalue, _, coefficients = lorenz_unstable_ssm_graph_coefficients(
+        sigma, rho, beta, order=3
+    )
+    reduced = jnp.array([-1e-4, 0.0, 1e-4])
+    residual = lorenz_ssm_invariance_residual(
+        reduced, eigenvalue, coefficients, sigma, rho, beta
+    )
+
+    assert coefficients.shape == (4, 3)
+    np.testing.assert_allclose(np.asarray(residual), np.zeros((3, 3)), atol=2e-15)
+
+
+def test_lorenz_graph_evaluation_shape_and_linear_term() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    _, eigenvector, coefficients = lorenz_unstable_ssm_graph_coefficients(
+        sigma, rho, beta, order=3
+    )
+    reduced = jnp.array([0.0, 1e-6])
+    states = evaluate_lorenz_ssm_graph(reduced, coefficients)
+
+    assert states.shape == (2, 3)
+    np.testing.assert_allclose(np.asarray(states[0]), np.zeros(3), atol=0.0)
+    np.testing.assert_allclose(
+        np.asarray(states[1]),
+        np.asarray(1e-6 * eigenvector),
+        rtol=0.0,
+        atol=1e-12,
+    )
+
+
+def test_lorenz_fixed_choice_graph_solve_supports_jax_grad() -> None:
+    sigma, rho, beta = standard_lorenz_parameters()
+    a, _ = build_lorenz_system(sigma, rho, beta)
+    eigenvalue, eigenvector = lorenz_unstable_eigenpair(sigma, rho, beta)
+    reduced = jnp.array([1e-4, 2e-4])
+
+    def loss_fn(rho_value: jnp.ndarray) -> jnp.ndarray:
+        a_value, _ = build_lorenz_system(sigma, rho_value, beta)
+        coefficients = solve_lorenz_unstable_graph_coefficients(
+            a_value, eigenvalue, eigenvector, order=3
+        )
+        states = evaluate_lorenz_ssm_graph(reduced, coefficients)
+        return jnp.sum(states**2)
+
+    gradient = jax.grad(loss_fn)(jnp.array(rho))
+    coefficients = solve_lorenz_unstable_graph_coefficients(
+        a, eigenvalue, eigenvector, order=3
+    )
+
+    assert coefficients.shape == (4, 3)
     assert gradient.shape == ()
     assert np.isfinite(np.asarray(gradient))

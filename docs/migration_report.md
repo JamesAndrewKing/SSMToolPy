@@ -23,6 +23,12 @@
   - `lorenz_nonlinear_coefficients`
   - `lorenz_vector_field`
   - `lorenz_linear_eigenvalues`
+  - `lorenz_unstable_eigenpair`
+  - `solve_lorenz_unstable_graph_coefficients`
+  - `lorenz_unstable_ssm_graph_coefficients`
+  - `evaluate_lorenz_ssm_graph`
+  - `lorenz_ssm_invariance_residual`
+  - `lorenz_rk4_trajectory`
 
 ## Reproduced examples
 
@@ -36,8 +42,10 @@
   tests covering the misspelled source path.
 - `Lorenz1stOrder` first bounded numerical core from
   `SSMTool/examples/Lorenz1stOrder/demo.mlx`: source model, vector field,
-  standard-parameter linear eigenvalues, and parameter-to-output gradient smoke
-  test.
+  standard-parameter linear eigenvalues, direct fixed-step trajectory
+  computation, fixed-choice unstable SSM graph coefficients through order 3,
+  invariance residual checks, and parameter-to-output/fixed-graph gradient
+  smoke tests.
 
 ## Notebook migration status
 
@@ -48,10 +56,16 @@
   workflow migration; source-confirmed duplicate coefficient comparison is
   tested.
 - `examples/lorenz_1st_order/lorenz_1st_order.ipynb`: incomplete workflow
-  migration. It currently covers setup, eigenvalues, and direct trajectory
-  computation; it does not yet reproduce SSM graph computation, reduced
-  prediction, `reduced_to_full_traj`, or the MATLAB SSM/full trajectory
-  visualization.
+  migration. It currently covers setup, eigenvalues, fixed-choice SSM graph
+  coefficient computation, invariance residual checks, and direct trajectory
+  computation; it does not yet reproduce reduced-to-full trajectory mapping,
+  reduced/full prediction comparison, `reduced_to_full_traj`, or the MATLAB
+  SSM/full trajectory visualization.
+- The same standard applies to all current and future examples: PlanarSystem
+  and BenchamrkSSM1stOrder are substantive partial reproductions because they
+  implement tested SSM graph coefficient workflows; Lorenz1stOrder is a
+  substantive partial reproduction after the fixed-choice SSM graph solve, but
+  remains incomplete as a full live-script migration.
 
 ## Example layout
 
@@ -71,8 +85,9 @@
 - Full MATLAB `DynamicalSystem`, `SSM`, and `Manifold` class behavior.
 - General multi-dimensional autonomous coefficient solving.
 - Resonant reduced-dynamics extraction from `Aut_1stOrder_RedDyn.m`.
-- Lorenz unstable SSM graph computation, `reduced_to_full_traj`, and ODE
-  trajectory comparison from the second half of `demo.mlx`.
+- Lorenz reduced-to-full trajectory mapping, reduced/full ODE trajectory
+  comparison, and 3D SSM/full visualization from the second half of
+  `demo.mlx`.
 - Continuation, FRC/FRS, plotting, and external finite-element workflows.
 - Notebook execution checks; no notebook execution tooling was configured before
   this batch.
@@ -90,8 +105,9 @@
   fixed-structure PlanarSystem smoke test. It does not yet include adaptive
   mode selection, a full MATLAB-faithful SSM construction, or nonlinear reduced
   dynamics prediction.
-- Lorenz currently covers parameter-to-output differentiability only, not an
-  SSM-reduction loss.
+- Lorenz now covers a fixed-choice differentiable graph coefficient solve, but
+  not a full parameter-to-loss SSM-reduction workflow with lifted reduced
+  trajectory prediction.
 - Setup-only notebooks are now explicitly classified as incomplete. A notebook
   is complete only when it reproduces the meaningful numerical and visual
   MATLAB `.mlx` workflow or documents a hard blocker.
@@ -223,6 +239,23 @@
 - `sed -n '1,260p' docs/migration_report.md`
 - `sed -n '1,220p' README.md`
 - `git status --short`
+- `git status --short`
+- `sed -n '1,240p' docs/current_status.md`
+- `sed -n '1,260p' docs/migration_plan.md`
+- `sed -n '1,320p' docs/migration_inventory.md`
+- `sed -n '1,320p' docs/migration_report.md`
+- `sed -n '320,460p' docs/migration_report.md`
+- `sed -n '1,440p' AGENTS.md`
+- `sed -n '1,260p' README.md`
+- `sed -n '1,260p' src/ssmtoolpy/systems/lorenz.py`
+- `sed -n '1,220p' tests/test_lorenz_1st_order.py`
+- `sed -n '220,340p' tests/test_lorenz_1st_order.py`
+- `sed -n '260,420p' src/ssmtoolpy/systems/lorenz.py`
+- `python examples/planar_system/example.py`
+- `python examples/benchmark_ssm_1st_order/example.py`
+- `python examples/lorenz_1st_order/example.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
 
 ## Failures and debugging notes
 
@@ -270,6 +303,23 @@
 - `python -m pytest tests/test_lorenz_1st_order.py` passed: 6 tests.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 25 tests.
+- Implemented the next substantive `Lorenz1stOrder` workflow step: a
+  fixed-choice unstable SSM graph coefficient solve through order 3, graph
+  evaluation, and invariance residual checks. This moves Lorenz beyond setup
+  and smoke trajectory work, while still leaving reduced-to-full trajectory
+  comparison and visualization incomplete.
+- Updated AGENTS and migration docs so the substantive-workflow rule applies to
+  all examples, demos, and `.mlx` workflows, not only Lorenz.
+- `python -m pytest tests/test_lorenz_1st_order.py` passed: 13 tests.
+- `python examples/planar_system/example.py` passed and reported zero maximum
+  difference from the `demo.mlx` coefficient formula.
+- `python examples/benchmark_ssm_1st_order/example.py` passed and reported zero
+  difference from the analytical coefficients.
+- `python examples/lorenz_1st_order/example.py` passed and printed SSM graph
+  coefficients through order 3, maximum invariance residual
+  `5.421010862427522e-20`, and the small-amplitude RK4 final state.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 32 tests.
 - Final example tree inspection confirmed the colocated directories contain
   `README.md`, `example.py`, and their notebooks.
 - Corrected the notebook migration standard globally: `.mlx` notebooks are not
@@ -302,18 +352,16 @@
 ### Target
 
 - Continue full `Lorenz1stOrder/demo.mlx` reproduction by implementing the
-  smallest fixed-choice unstable SSM graph coefficient subproblem and the first
-  tested reduced-to-full trajectory mapping needed for the MATLAB visualization.
+  tested reduced-coordinate trajectory, reduced-to-full SSM lifting, and first
+  reduced/full trajectory comparison needed for the MATLAB visualization.
 
 ### MATLAB files involved
 
 - `SSMTool/examples/Lorenz1stOrder/build_model.m`
 - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
 - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
-- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
-- `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m`
-- `SSMTool/src/@Manifold/private/coeffs_setup.m`
 - `SSMTool/src/misc/reduced_to_full_traj.m`
+- `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
 
 ### MATLAB examples or `.mlx` workflows involved
 
@@ -322,64 +370,64 @@
 ### Planned Python modules
 
 - `src/ssmtoolpy/systems/lorenz.py`
-- Possibly `src/ssmtoolpy/core/invariance.py` for a small fixed-choice vector
-  homological solve if the current scalar graph helper is insufficient.
-- Possibly `src/ssmtoolpy/core/trajectories.py` if reduced-to-full trajectory
-  mapping is reusable beyond Lorenz.
-- Do not implement adaptive mode selection, resonance classification, or full
-  `compute_whisker`.
+- Add only small trajectory/lifting helpers required by the Lorenz notebook,
+  either in `lorenz.py` if Lorenz-specific or in a tiny reusable core module if
+  the same helper is immediately exercised by existing tests.
+- Do not implement adaptive mode selection, resonance classification, or the
+  full MATLAB object workflow.
 
 ### Planned examples or notebooks
 
-- Update `examples/lorenz_1st_order/example.py` to print the fixed-choice graph
-  coefficient residual or coefficient summary and a reduced/full trajectory
-  comparison summary.
+- Update `examples/lorenz_1st_order/example.py` to print a reduced/full
+  trajectory comparison summary from tested arrays.
 - Update `examples/lorenz_1st_order/lorenz_1st_order.ipynb` with the tested
-  SSM graph, reduced trajectory mapping, direct trajectory comparison, and
-  corresponding visualization if the numerical core is ready.
+  SSM graph, reduced trajectory lifting, direct trajectory comparison, and a 3D
+  visualization corresponding to the MATLAB live script.
 
 ### Expected tests
 
-- Fixed eigenpair selection picks the positive eigenvalue near `11.8277`.
-- Computed graph coefficients satisfy the autonomous invariance equation
-  through the chosen order on small deterministic amplitudes.
-- A finite scalar fixed-choice Lorenz graph loss has a finite gradient with
-  respect to one continuous parameter if the solve is kept differentiable.
-- Reduced-to-full trajectory mapping has deterministic shape/correctness tests
-  against small hand-derived cases.
-- Existing Lorenz vector-field/eigenvalue, PlanarSystem, Benchmark, and core
-  tests remain passing.
+- Reduced coordinate trajectory `p(t) = p0 * exp(lambda * t)` has deterministic
+  values and shape for fixed times.
+- Reduced-to-full Lorenz trajectory lifting through the tested SSM graph has
+  deterministic shape/correctness tests.
+- Small-amplitude lifted SSM trajectory and direct RK4 full-system trajectory
+  agree to a documented tolerance over a short fixed interval.
+- A finite scalar fixed-choice Lorenz lifted-trajectory loss has a finite
+  gradient with respect to one continuous parameter, without differentiating
+  through eigenpair selection.
+- Existing PlanarSystem, BenchamrkSSM1stOrder, Lorenz graph, and core tests
+  remain passing.
 
 ### Known risks
 
-- The full Lorenz `.mlx` workflow computes a 1D unstable SSM and compares
-  trajectories; that is larger than the first bounded target.
-- Eigenvector normalization/sign conventions can change discontinuously; freeze
-  deterministic normalization outside any differentiable loss.
-- Inner-resonance logic is deferred; this batch should document that the chosen
-  standard-parameter case is nonresonant for the tested orders.
+- Agreement between lifted SSM and direct full trajectory is local and
+  amplitude/time-step sensitive; use small deterministic amplitudes and document
+  any tolerance.
+- MATLAB `reduced_to_full_traj.m` includes general class/object conventions;
+  port only the Lorenz one-dimensional graph behavior required by the active
+  workflow.
 - Visualization should be generated from tested arrays; plotting equivalence is
   secondary to numerical reproducibility.
 
 ### Differentiability concerns
 
-- Differentiability should be through fixed choices: selected eigenpair,
-  truncation order, normalization convention, and nonresonant solve structure.
-- Do not claim differentiability through eigenvalue sorting or adaptive mode
-  selection.
-- Homological linear systems are differentiable only while nonsingular and
-  reasonably conditioned.
+- Differentiate only through fixed choices: selected eigenpair, truncation
+  order, normalization convention, and nonresonant solve structure.
+- Do not claim differentiability through eigenvalue sorting, adaptive mode
+  selection, resonance classification, or notebook plotting.
+- Homological linear systems and lifted predictions are differentiable only
+  while the fixed nonresonant systems remain nonsingular and well-conditioned.
 
 ### Acceptance criteria
 
-- A minimal fixed-choice Lorenz graph coefficient computation is implemented
-  and tested without adding broad MATLAB compatibility wrappers.
-- Invariance residual tests pass for the chosen order.
-- A first reduced-to-full trajectory mapping needed by the Lorenz live-script
-  visualization is implemented and tested.
-- The Lorenz notebook is updated only to the extent that the tested SSM and
-  trajectory data support it; otherwise remaining visual steps are explicitly
-  documented as incomplete.
+- Reduced-coordinate trajectory and reduced-to-full SSM lifting for the Lorenz
+  workflow are implemented and tested.
+- A short reduced/full trajectory comparison is implemented and tested from
+  deterministic arrays.
+- The Lorenz example and notebook consume the tested numerical core and include
+  the corresponding 3D trajectory visualization data/plot.
+- All current examples remain classified against the substantive workflow
+  standard; no setup-only or smoke-only example is marked complete.
 - Any differentiable public function added has a JAX transform or
   parameter-to-loss-style test.
 - `python -m compileall src tests examples` and `python -m pytest` pass.

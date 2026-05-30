@@ -324,6 +324,51 @@ Notebook acceptance requires:
 
 If a notebook cannot be executed in the current environment, document the reason and ensure its numerical core is still tested.
 
+### Valid stopping points for example and `.mlx` migration batches
+
+For any MATLAB example, demo, or `.mlx` workflow migration, setup-only work is not a valid stopping point.
+
+The following are not acceptable final batch endpoints unless there is a genuine, documented hard blocker:
+
+* imports only,
+* parameter definitions only,
+* vector field evaluation only,
+* linearization only,
+* eigenvalue computation only,
+* one smoke trajectory only,
+* notebook scaffolding only,
+* markdown placeholders only,
+* documentation updates only,
+* tests that cover only preliminary setup.
+
+A migration batch should stop only after one of the following has happened:
+
+1. A substantive MATLAB workflow step has been implemented and tested.
+2. The example or notebook now executes a previously missing SSM-related computation.
+3. The example or notebook now reproduces a previously missing MATLAB figure or trajectory visualization from tested numerical outputs.
+4. A real technical blocker is reached and documented precisely.
+
+For SSMTool examples, substantive workflow steps include:
+
+* SSM graph computation,
+* autonomous or non-autonomous SSM coefficient computation,
+* reduced dynamics computation,
+* reduced prediction,
+* lifting or reconstruction from reduced coordinates,
+* full-system trajectory simulation,
+* reduced/full trajectory comparison,
+* continuation or parameter sweep used by the original example,
+* forced-response or frequency-response computation if present in the MATLAB example,
+* visualization of SSM graphs, manifolds, trajectories, predictions, sweeps, or response curves,
+* parameter-to-loss gradient computation.
+
+If the current batch reaches only setup, eigenvalues, or a smoke trajectory, continue implementing the next substantive workflow step before stopping.
+
+This rule applies to all examples, demos, and `.mlx` workflows, not only the
+currently active target. Every status file and next-batch plan must classify
+each reproduced example against this same substantive-workflow bar.
+
+
 ---
 
 ## 8. Example-first migration process
