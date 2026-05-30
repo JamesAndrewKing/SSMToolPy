@@ -368,8 +368,11 @@
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 32 tests.
 - Revalidated the layout on the repeated layout request:
-  `src/ssmtoolpy/systems/` contains no `.py` source modules, only generated
-  `__pycache__` files. The package source imports no example-local code.
+  `src/ssmtoolpy/systems/` contained no `.py` source modules, only generated
+  `__pycache__` files. Removed that generated leftover directory entirely. The
+  package source imports no example-local code.
+- Verified that searching under `src/ssmtoolpy` for systems paths returns no
+  files or directories.
 - Revalidation `python -m compileall src tests examples` passed.
 - Revalidation `python -m pytest` passed: 32 tests.
 - Layout restructuring baseline passed before edits:

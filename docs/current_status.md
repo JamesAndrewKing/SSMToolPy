@@ -37,12 +37,13 @@
   - `examples/benchmark_ssm_1st_order/benchmark.py`
   - `examples/lorenz_1st_order/lorenz.py`
 - `src/ssmtoolpy/` now contains only reusable core kernels and no package
-  imports from `examples/`.
+  imports from `examples/`; the obsolete `src/ssmtoolpy/systems/` directory has
+  been removed entirely.
 - Revalidated after the layout correction:
-  - `find src/ssmtoolpy -path '*systems*' -type f` shows only generated
-    `__pycache__` files, no source modules.
-  - `rg "ssmtoolpy\.systems|src/ssmtoolpy/systems"` finds only historical
-    command-log entries in `docs/migration_report.md`.
+  - Searching under `src/ssmtoolpy` for systems paths returns no files or
+    directories.
+  - Searches for obsolete package imports return no active source, example,
+    test, README, or planning-doc hits.
 - `python examples/lorenz_1st_order/example.py` runs and prints the expected
   vector field, sorted eigenvalues, SSM graph coefficient summary, invariance
   residual, and small-amplitude trajectory final state.
