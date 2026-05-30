@@ -198,6 +198,12 @@
 - `python -c "import ssmtoolpy; print(ssmtoolpy.__all__)"`
 - `git status --short`
 - `rg "src/ssmtoolpy/systems|ssmtoolpy\\.systems" -n README.md AGENTS.md docs/current_status.md docs/migration_plan.md docs/migration_inventory.md examples tests src`
+- `find src/ssmtoolpy -maxdepth 3 -type f | sort`
+- `find src/ssmtoolpy -path '*systems*' -type f | sort`
+- `rg "ssmtoolpy\\.systems|src/ssmtoolpy/systems|systems/planar|systems/lorenz" -n README.md AGENTS.md docs examples tests src`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '/^## Next recommended batch/,$p' docs/migration_report.md`
 - `sed -n '1,380p' AGENTS.md`
 - `sed -n '1,280p' docs/current_status.md`
 - `sed -n '1,360p' docs/migration_plan.md`
@@ -361,6 +367,11 @@
   `5.421010862427522e-20`, and the small-amplitude RK4 final state.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 32 tests.
+- Revalidated the layout on the repeated layout request:
+  `src/ssmtoolpy/systems/` contains no `.py` source modules, only generated
+  `__pycache__` files. The package source imports no example-local code.
+- Revalidation `python -m compileall src tests examples` passed.
+- Revalidation `python -m pytest` passed: 32 tests.
 - Layout restructuring baseline passed before edits:
   `python -m compileall src tests examples` and `python -m pytest` with 32
   tests.

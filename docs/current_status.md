@@ -38,6 +38,11 @@
   - `examples/lorenz_1st_order/lorenz.py`
 - `src/ssmtoolpy/` now contains only reusable core kernels and no package
   imports from `examples/`.
+- Revalidated after the layout correction:
+  - `find src/ssmtoolpy -path '*systems*' -type f` shows only generated
+    `__pycache__` files, no source modules.
+  - `rg "ssmtoolpy\.systems|src/ssmtoolpy/systems"` finds only historical
+    command-log entries in `docs/migration_report.md`.
 - `python examples/lorenz_1st_order/example.py` runs and prints the expected
   vector field, sorted eigenvalues, SSM graph coefficient summary, invariance
   residual, and small-amplitude trajectory final state.
