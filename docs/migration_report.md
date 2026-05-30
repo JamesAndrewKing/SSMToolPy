@@ -41,10 +41,23 @@
 
 ## Reproduced notebooks
 
-- `notebooks/planar_system.ipynb` calls the tested PlanarSystem numerical API.
-- `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
+- `examples/planar_system/planar_system.ipynb` calls the tested PlanarSystem numerical API.
+- `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
   comparison and calls the same tested numerical API.
-- `notebooks/lorenz_1st_order.ipynb` mirrors the tested Lorenz numerical core.
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb` mirrors the tested Lorenz numerical core.
+
+## Example layout
+
+- Reorganized all currently reproduced examples into colocated directories:
+  - `examples/planar_system/`
+  - `examples/benchmark_ssm_1st_order/`
+  - `examples/lorenz_1st_order/`
+- Each directory now contains `README.md`, `example.py`, and the matching
+  notebook when applicable.
+- The former top-level `notebooks/` directory was removed because the notebooks
+  now live beside their examples.
+- Reusable numerical code remains under `src/ssmtoolpy/`; `ssmtoolpy` does not
+  import from `examples`.
 
 ## Skipped or deferred items
 
@@ -87,6 +100,30 @@
 - `git status --short`
 - `python -m compileall src tests examples`
 - `python -m pytest`
+- `find examples -maxdepth 3 -type f | sort`
+- `git status --short`
+- `sed -n '1,420p' AGENTS.md`
+- `find examples notebooks src/ssmtoolpy tests docs -maxdepth 3 -type f | sort`
+- `git status --short`
+- `sed -n '1,220p' examples/planar_system.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `mkdir -p examples/planar_system`
+- `mkdir -p examples/benchmark_ssm_1st_order examples/lorenz_1st_order`
+- `rg "examples/|notebooks/|planar_system.py|benchmark_ssm_1st_order.py|lorenz_1st_order.py|planar_system.ipynb|benchmark_ssm_1st_order.ipynb|lorenz_1st_order.ipynb" README.md docs tests src AGENTS.md`
+- `mv examples/planar_system.py examples/planar_system/example.py`
+- `mv examples/benchmark_ssm_1st_order.py examples/benchmark_ssm_1st_order/example.py`
+- `mv examples/lorenz_1st_order.py examples/lorenz_1st_order/example.py`
+- `mv notebooks/planar_system.ipynb examples/planar_system/planar_system.ipynb`
+- `mv notebooks/benchmark_ssm_1st_order.ipynb examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`
+- `mv notebooks/lorenz_1st_order.ipynb examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+- `rmdir notebooks`
+- `rg "notebooks/|examples/[a-z_]+\\.py|examples/<target_example>\\.py|examples/planar_system.py|examples/benchmark_ssm_1st_order.py|examples/lorenz_1st_order.py" AGENTS.md README.md docs tests src examples`
+- `python examples/planar_system/example.py`
+- `python examples/benchmark_ssm_1st_order/example.py`
+- `python examples/lorenz_1st_order/example.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
 - `sed -n '1,380p' AGENTS.md`
 - `sed -n '1,280p' docs/current_status.md`
 - `sed -n '1,360p' docs/migration_plan.md`
@@ -99,7 +136,7 @@
 - `sed -n '1,220p' SSMTool/examples/Lorenz1stOrder/lorenz.m`
 - `unzip -p SSMTool/examples/Lorenz1stOrder/demo.mlx matlab/document.xml`
 - `sed -n '1,160p' src/ssmtoolpy/systems/__init__.py`
-- `python examples/lorenz_1st_order.py`
+- `python examples/lorenz_1st_order/example.py`
 - `python -m compileall src tests examples`
 - `python -m pytest tests/test_lorenz_1st_order.py`
 - `python -m compileall src tests examples`
@@ -108,7 +145,7 @@
 - `sed -n '1,220p' SSMTool/examples/PlanarSystem/build_model.m`
 - `unzip -p SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx matlab/document.xml`
 - `unzip -p SSMTool/examples/PlanarSystem/demo.mlx matlab/document.xml`
-- `python examples/benchmark_ssm_1st_order.py`
+- `python examples/benchmark_ssm_1st_order/example.py`
 - `python -m compileall src tests examples`
 - `python -m pytest`
 - `sed -n '1,360p' AGENTS.md`
@@ -144,7 +181,7 @@
 - `mkdir -p docs src/ssmtoolpy/core src/ssmtoolpy/systems tests examples notebooks`
 - `python -m compileall src tests examples`
 - `python -m pytest`
-- `python examples/planar_system.py`
+- `python examples/planar_system/example.py`
 - `git status --short`
 - `find docs src tests examples notebooks -maxdepth 3 -type f`
 - `sed -n '1,260p' AGENTS.md`
@@ -161,11 +198,11 @@
 - `sed -n '1,220p' SSMTool/src/@Manifold/private/multi_nsumk.m`
 - `sed -n '1,240p' src/ssmtoolpy/systems/planar.py`
 - `sed -n '1,240p' tests/test_planar_system.py`
-- `sed -n '1,200p' examples/planar_system.py`
+- `sed -n '1,200p' examples/planar_system/example.py`
 - `sed -n '1,120p' src/ssmtoolpy/__init__.py`
 - `python -m compileall src tests examples`
 - `python -m pytest`
-- `python examples/planar_system.py`
+- `python examples/planar_system/example.py`
 - `sed -n '1,260p' docs/migration_report.md`
 - `sed -n '1,220p' README.md`
 - `git status --short`
@@ -180,7 +217,7 @@
   derivative evaluation in the test.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 6 tests.
-- `python examples/planar_system.py` passed and printed
+- `python examples/planar_system/example.py` passed and printed
   `[0.34494897, 0.52659863, 1.11237244, -9.89897949]` for `a2..a5`.
 - Baseline for this batch passed before edits:
   `python -m compileall src tests examples` and `python -m pytest` with 6 tests.
@@ -190,13 +227,13 @@
   corrected.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 14 tests.
-- `python examples/planar_system.py` passed and reported zero maximum
+- `python examples/planar_system/example.py` passed and reported zero maximum
   difference from the `demo.mlx` coefficient formula.
 - Baseline for the Benchmark batch passed before edits:
   `python -m compileall src tests examples` and `python -m pytest` with 14 tests.
 - `BenchamrkSSM1stOrder/build_model.m` was confirmed source-equivalent to
   `PlanarSystem/build_model.m` after whitespace normalization.
-- `python examples/benchmark_ssm_1st_order.py` passed and reported zero
+- `python examples/benchmark_ssm_1st_order/example.py` passed and reported zero
   difference from the analytical coefficients.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 18 tests.
@@ -210,10 +247,26 @@
 - Final `python -m pytest` passed: 19 tests.
 - Baseline for the Lorenz batch passed before edits:
   `python -m compileall src tests examples` and `python -m pytest` with 19 tests.
-- `python examples/lorenz_1st_order.py` passed and printed vector field
+- `python examples/lorenz_1st_order/example.py` passed and printed vector field
   `[10, 23, -6]` at `[1, 2, 3]` with sorted eigenvalues
   `[-22.82772345, -2.66666667, 11.82772345]`.
 - `python -m pytest tests/test_lorenz_1st_order.py` passed: 6 tests.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 25 tests.
+- Final example tree inspection confirmed the colocated directories contain
+  `README.md`, `example.py`, and their notebooks.
+- Baseline for the example layout batch passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 25 tests.
+- Reorganized all currently reproduced examples into colocated directories under
+  `examples/<example_name>/` and removed the empty top-level `notebooks/`
+  directory.
+- `python examples/planar_system/example.py` passed and reported zero maximum
+  difference from the `demo.mlx` coefficient formula.
+- `python examples/benchmark_ssm_1st_order/example.py` passed and reported zero
+  difference from the analytical coefficients.
+- `python examples/lorenz_1st_order/example.py` passed and printed vector field
+  `[10, 23, -6]` at `[1, 2, 3]` with sorted eigenvalues
+  `[-22.82772345, -2.66666667, 11.82772345]`.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 25 tests.
 
@@ -249,9 +302,9 @@
 
 ### Planned examples or notebooks
 
-- Update `examples/lorenz_1st_order.py` to print the fixed-choice graph
+- Update `examples/lorenz_1st_order/example.py` to print the fixed-choice graph
   coefficient residual or coefficient summary.
-- Update `notebooks/lorenz_1st_order.ipynb` only if the tested numerical core
+- Update `examples/lorenz_1st_order/lorenz_1st_order.ipynb` only if the tested numerical core
   remains concise.
 
 ### Expected tests

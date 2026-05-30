@@ -161,17 +161,27 @@ Tests should live under:
 tests/
 ```
 
-Examples should live under:
+Examples should live under one directory per reproduced MATLAB example or
+workflow:
 
 ```text
-examples/
+examples/<example_name>/
+  README.md
+  example.py
+  <example_name>.ipynb   # if a notebook is applicable
+  fixtures/              # optional small local fixtures or assets
+  helpers.py             # optional, only for one-off example-local helpers
 ```
 
-Jupyter notebooks translated from `.mlx` should live under:
+Jupyter notebooks translated from `.mlx` workflows should be colocated with
+their corresponding example:
 
 ```text
-notebooks/
+examples/<example_name>/<example_name>.ipynb
 ```
+
+Use a top-level `notebooks/` directory only with a documented reason. Do not
+put one-off scripts directly under `examples/`.
 
 Documentation should live under:
 
@@ -268,10 +278,11 @@ Do not treat plotting equivalence as the primary acceptance criterion. Numerical
 
 ## 7. `.mlx` to Jupyter notebook migration
 
-All relevant MATLAB `.mlx` example workflows should eventually have corresponding Jupyter notebooks under:
+All relevant MATLAB `.mlx` example workflows should eventually have
+corresponding Jupyter notebooks colocated with their example under:
 
 ```text
-notebooks/
+examples/<example_name>/
 ```
 
 For each `.mlx` file:
@@ -281,7 +292,7 @@ For each `.mlx` file:
 3. Separate numerical computation from presentation.
 4. Implement the numerical core in `src/ssmtoolpy/`.
 5. Add tests for the numerical core.
-6. Create a notebook that calls the tested Python API.
+6. Create a notebook in the example directory that calls the tested Python API.
 7. Keep notebooks readable and concise.
 8. Avoid hiding core numerical logic inside notebooks.
 
@@ -304,8 +315,8 @@ For each target example:
 2. Determine its minimal MATLAB dependency closure.
 3. Record the closure in `docs/migration_inventory.md`.
 4. Implement the smallest Python/JAX subset needed to run the example or its first meaningful numerical subproblem.
-5. Create a Python example under `examples/`.
-6. Create a Jupyter notebook under `notebooks/` if the source is a `.mlx` workflow or if an interactive workflow is useful.
+5. Create a Python example under `examples/<example_name>/example.py`.
+6. Create a Jupyter notebook under `examples/<example_name>/` if the source is a `.mlx` workflow or if an interactive workflow is useful.
 7. Create a pytest regression test under `tests/`.
 8. Verify deterministic numerical output.
 9. Add JAX transform tests for differentiable functions introduced by the example.
@@ -487,7 +498,7 @@ python -m compileall src tests examples
 python -m pytest
 ```
 
-If `notebooks/` exists and notebook execution tooling is configured, run notebook checks as appropriate. If notebook execution is not configured, make sure the notebook numerical core is covered by pytest.
+If colocated example notebooks exist and notebook execution tooling is configured, run notebook checks as appropriate. If notebook execution is not configured, make sure each notebook's numerical core is covered by pytest.
 
 When differentiable functions are added or changed, also run targeted differentiability tests, for example:
 
@@ -498,7 +509,7 @@ python -m pytest tests/test_differentiability.py
 If examples exist, run relevant examples directly:
 
 ```bash
-python examples/<target_example>.py
+python examples/<target_example>/example.py
 ```
 
 Do not weaken assertions merely to make tests pass.

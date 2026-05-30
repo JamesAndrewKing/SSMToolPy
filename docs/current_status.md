@@ -20,7 +20,7 @@
   - `src/ssmtoolpy/core/invariance.py`
 - PlanarSystem and core regression/JAX transform tests pass.
 - `BenchamrkSSM1stOrder` is reproduced as a source-confirmed duplicate of PlanarSystem.
-- `python examples/benchmark_ssm_1st_order.py` runs and reports zero difference from the analytical coefficients.
+- `python examples/benchmark_ssm_1st_order/example.py` runs and reports zero difference from the analytical coefficients.
 - A minimal fixed-structure parameter-to-loss gradient smoke test exists in `tests/test_parameter_to_loss.py`.
   It differentiates `decay -> PlanarSystem graph coefficients -> graph prediction -> scalar loss`.
 - `Lorenz1stOrder` first bounded numerical core is implemented:
@@ -28,10 +28,10 @@
   - MATLAB `lorenz.m` vector field
   - standard-parameter linear eigenvalue regression
   - parameter-to-output loss gradient smoke test
-- `python examples/lorenz_1st_order.py` runs and prints the expected vector field and sorted eigenvalues.
+- `python examples/lorenz_1st_order/example.py` runs and prints the expected vector field and sorted eigenvalues.
 - `python -m compileall src tests examples` passes.
 - `python -m pytest` passes with 25 tests.
-- `python examples/planar_system.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
+- `python examples/planar_system/example.py` runs and reports zero difference from the `demo.mlx` coefficient formula.
 
 ## Failing
 
@@ -41,8 +41,8 @@
 ## Active target
 
 - MATLAB example or `.mlx` workflow: `SSMTool/examples/Lorenz1stOrder/demo.mlx`
-- Python example: `examples/lorenz_1st_order.py`
-- Jupyter notebook: `notebooks/lorenz_1st_order.ipynb`
+- Python example: `examples/lorenz_1st_order/example.py`
+- Jupyter notebook: `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
 - Required MATLAB files:
   - `SSMTool/examples/Lorenz1stOrder/build_model.m`
   - `SSMTool/examples/Lorenz1stOrder/lorenz.m`
@@ -62,3 +62,8 @@
 - The Benchmark source directory intentionally uses the spelling `BenchamrkSSM1stOrder`.
 - Parameter-to-loss differentiability is now an explicit migration objective. Current coverage is only the minimal PlanarSystem fixed-structure smoke test.
 - Lorenz currently covers parameter-to-output differentiability, not an SSM-reduction loss.
+- Example layout has been normalized for all currently reproduced examples:
+  - `examples/planar_system/`
+  - `examples/benchmark_ssm_1st_order/`
+  - `examples/lorenz_1st_order/`
+- Each reproduced example directory contains `README.md`, `example.py`, and its colocated notebook.

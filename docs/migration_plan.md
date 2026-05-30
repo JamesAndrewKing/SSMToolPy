@@ -48,9 +48,9 @@ Estimated complexity from smallest to largest useful regression targets:
 
 ## `.mlx` to Notebook Ordering
 
-1. `PlanarSystem/demo.mlx` -> `notebooks/planar_system.ipynb`
-2. `BenchamrkSSM1stOrder/demo.mlx` -> `notebooks/benchmark_ssm_1st_order.ipynb`
-3. `Lorenz1stOrder/demo.mlx` -> `notebooks/lorenz_1st_order.ipynb`
+1. `PlanarSystem/demo.mlx` -> `examples/planar_system/planar_system.ipynb`
+2. `BenchamrkSSM1stOrder/demo.mlx` -> `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`
+3. `Lorenz1stOrder/demo.mlx` -> `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
 4. `TwoOscillators/demo.mlx`
 5. Remaining low-dimensional oscillator workflows
 6. FE, COMSOL, FRS, DAE, and parametric resonance workflows
@@ -107,17 +107,34 @@ and ODE trajectory comparisons remain deferred.
 - `src/ssmtoolpy/core/invariance.py`
 - `src/ssmtoolpy/systems/planar.py`
 - `src/ssmtoolpy/systems/lorenz.py`
-- `examples/planar_system.py`
-- `examples/benchmark_ssm_1st_order.py`
-- `examples/lorenz_1st_order.py`
+- `examples/planar_system/example.py`
+- `examples/benchmark_ssm_1st_order/example.py`
+- `examples/lorenz_1st_order/example.py`
 - `tests/test_planar_system.py`
 - `tests/test_core_graph_solver.py`
 - `tests/test_benchmark_ssm_1st_order.py`
 - `tests/test_lorenz_1st_order.py`
 - `tests/test_parameter_to_loss.py`
-- `notebooks/planar_system.ipynb`
-- `notebooks/benchmark_ssm_1st_order.ipynb`
-- `notebooks/lorenz_1st_order.ipynb`
+- `examples/planar_system/planar_system.ipynb`
+- `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb`
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+
+## Example Layout
+
+Each reproduced MATLAB example or `.mlx` workflow should live under
+`examples/<example_name>/` with its executable script, README, and notebook
+colocated:
+
+```text
+examples/<example_name>/
+  README.md
+  example.py
+  <example_name>.ipynb
+```
+
+Reusable differentiable numerical code remains under `src/ssmtoolpy/`.
+Example-local helpers or fixtures may live inside the example directory, but
+`ssmtoolpy` must not import from `examples`.
 
 ## Testing Strategy
 

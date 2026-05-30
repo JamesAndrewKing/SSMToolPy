@@ -25,21 +25,21 @@ print(coefficients[2:6])
 ## Reproduced Examples
 
 - `PlanarSystem`: numerical core from `demo.mlx`, covered by
-  `examples/planar_system.py`, `tests/test_planar_system.py`, and
+  `examples/planar_system/example.py`, `tests/test_planar_system.py`, and
   `tests/test_core_graph_solver.py`.
 - `BenchamrkSSM1stOrder`: source-confirmed duplicate of `PlanarSystem`, covered
-  by `examples/benchmark_ssm_1st_order.py` and
+  by `examples/benchmark_ssm_1st_order/example.py` and
   `tests/test_benchmark_ssm_1st_order.py`.
 - `Lorenz1stOrder`: first bounded numerical core from `demo.mlx`, covered by
-  `examples/lorenz_1st_order.py` and `tests/test_lorenz_1st_order.py`.
+  `examples/lorenz_1st_order/example.py` and `tests/test_lorenz_1st_order.py`.
 
 ## Reproduced Notebooks
 
-- `notebooks/planar_system.ipynb` mirrors the tested PlanarSystem numerical
+- `examples/planar_system/planar_system.ipynb` mirrors the tested PlanarSystem numerical
   core.
-- `notebooks/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
+- `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` mirrors the Benchmark coefficient
   comparison from the MATLAB live script.
-- `notebooks/lorenz_1st_order.ipynb` mirrors the tested Lorenz vector-field and
+- `examples/lorenz_1st_order/lorenz_1st_order.ipynb` mirrors the tested Lorenz vector-field and
   eigenvalue checks.
 
 ## Testing

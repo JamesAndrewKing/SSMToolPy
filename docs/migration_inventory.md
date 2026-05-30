@@ -15,9 +15,9 @@
 
 | Workflow | MATLAB files | Estimated complexity | Usefulness | Planned Python destination | Planned notebook | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| PlanarSystem | `build_model.m`, `demo.mlx` | very low | high first regression | `src/ssmtoolpy/systems/planar.py`, `examples/planar_system.py` | `notebooks/planar_system.ipynb` | solver-derived coefficient subproblem implemented |
-| BenchamrkSSM1stOrder | `build_model.m`, `demo.mlx` | very low | confirms PlanarSystem duplicate workflow | reuses PlanarSystem module, `examples/benchmark_ssm_1st_order.py` | `notebooks/benchmark_ssm_1st_order.ipynb` | reproduced as source-confirmed duplicate |
-| Lorenz1stOrder | `build_model.m`, `lorenz.m`, `demo.mlx` | low-medium | canonical first-order nonlinear system | `systems/lorenz.py`, `examples/lorenz_1st_order.py` | `notebooks/lorenz_1st_order.ipynb` | vector-field/eigenvalue subproblem implemented |
+| PlanarSystem | `build_model.m`, `demo.mlx` | very low | high first regression | `src/ssmtoolpy/systems/planar.py`, `examples/planar_system/example.py` | `examples/planar_system/planar_system.ipynb` | solver-derived coefficient subproblem implemented |
+| BenchamrkSSM1stOrder | `build_model.m`, `demo.mlx` | very low | confirms PlanarSystem duplicate workflow | reuses PlanarSystem module, `examples/benchmark_ssm_1st_order/example.py` | `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` | reproduced as source-confirmed duplicate |
+| Lorenz1stOrder | `build_model.m`, `lorenz.m`, `demo.mlx` | low-medium | canonical first-order nonlinear system | `systems/lorenz.py`, `examples/lorenz_1st_order/example.py` | `examples/lorenz_1st_order/lorenz_1st_order.ipynb` | vector-field/eigenvalue subproblem implemented |
 | TwoOscillators | `build_model.m`, `demo.mlx`, `demoSymbolicExpression.mlx` | medium | small second-order oscillator with forcing | later systems module | later notebooks | deferred |
 | ThreeOscillators | `build_model.m`, `ThreeOscillators.m`, `ThreeOscillatorsBook.mlx` | medium | low-dimensional oscillator regression | later systems module | later notebook | deferred |
 | TwoToOneIRs | `build_model.m`, `demo_torus_cart.mlx` | medium-high | internal resonance coverage | later | later notebook | deferred |
@@ -40,10 +40,10 @@
 | `SSMTool/examples/PlanarSystem/build_model.m` | example model | `A`, `B`, and polynomial terms `x^2..x^5` in second equation | `build_planar_system`, `planar_vector_field` | implemented | tested | differentiable |
 | `SSMTool/examples/PlanarSystem/demo.mlx` | `.mlx` workflow | closed-form graph coefficients and graph parameterization | `planar_ssm_graph_coefficients`, `evaluate_planar_ssm_graph` | implemented as subproblem | tested | differentiable under nondegeneracy / differentiable |
 | `SSMTool/examples/BenchamrkSSM1stOrder/build_model.m` | example model | same `A`, `B`, and polynomial terms as PlanarSystem | reuse `src/ssmtoolpy/systems/planar.py` | reproduced as duplicate | tested | differentiable through reused PlanarSystem functions |
-| `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx` | `.mlx` workflow | analytical coefficient comparison `coeffs(2,2:5)` | `examples/benchmark_ssm_1st_order.py`, `notebooks/benchmark_ssm_1st_order.ipynb` | reproduced as duplicate | tested | differentiable through reused PlanarSystem functions |
+| `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx` | `.mlx` workflow | analytical coefficient comparison `coeffs(2,2:5)` | `examples/benchmark_ssm_1st_order/example.py`, `examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb` | reproduced as duplicate | tested | differentiable through reused PlanarSystem functions |
 | `SSMTool/examples/Lorenz1stOrder/build_model.m` | example model | parameterized `A`, `B`, and quadratic terms `-xz`, `xy` | `src/ssmtoolpy/systems/lorenz.py` | first subproblem implemented | tested | differentiable with respect to continuous parameters except integer term setup |
 | `SSMTool/examples/Lorenz1stOrder/lorenz.m` | example vector field | `sigma*(y-x)`, `rho*x-y-x*z`, `-beta*z+x*y` | `lorenz_vector_field` | implemented | tested | differentiable |
-| `SSMTool/examples/Lorenz1stOrder/demo.mlx` | `.mlx` workflow | standard parameters and linear eigenvalues at origin | `examples/lorenz_1st_order.py`, `notebooks/lorenz_1st_order.ipynb` | first subproblem implemented | tested | vector field differentiable; eigenvalues under nondegeneracy |
+| `SSMTool/examples/Lorenz1stOrder/demo.mlx` | `.mlx` workflow | standard parameters and linear eigenvalues at origin | `examples/lorenz_1st_order/example.py`, `examples/lorenz_1st_order/lorenz_1st_order.ipynb` | first subproblem implemented | tested | vector field differentiable; eigenvalues under nondegeneracy |
 | `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m` | core | nonresonant solve `(B*K_Lambda - A) W_k = RHS` | `solve_scalar_graph_coefficients` | scalar graph slice implemented | tested | differentiable under nonresonance |
 | `SSMTool/src/@Manifold/private/Aut_1stOrder_RedDyn.m` | core | resonance detection before coefficient solve | no public API yet | nonresonant PlanarSystem case documented only | not directly tested | not yet verified |
 | `SSMTool/src/@Manifold/private/coeffs_setup.m` | core | master eigenvalue and multi-index setup | `multiindices_of_total_degree` | tiny index slice implemented | tested | not differentiable |
@@ -62,6 +62,6 @@
 | `src/ssmtoolpy/systems/lorenz.py::build_lorenz_system` | parameterized full-system definition stage | differentiable with respect to continuous parameters | Lorenz model tests |
 | `src/ssmtoolpy/systems/lorenz.py::lorenz_vector_field` | parameter-to-output prediction stage before SSM reduction | differentiable | vector-field tests, JAX jacobian test, parameter-to-output smoke |
 | `src/ssmtoolpy/systems/lorenz.py::lorenz_linear_eigenvalues` | setup/diagnostic stage for modal analysis | differentiable under eigenvalue nondegeneracy but not used in differentiable workflow yet | eigenvalue regression only |
-| `examples/*.py` | presentation and smoke execution | not part of differentiable core | example execution checks |
-| `notebooks/*.ipynb` | presentation | not part of differentiable core | numerical core covered by pytest |
+| `examples/<example_name>/example.py` | presentation and smoke execution | not part of differentiable core | example execution checks |
+| `examples/<example_name>/*.ipynb` | presentation | not part of differentiable core | numerical core covered by pytest |
 | `SSMTool/src/@SSM/*`, `SSMTool/src/@Manifold/*` not yet ported | future full SSM construction | mixed; expected split between setup-only and differentiable fixed-choice solves | not yet verified |
