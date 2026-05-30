@@ -6,8 +6,10 @@ Source workflow:
 - `SSMTool/examples/BenchamrkSSM1stOrder/demo.mlx`
 
 The MATLAB directory name is intentionally misspelled upstream. This workflow
-is reproduced as a source-confirmed duplicate of `PlanarSystem`; the reusable
-numerical code is shared through `src/ssmtoolpy/systems/planar.py`.
+is reproduced as a source-confirmed duplicate of `PlanarSystem`; its
+example-local coefficient helper lives in
+`examples/benchmark_ssm_1st_order/benchmark.py` and calls reusable core kernels
+from `src/ssmtoolpy/core/`.
 
 Run:
 

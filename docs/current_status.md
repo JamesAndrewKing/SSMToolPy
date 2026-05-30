@@ -31,6 +31,13 @@
   - fixed-choice unstable SSM graph coefficients through order 3
   - SSM graph invariance residual checks
   - parameter-to-output loss gradient smoke test
+- Example-specific system/model helpers have been moved out of
+  `src/ssmtoolpy/`:
+  - `examples/planar_system/planar.py`
+  - `examples/benchmark_ssm_1st_order/benchmark.py`
+  - `examples/lorenz_1st_order/lorenz.py`
+- `src/ssmtoolpy/` now contains only reusable core kernels and no package
+  imports from `examples/`.
 - `python examples/lorenz_1st_order/example.py` runs and prints the expected
   vector field, sorted eigenvalues, SSM graph coefficient summary, invariance
   residual, and small-amplitude trajectory final state.
@@ -72,7 +79,8 @@
   - `SSMTool/examples/Lorenz1stOrder/demo.mlx`
   - `SSMTool/src/@Manifold/private/Aut_1stOrder_SSM.m`
 - Required Python modules:
-  - `src/ssmtoolpy/systems/lorenz.py`
+  - `examples/lorenz_1st_order/lorenz.py`
+  - reusable kernels under `src/ssmtoolpy/core/`
 - Acceptance criteria:
   - Lorenz fixed-choice unstable SSM graph coefficients are implemented with
     docstrings and differentiability classifications.
@@ -98,6 +106,8 @@
   - `examples/planar_system/`
   - `examples/benchmark_ssm_1st_order/`
   - `examples/lorenz_1st_order/`
+- Example-specific model/helper code now lives beside each example; tests use
+  explicit path handling to import those helpers.
 - Each reproduced example directory contains `README.md`, `example.py`, and its colocated notebook.
 - Notebook completion now requires reproducing the meaningful MATLAB `.mlx`
   workflow, not only source setup or eigenvalue checks.

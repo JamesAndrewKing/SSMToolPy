@@ -9,14 +9,16 @@
   - `collect_univariate_coefficients`
 - `src/ssmtoolpy/core/invariance.py`
   - `solve_scalar_graph_coefficients`
-- `src/ssmtoolpy/systems/planar.py`
+- `examples/planar_system/planar.py`
   - `build_planar_system`
   - `planar_vector_field`
   - `planar_nonlinear_exponents`
   - `planar_nonlinear_coefficients`
   - `planar_ssm_graph_coefficients`
   - `evaluate_planar_ssm_graph`
-- `src/ssmtoolpy/systems/lorenz.py`
+- `examples/benchmark_ssm_1st_order/benchmark.py`
+  - `benchmark_ssm_graph_coefficients`
+- `examples/lorenz_1st_order/lorenz.py`
   - `standard_lorenz_parameters`
   - `build_lorenz_system`
   - `lorenz_nonlinear_exponents`
@@ -79,6 +81,12 @@
   now live beside their examples.
 - Reusable numerical code remains under `src/ssmtoolpy/`; `ssmtoolpy` does not
   import from `examples`.
+- Example-specific model and workflow helpers now live beside their examples:
+  - `examples/planar_system/planar.py`
+  - `examples/benchmark_ssm_1st_order/benchmark.py`
+  - `examples/lorenz_1st_order/lorenz.py`
+- `src/ssmtoolpy/` now exposes only reusable core kernels and does not export
+  PlanarSystem, Benchmark, or Lorenz example helpers.
 
 ## Skipped or deferred items
 
@@ -157,6 +165,39 @@
 - `python examples/lorenz_1st_order/example.py`
 - `python -m compileall src tests examples`
 - `python -m pytest`
+- `find src/ssmtoolpy -maxdepth 3 -type f`
+- `find examples -maxdepth 3 -type f`
+- `rg "ssmtoolpy\\.systems|systems\\.planar|systems\\.lorenz|from ssmtoolpy import|import ssmtoolpy" -n src tests examples docs README.md`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `sed -n '1,260p' src/ssmtoolpy/__init__.py`
+- `sed -n '1,260p' src/ssmtoolpy/systems/__init__.py`
+- `sed -n '1,320p' src/ssmtoolpy/systems/planar.py`
+- `sed -n '1,360p' src/ssmtoolpy/systems/lorenz.py`
+- `sed -n '1,220p' pyproject.toml`
+- `sed -n '1,220p' src/ssmtoolpy/core/__init__.py`
+- `sed -n '1,220p' tests/test_planar_system.py`
+- `sed -n '1,180p' tests/test_benchmark_ssm_1st_order.py`
+- `sed -n '1,180p' tests/test_parameter_to_loss.py`
+- `sed -n '1,180p' examples/planar_system/example.py`
+- `sed -n '1,160p' examples/benchmark_ssm_1st_order/example.py`
+- `rg "ssmtoolpy\\.systems|from ssmtoolpy import|import ssmtoolpy" examples tests src docs README.md`
+- `rg "planar_ssm_graph_coefficients|benchmark_ssm_graph_coefficients|ssmtoolpy\\.systems" examples/benchmark_ssm_1st_order/benchmark_ssm_1st_order.ipynb examples/planar_system/planar_system.ipynb examples/lorenz_1st_order/lorenz_1st_order.ipynb`
+- `rg "ssmtoolpy\\.systems|systems/planar|systems/lorenz|src/ssmtoolpy/systems|systems\\.planar|systems\\.lorenz" -n src tests examples docs README.md AGENTS.md`
+- `sed -n '1,130p' docs/migration_inventory.md`
+- `sed -n '1,230p' docs/migration_plan.md`
+- `sed -n '1,120p' docs/current_status.md`
+- `sed -n '1,130p' examples/planar_system/README.md`
+- `sed -n '1,130p' examples/benchmark_ssm_1st_order/README.md`
+- `python examples/planar_system/example.py`
+- `python examples/benchmark_ssm_1st_order/example.py`
+- `python examples/lorenz_1st_order/example.py`
+- `python -m compileall src tests examples`
+- `python -m pytest`
+- `find src/ssmtoolpy/systems -type f -name '*.py'`
+- `python -c "import ssmtoolpy; print(ssmtoolpy.__all__)"`
+- `git status --short`
+- `rg "src/ssmtoolpy/systems|ssmtoolpy\\.systems" -n README.md AGENTS.md docs/current_status.md docs/migration_plan.md docs/migration_inventory.md examples tests src`
 - `sed -n '1,380p' AGENTS.md`
 - `sed -n '1,280p' docs/current_status.md`
 - `sed -n '1,360p' docs/migration_plan.md`
@@ -320,6 +361,28 @@
   `5.421010862427522e-20`, and the small-amplitude RK4 final state.
 - Final `python -m compileall src tests examples` passed.
 - Final `python -m pytest` passed: 32 tests.
+- Layout restructuring baseline passed before edits:
+  `python -m compileall src tests examples` and `python -m pytest` with 32
+  tests.
+- Moved example-specific model/helper source out of `src/ssmtoolpy/systems/`
+  into colocated example directories:
+  `examples/planar_system/planar.py`,
+  `examples/benchmark_ssm_1st_order/benchmark.py`, and
+  `examples/lorenz_1st_order/lorenz.py`.
+- Removed the `ssmtoolpy.systems` package source exports; `ssmtoolpy` now
+  imports only reusable core kernels and does not import from `examples/`.
+- Tests now use explicit path handling for example-local helpers.
+- `find src/ssmtoolpy/systems -type f -name '*.py'` produced no output,
+  confirming no source modules remain in the systems folder.
+- `python examples/planar_system/example.py` passed and reported zero maximum
+  difference from the `demo.mlx` coefficient formula.
+- `python examples/benchmark_ssm_1st_order/example.py` passed and reported zero
+  difference from the analytical coefficients.
+- `python examples/lorenz_1st_order/example.py` passed and printed SSM graph
+  coefficients through order 3, maximum invariance residual
+  `5.421010862427522e-20`, and the small-amplitude RK4 final state.
+- Final `python -m compileall src tests examples` passed.
+- Final `python -m pytest` passed: 32 tests.
 - Final example tree inspection confirmed the colocated directories contain
   `README.md`, `example.py`, and their notebooks.
 - Corrected the notebook migration standard globally: `.mlx` notebooks are not
@@ -369,10 +432,10 @@
 
 ### Planned Python modules
 
-- `src/ssmtoolpy/systems/lorenz.py`
+- `examples/lorenz_1st_order/lorenz.py`
 - Add only small trajectory/lifting helpers required by the Lorenz notebook,
-  either in `lorenz.py` if Lorenz-specific or in a tiny reusable core module if
-  the same helper is immediately exercised by existing tests.
+  either in the example-local Lorenz helper or in a tiny reusable core module
+  if the same helper is immediately exercised by multiple examples/tests.
 - Do not implement adaptive mode selection, resonance classification, or the
   full MATLAB object workflow.
 

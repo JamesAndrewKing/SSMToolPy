@@ -149,11 +149,18 @@ Use:
 * `jaxtyping` or standard type annotations where useful
 * `ruff` or similar formatting/linting if already present; otherwise use simple PEP 8 style
 
-Prefer implementation under:
+Prefer reusable library implementation under:
 
 ```text
 src/ssmtoolpy/
 ```
+
+Do not put example-specific model definitions, workflow helpers, plotting,
+fixtures, or notebook support code under `src/ssmtoolpy/`. If code is only used
+by one reproduced MATLAB example or `.mlx` workflow, keep it in that example's
+directory under `examples/<example_name>/`. The `ssmtoolpy` package must not
+import from `examples/`; examples and tests may import example-local helpers
+with explicit path handling.
 
 Tests should live under:
 

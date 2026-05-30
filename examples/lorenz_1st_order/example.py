@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from ssmtoolpy.systems.lorenz import (
+from lorenz import (
     evaluate_lorenz_ssm_graph,
     lorenz_linear_eigenvalues,
     lorenz_rk4_trajectory,

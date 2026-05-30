@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+import sys
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ssmtoolpy.systems.planar import (
+EXAMPLE_DIR = Path(__file__).resolve().parents[1] / "examples" / "planar_system"
+sys.path.insert(0, str(EXAMPLE_DIR))
+
+from planar import (  # noqa: E402
     evaluate_planar_ssm_graph,
     planar_ssm_graph_coefficients,
 )

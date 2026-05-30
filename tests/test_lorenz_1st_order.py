@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+import sys
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ssmtoolpy.systems.lorenz import (
+EXAMPLE_DIR = Path(__file__).resolve().parents[1] / "examples" / "lorenz_1st_order"
+sys.path.insert(0, str(EXAMPLE_DIR))
+
+from lorenz import (  # noqa: E402
     build_lorenz_system,
     evaluate_lorenz_ssm_graph,
     lorenz_linear_eigenvalues,

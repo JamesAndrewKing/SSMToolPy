@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from ssmtoolpy.systems.planar import planar_ssm_graph_coefficients
+from benchmark import benchmark_ssm_graph_coefficients
 
 
 def main() -> None:
-    coefficients = planar_ssm_graph_coefficients(order=8)
+    coefficients = benchmark_ssm_graph_coefficients(order=8)
     reference = jnp.array([1.0 / (jnp.sqrt(24.0) - degree) for degree in range(2, 6)])
     difference = coefficients[2:6] - reference
 

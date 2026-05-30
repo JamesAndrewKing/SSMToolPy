@@ -2,16 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import sys
 import zipfile
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ssmtoolpy.systems.planar import planar_ssm_graph_coefficients
-
 
 ROOT = Path(__file__).resolve().parents[1]
+EXAMPLE_DIR = ROOT / "examples" / "benchmark_ssm_1st_order"
+sys.path.insert(0, str(EXAMPLE_DIR))
+
+from benchmark import benchmark_ssm_graph_coefficients  # noqa: E402
+
 PLANAR_DIR = ROOT / "SSMTool" / "examples" / "PlanarSystem"
 BENCHMARK_DIR = ROOT / "SSMTool" / "examples" / "BenchamrkSSM1stOrder"
 
@@ -43,7 +47,7 @@ def test_benchmark_mlx_documents_same_analytical_coefficients() -> None:
 
 
 def test_benchmark_coefficients_match_planar_solver_regression() -> None:
-    coefficients = planar_ssm_graph_coefficients(order=8)
+    coefficients = benchmark_ssm_graph_coefficients(order=8)
     expected = np.zeros(9)
     for degree in range(2, 6):
         expected[degree] = 1.0 / (np.sqrt(24.0) - degree)
@@ -53,7 +57,7 @@ def test_benchmark_coefficients_match_planar_solver_regression() -> None:
 
 def test_benchmark_named_regression_keeps_jax_transform_path() -> None:
     gradient = jax.grad(
-        lambda decay: jnp.sum(planar_ssm_graph_coefficients(5, decay))
+        lambda decay: jnp.sum(benchmark_ssm_graph_coefficients(5, decay))
     )(jnp.sqrt(24.0))
     expected = -sum(1.0 / (np.sqrt(24.0) - degree) ** 2 for degree in range(2, 6))
 

@@ -138,8 +138,9 @@ SSM/full trajectory visualization remain incomplete.
 - `src/ssmtoolpy/core/multiindex.py`
 - `src/ssmtoolpy/core/polynomial.py`
 - `src/ssmtoolpy/core/invariance.py`
-- `src/ssmtoolpy/systems/planar.py`
-- `src/ssmtoolpy/systems/lorenz.py`
+- `examples/planar_system/planar.py`
+- `examples/benchmark_ssm_1st_order/benchmark.py`
+- `examples/lorenz_1st_order/lorenz.py`
 - `examples/planar_system/example.py`
 - `examples/benchmark_ssm_1st_order/example.py`
 - `examples/lorenz_1st_order/example.py`
@@ -166,8 +167,20 @@ examples/<example_name>/
 ```
 
 Reusable differentiable numerical code remains under `src/ssmtoolpy/`.
-Example-local helpers or fixtures may live inside the example directory, but
-`ssmtoolpy` must not import from `examples`.
+Example-local helpers, model definitions, plotting, fixtures, and notebook
+support code live inside the example directory when they are only used by that
+example. `ssmtoolpy` must not import from `examples`.
+
+Current classification:
+
+- `examples/planar_system/planar.py`: PlanarSystem-specific model and graph
+  helper code.
+- `examples/benchmark_ssm_1st_order/benchmark.py`: BenchamrkSSM1stOrder-specific
+  duplicate coefficient helper.
+- `examples/lorenz_1st_order/lorenz.py`: Lorenz1stOrder-specific model,
+  trajectory, and fixed-choice graph helper code.
+- `src/ssmtoolpy/core/`: reusable polynomial, multi-index, and graph-solve
+  kernels used by example-local helpers and tests.
 
 ## Testing Strategy
 

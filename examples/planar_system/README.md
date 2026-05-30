@@ -6,9 +6,9 @@ Source workflow:
 - `SSMTool/examples/PlanarSystem/demo.mlx`
 
 This example reproduces the tested graph SSM coefficient subproblem for the
-two-dimensional polynomial system. The reusable numerical code lives in
-`src/ssmtoolpy/systems/planar.py`; this directory contains only the executable
-example and colocated notebook.
+two-dimensional polynomial system. The PlanarSystem-specific model and graph
+helpers live in `examples/planar_system/planar.py`; reusable polynomial and
+homological-solve kernels live under `src/ssmtoolpy/core/`.
 
 Run:
 
@@ -16,4 +16,4 @@ Run:
 python examples/planar_system/example.py
 ```
 
-The notebook `planar_system.ipynb` uses the same tested numerical API.
+The notebook `planar_system.ipynb` uses the same tested example-local helper.

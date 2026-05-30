@@ -16,7 +16,11 @@ python -m pip install -e ".[test]"
 ## Quickstart
 
 ```python
-from ssmtoolpy.systems.planar import planar_ssm_graph_coefficients
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path("examples/planar_system").resolve()))
+from planar import planar_ssm_graph_coefficients
 
 coefficients = planar_ssm_graph_coefficients(order=8)
 print(coefficients[2:6])

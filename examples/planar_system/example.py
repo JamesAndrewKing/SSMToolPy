@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 
-from ssmtoolpy.systems.planar import (
-    evaluate_planar_ssm_graph,
-    planar_ssm_graph_coefficients,
-)
+from planar import evaluate_planar_ssm_graph, planar_ssm_graph_coefficients
 
 
 def main() -> None:
